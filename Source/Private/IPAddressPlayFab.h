@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "IPAddress.h"
 #include "OnlineSubsystemPlayFabPackage.h"
 

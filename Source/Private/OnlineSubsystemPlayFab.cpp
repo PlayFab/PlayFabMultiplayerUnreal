@@ -95,8 +95,8 @@ bool FOnlineSubsystemPlayFab::Init()
 		SocketSubsystem->RegisterDelegates(this);
 	}
 
-	// Initialize Lobby
-	InitializeLobby();
+	// Initialize Multiplayer
+	InitializeMultiplayer();
 
 	// Construct OSS interfaces such that dependent interfaces are initialized first.
 	PlayFabLobbyInterface = MakeShared<FPlayFabLobby, ESPMode::ThreadSafe>(this);
@@ -136,9 +136,9 @@ void FOnlineSubsystemPlayFab::InitializePlayFabParty()
 	}
 }
 
-void FOnlineSubsystemPlayFab::InitializeLobby()
+void FOnlineSubsystemPlayFab::InitializeMultiplayer()
 {
-	if (!bLobbyInitialized)
+	if (!bMultiplayerInitialized)
 	{
 		UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::InitializeLobby"));
 		
@@ -155,7 +155,7 @@ void FOnlineSubsystemPlayFab::InitializeLobby()
 		}
 
 		UE_LOG_ONLINE(Display, TEXT("FOnlineSubsystemPlayFab MultiPlayerManager with PlayFab TitleID %s"), *TitleID);
-		bLobbyInitialized = true;
+		bMultiplayerInitialized = true;
 	}
 }
 
@@ -173,14 +173,14 @@ void FOnlineSubsystemPlayFab::SetMemoryCallbacks()
 		{
 			UE_LOG_ONLINE(Error, TEXT("FOnlineSubsystemPlayFab::SetMemoryCallbacks failed: %s"), *GetPartyErrorMessage(Err));
 		}
-
+		
 		bMemoryCallbacksSet = true;
 	}
 }
 
 void FOnlineSubsystemPlayFab::CleanUpPlayFab()
 {
-	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::CleanUpPlayFab PartyInitialized %d, LobbyInitialized %d"), bPartyInitialized, bLobbyInitialized);
+	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::CleanUpPlayFab PartyInitialized %d, LobbyInitialized %d"), bPartyInitialized, bMultiplayerInitialized);
 
 	if (bPartyInitialized)
 	{
@@ -194,9 +194,9 @@ void FOnlineSubsystemPlayFab::CleanUpPlayFab()
 		PartyManager::GetSingleton().Cleanup();
 	}
 
-	if (bLobbyInitialized)
+	if (bMultiplayerInitialized)
 	{
-		bLobbyInitialized = false;
+		bMultiplayerInitialized = false;
 		HRESULT Hr = PFMultiplayerUninitialize(MultiplayerHandle);
 		if (FAILED(Hr))
 		{
@@ -527,7 +527,8 @@ bool FOnlineSubsystemPlayFab::CreateAndConnectToPlayFabPartyNetwork()
 		return false;
 	}
 
-	FString NewNetworkId = FGuid::NewGuid().ToString();
+	const FString NewNetworkId = FGuid::NewGuid().ToString();
+	const std::string NetworkIdStr = TCHAR_TO_UTF8(*NewNetworkId);
 
 	PartyNetworkConfiguration PlayFabPartyNetworkConfig = {};
 
@@ -536,11 +537,12 @@ bool FOnlineSubsystemPlayFab::CreateAndConnectToPlayFabPartyNetwork()
 	PlayFabPartyNetworkConfig.maxDevicesPerUserCount = MaxDevicesPerUserCount;		
 	PlayFabPartyNetworkConfig.maxEndpointsPerDeviceCount = MaxEndpointsPerDeviceCount;	
 	PlayFabPartyNetworkConfig.maxUserCount = MaxUserCount;					
-	PlayFabPartyNetworkConfig.maxUsersPerDeviceCount = MaxUsersPerDeviceCount;		
+	PlayFabPartyNetworkConfig.maxUsersPerDeviceCount = MaxUsersPerDeviceCount;	
+	PlayFabPartyNetworkConfig.directPeerConnectivityOptions = PartyDirectPeerConnectivityOptions::None;
 
 	// Setup the network invitation configuration to use the network id as an invitation id and allow anyone to join.
 	PartyInvitationConfiguration PartyInviteConfig{
-		TCHAR_TO_UTF8(*NewNetworkId),			// Invitation identifier
+		NetworkIdStr.c_str(),					// Invitation identifier
 		PartyInvitationRevocability::Anyone,	// Revocability
 		0,										// Authorized user count
 		nullptr									// Authorized user list

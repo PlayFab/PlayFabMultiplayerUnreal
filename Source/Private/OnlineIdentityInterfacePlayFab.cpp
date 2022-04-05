@@ -253,14 +253,16 @@ void FOnlineIdentityPlayFab::Tick(float DeltaTime)
 			{
 				RegisterAuthDelegates();
 			}
-			
+
 			for (const auto& User : NativeIdentityInterface->GetAllUserAccounts())
 			{
 				FString PlatformUserIdStr;
 				User->GetUserAttribute(USER_ATTR_ID, PlatformUserIdStr);
 				UsersToAuth.Add(PlatformUserIdStr);
 			}
-
+#if OSS_PLAYFAB_WIN64
+			AutoLogin(0);
+#endif
 			bAuthAllUsers = false;
 		}
 	}
@@ -436,8 +438,9 @@ bool FOnlineIdentityPlayFab::AuthenticateUser(const FString& PlatformUserIdStr)
 		return false;
 	}
 
-	bool bAppliedPlatformData = ApplyPlatformHTTPRequestData(PlatformUserIdStr, L"https://playfabapi.com/", L"POST");
-	if (bAppliedPlatformData)
+	const bool bAppliedPlatformData = ApplyPlatformHTTPRequestData(PlatformUserIdStr, API::Url, API::PostVerb);
+
+	if (bAppliedPlatformData && !UserAuthRequestsInFlight.Contains(PlatformUserIdStr))
 	{
 		UserAuthRequestData MetaData;
 		UserAuthRequestsInFlight.Add(PlatformUserIdStr, MetaData);
@@ -477,10 +480,17 @@ void FOnlineIdentityPlayFab::FinishRequest(bool bPlatformDataSuccess, const FStr
 			TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestBodySerialized);
 			FJsonSerializer::Serialize(RequestBodyJson.ToSharedRef(), Writer);
 
-			const FString URI = FString::Printf(TEXT("https://%s.playfabapi.com/Client/LoginWithXbox"), *TitleIdStr);
+#if defined(OSS_PLAYFAB_WIN64)
+			const FString LoginApi = "LoginWithSteam";
+#else
+			const FString LoginApi = "LoginWithXbox";
+#endif
+
+			const FString URI = FString::Printf(TEXT("https://%s.playfabapi.com/Client/%s"), *TitleIdStr, *LoginApi);
+
 			RequestInFlight->m_HTTPRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
 			RequestInFlight->m_HTTPRequest->SetURL(URI);
-			RequestInFlight->m_HTTPRequest->SetVerb(TEXT("POST"));
+			RequestInFlight->m_HTTPRequest->SetVerb(API::PostVerb);
 			RequestInFlight->m_HTTPRequest->SetContentAsString(RequestBodySerialized); // gets copied internally
 			RequestInFlight->m_HTTPRequest->ProcessRequest();
 		}
@@ -500,7 +510,7 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 	FString ErrorStr;
 
 	if (bSucceeded && HttpResponse.IsValid())
-	{
+	{		
 		ResponseStr = HttpResponse->GetContentAsString();
 
 		// Deserialize response
@@ -535,8 +545,15 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 								}
 								else
 								{
+									// Obtain the SessionTicket from the PlayFab auth response for use in any subsequent requests demanding the X-Authorization header.
+									FString SessionTicketStr = "";
+									if ((*JsonData)->TryGetStringField(TEXT("SessionTicket"), SessionTicketStr) == false)
+									{
+										UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Failed to parse SessionTicket data"));
+									}
+
 									// Create a new user if we don't already have one
-									CreateLocalUser(PlatformUserIdStr, EntityIdStr, EntityTypeStr, EntityTokenStr, TokenExpirationStr);
+									CreateLocalUser(PlatformUserIdStr, EntityIdStr, EntityTypeStr, SessionTicketStr, EntityTokenStr, TokenExpirationStr);
 								}
 
 								TimeSinceLastAuth = 0.0f;
@@ -583,7 +600,7 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 	UserAuthRequestsInFlight.Remove(PlatformUserIdStr);
 }
 
-void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, const FString& EntityId, const FString& EntityType, const FString& EntityToken, const FString& TokenExpiration)
+void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, const FString& EntityId, const FString& EntityType, const FString& SessionTicket, const FString& EntityToken, const FString& TokenExpiration)
 {
 	UE_LOG_ONLINE_IDENTITY(Verbose, TEXT("FOnlineIdentityPlayFab::CreateLocalUser"));
 
@@ -603,13 +620,13 @@ void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, c
 		return;
 	}
 	
-	TSharedPtr<FPlayFabUser> NewLocalUser = MakeShared<FPlayFabUser>(PlatformUserIdStr, EntityToken, EntityId, EntityType, NewPartyLocalUser);
+	TSharedPtr<FPlayFabUser> NewLocalUser = MakeShared<FPlayFabUser>(PlatformUserIdStr, EntityToken, EntityId, EntityType, SessionTicket, NewPartyLocalUser);
 
 	PFEntityKey EntityKey = NewLocalUser->GetEntityKey();
 	HRESULT hr = PFMultiplayerSetEntityToken(
-		OSSPlayFab->GetMultiplayerHandle(),// Multiplayer Handle 
+		OSSPlayFab->GetMultiplayerHandle(), // Multiplayer Handle 
 		&EntityKey,							// EntityKey
-		TCHAR_TO_UTF8(*EntityToken)			// User entity token
+		TCHAR_TO_UTF8(*EntityToken)  		// User entity token
 	);
 
 	if (FAILED(hr))

@@ -8,7 +8,7 @@
 #include "PlayFabSocketSubsystem.h"
 #include "../PlatformSpecific/PlatformDefines.h"
 
-#if OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 #include "OnlineSubsystemGDK.h"
 THIRD_PARTY_INCLUDES_START
 #include <xsapi-c/multiplayer_activity_c.h>
@@ -193,7 +193,7 @@ void FOnlineSessionPlayFab::OnCreatePartyEndpoint(bool bSuccess, uint16 Endpoint
 			}
 			else
 			{
-				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnCreatePartyEndpoin: LocalHostAddr was invalid"));
+				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnCreatePartyEndpoint: LocalHostAddr was invalid"));
 			}
 
 			if (!(InternalCreateSession(*PendingCreateSessionInfo.PlayerId, PendingCreateSessionInfo.SessionName, PendingCreateSessionInfo.SessionSettings)))
@@ -1098,7 +1098,7 @@ void FOnlineSessionPlayFab::SetMultiplayerActivity(const FName SessionName, PFLo
 		return;
 	}
 
-#if OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	FNamedOnlineSessionPtr NamedSession = GetNamedSessionPtr(SessionName);	
 	FOnlineSubsystemGDK* GDKSubsystem = static_cast<FOnlineSubsystemGDK*>(IOnlineSubsystem::Get(GDK_SUBSYSTEM));
 	if (!GDKSubsystem)

@@ -588,7 +588,7 @@ bool FPlayFabLobby::FindFriendLobbies(const FUniqueNetId& UserId)
 	PFLobbySearchConfiguration LobbySearchConfig{};
 	PFLobbySearchFriendsFilter LobbySearchFriendsFilter;
 
-#if OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	LobbySearchFriendsFilter.includeFacebookFriends = false;
 	LobbySearchFriendsFilter.includeSteamFriends = false;
 	FString XToken = PlayFabIdentityInt->GetLocalUserXToken();
@@ -653,9 +653,6 @@ bool FPlayFabLobby::SendInvite(const FUniqueNetId& SenderId, FName SessionName, 
 		FriendXuidStrings.Add(*FriendUniqueId->ToString());
 	}
 
-	FString GetTitlePlayersFromXboxLiveIDsRequestBody;
-	GenerateGetTitlePlayersFromXboxLiveIDsRequestBody(FriendXuidStrings, OSSPlayFab->GetSandBox(), GetTitlePlayersFromXboxLiveIDsRequestBody);
-
 	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
 	if (!IdentityIntPtr.IsValid())
 	{
@@ -677,10 +674,24 @@ bool FPlayFabLobby::SendInvite(const FUniqueNetId& SenderId, FName SessionName, 
 	PendingSendInvite.PlayFabSendingUser = LocalUser;
 	PendingSendInvite.FriendUniqueIdStrings = FriendXuidStrings;
 
-	FHttpRequestCompleteDelegate GetTitlePlayersFromXboxLiveIDsCompleteDelegate;
-	GetTitlePlayersFromXboxLiveIDsCompleteDelegate.BindRaw(this, &FPlayFabLobby::OnGetTitlePlayersFromXboxLiveIDsCompleted, PendingSendInvite);
+	FHttpRequestCompleteDelegate GetPlayFabDataFromPlatformIDCompleteDelegate;
+	FString GetTitlePlayersFromPlatformIDsRequestBody;
+	TArray<TPair<FString, FString>> ExtraHeaders;
+#if OSS_PLAYFAB_WIN64
+	ExtraHeaders.Add(MakeTuple(FString("X-Authorization"), LocalUser->GetSessionTicket()));
+	const FString RequestPath = TEXT("/Client/GetPlayFabIDsFromSteamIDs");
+	GenerateGetPlayFabIDsFromSteamIDsRequestBody(FriendXuidStrings, GetTitlePlayersFromPlatformIDsRequestBody);
+	GetPlayFabDataFromPlatformIDCompleteDelegate.BindRaw(this, &FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted, PendingSendInvite);
+#elif defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+	const FString RequestPath = TEXT("/Profile/GetTitlePlayersFromXboxLiveIDs");
+	GenerateGetTitlePlayersFromXboxLiveIDsRequestBody(FriendXuidStrings, OSSPlayFab->GetSandBox(), GetTitlePlayersFromPlatformIDsRequestBody);
+	GetPlayFabDataFromPlatformIDCompleteDelegate.BindRaw(this, &FPlayFabLobby::OnGetTitleAccountIDsFromPlatformIDsCompleted, PendingSendInvite);
+#else
+	UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::SendInvite does not support this platform!"));
+	return false;
+#endif
 
-	if (!MakePlayFabRestRequest(OSSPlayFab->GetAppId(), LocalUser->GetEntityToken(), TEXT("/Profile/GetTitlePlayersFromXboxLiveIDs"), GetTitlePlayersFromXboxLiveIDsRequestBody, GetTitlePlayersFromXboxLiveIDsCompleteDelegate))
+	if (!MakePlayFabRestRequest(OSSPlayFab->GetAppId(), LocalUser->GetEntityToken(), RequestPath, ExtraHeaders, GetTitlePlayersFromPlatformIDsRequestBody, GetPlayFabDataFromPlatformIDCompleteDelegate))
 	{
 		UE_LOG_ONLINE(Error, TEXT("MakePlayFabRestRequest for GetTitlePlayersFromXboxLiveIDs failed!"));
 		return false;
@@ -1277,37 +1288,103 @@ FString FPlayFabLobby::ComposeLobbySearchQueryFilter(const FSearchParams& Search
 	return QueryFilter;
 }
 
-void FPlayFabLobby::OnGetTitlePlayersFromXboxLiveIDsCompleted(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FPendingSendInviteData PendingSendInvite)
+void FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FPendingSendInviteData PendingSendInvite)
 {
-	UE_LOG_ONLINE(Verbose, TEXT("FPlayFabLobby::OnGetTitlePlayersFromXboxLiveIDsCompleted bSucceeded: %u"), bSucceeded);
+	UE_LOG_ONLINE(Verbose, TEXT("FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted bSucceeded: %u"), bSucceeded);
 
+	TMap<FString, FString> PlatformIdToPlayFabIdMapping;
+	if (!ParsePlayFabIdsFromPlatformIdsResponse(HttpResponse, PlatformIdToPlayFabIdMapping))
+	{
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted ParseTitlePlayersFromPlatformIDsResponse failed"));
+		return;
+	}
+
+	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
+	if (!IdentityIntPtr.IsValid())
+	{
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted Identity Interface is invalid"));
+		return;
+	}
+
+	FOnlineIdentityPlayFab* PlayFabIdentityInt = static_cast<FOnlineIdentityPlayFab*>(IdentityIntPtr.Get());
+	TSharedPtr<FPlayFabUser> LocalUser = PendingSendInvite.PlayFabSendingUser;
+	if (LocalUser == nullptr)
+	{
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted was called with a NULL PlayFabSendingUser"));
+		return;
+	}
+
+	auto OnGetPlayerCombinedInfoRequestCompleted = TDelegate<void(FHttpRequestPtr, FHttpResponsePtr, bool)>::CreateLambda([=](FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
+	{
+		if (HttpResponse == nullptr || HttpResponse->GetResponseCode() != 200)
+		{
+			UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::GetPlayerCombinedInfo returned NOT successful!"));
+			return;
+		}
+		FString TitlePlayerAccount;
+		if (!ParseTitlePlayerAccountFromPlayerCombinedInfoResponse(HttpResponse, TitlePlayerAccount))
+		{
+			UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::GetPlayerCombinedInfo failed to parse TitlePlayerAccount response!"));
+			return;
+		}
+		InviteTitleAccountIDsToLobby(PendingSendInvite, TitlePlayerAccount);
+	});
+
+	TArray<TPair<FString, FString>> ExtraHeaders;
+	ExtraHeaders.Add(MakeTuple(FString("X-Authorization"), LocalUser->GetSessionTicket()));
+
+	for (const auto& PlatformIdToPlayFabId : PlatformIdToPlayFabIdMapping)
+	{
+		auto InfoRequestParameters = MakeShared<FJsonObject>();
+		InfoRequestParameters->SetBoolField(TEXT("GetUserAccountInfo"), true);
+		TSharedPtr<FJsonObject> HttpRequestJson = MakeShareable(new FJsonObject());
+		HttpRequestJson->SetObjectField(TEXT("InfoRequestParameters"), InfoRequestParameters);
+		const FString PlayFabId = PlatformIdToPlayFabId.Value;
+		HttpRequestJson->SetStringField(TEXT("PlayFabId"), PlayFabId);
+		FString RequestBody = SerializeRequestJson(HttpRequestJson);
+		if (!MakePlayFabRestRequest(OSSPlayFab->GetAppId(), LocalUser->GetEntityToken(), TEXT("/Client/GetPlayerCombinedInfo"), ExtraHeaders, RequestBody, OnGetPlayerCombinedInfoRequestCompleted))
+		{
+			UE_LOG_ONLINE(Error, TEXT("MakePlayFabRestRequest for GetPlayerCombinedInfo failed!"));
+		}
+	}
+}
+
+void FPlayFabLobby::OnGetTitleAccountIDsFromPlatformIDsCompleted(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FPendingSendInviteData PendingSendInvite)
+{
+	UE_LOG_ONLINE(Verbose, TEXT("FPlayFabLobby::OnGetTitleAccountIDsFromPlatformIDsCompleted bSucceeded: %u"), bSucceeded);
+
+	TMap<FString, FString> PlatformIdToTitleAccountIdMapping;
+	if (!ParseTitleAccountIDsFromPlatformIDsResponse(HttpResponse, PlatformIdToTitleAccountIdMapping))
+	{
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::OnGetTitleAccountIDsFromPlatformIDsCompleted ParseTitlePlayersFromPlatformIDsResponse failed"));
+		return;
+	}
+	
+	for (const auto& PlatformIdToTitleAccountIdKVP : PlatformIdToTitleAccountIdMapping)
+	{
+		InviteTitleAccountIDsToLobby(PendingSendInvite, PlatformIdToTitleAccountIdKVP.Value);
+	}
+}
+
+void  FPlayFabLobby::InviteTitleAccountIDsToLobby(FPendingSendInviteData PendingSendInvite, const FString& TitleAccountID)
+{
 	PFLobbyHandle LobbyHandle = nullptr;
 	if (!GetLobbyFromSession(PendingSendInvite.SessionName, LobbyHandle))
 	{
-		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::OnGetTitlePlayersFromXboxLiveIDsCompleted: No lobby found for session %s!"), *(PendingSendInvite.SessionName.ToString()));
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::InviteTitleAccountIDsToLobby: No lobby found for session %s!"), *(PendingSendInvite.SessionName.ToString()));
 		return;
 	}
 
-	TMap<FString, FString> EntityToXuidMapping;
-	if (!ParseGetTitlePlayersFromXboxLiveIDsResponse(HttpResponse, EntityToXuidMapping))
+	const PFEntityKey SenderEntityKey = PendingSendInvite.PlayFabSendingUser->GetEntityKey();
+
+	std::string EntityIdStr(TCHAR_TO_UTF8(*TitleAccountID));
+	std::string EntityTypeStr(TCHAR_TO_UTF8(TEXT(ENTITY_TYPE_TITLE_PLAYER)));
+
+	PFEntityKey FriendsEntityKey = { EntityIdStr.c_str(), EntityTypeStr.c_str() };
+
+	HRESULT Hr = PFLobbySendInvite(LobbyHandle, &SenderEntityKey, &FriendsEntityKey, nullptr);
+	if (FAILED(Hr))
 	{
-		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::OnGetTitlePlayersFromXboxLiveIDsCompleted ParseGetTitlePlayersFromXboxLiveIDsResponse failed"));
-		return;
-	}
-
-	PFEntityKey SenderEntityKey = PendingSendInvite.PlayFabSendingUser->GetEntityKey();
-
-	for (auto FriendsEntity : EntityToXuidMapping)
-	{
-		std::string EntityIdStr(TCHAR_TO_UTF8(*FriendsEntity.Value));
-		std::string EntityTypeStr(TCHAR_TO_UTF8(TEXT(ENTITY_TYPE_TITLE_PLAYER)));
-
-		PFEntityKey FriendsEntity = { EntityIdStr.c_str(), EntityTypeStr.c_str() };
-
-		HRESULT Hr = PFLobbySendInvite(LobbyHandle , &SenderEntityKey, &FriendsEntity, nullptr);
-		if (FAILED(Hr))
-		{
-			UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::PFLobbySendInvite failed: 0x%08x"), Hr);
-		}
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::PFLobbySendInvite failed: 0x%08x"), Hr);
 	}
 }

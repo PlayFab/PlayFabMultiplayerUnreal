@@ -6,13 +6,13 @@
 
 #include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemPlayFabPackage.h"
+ #include "PlayFabLobby.h"
 
 THIRD_PARTY_INCLUDES_START
 #include <PFEntityKey.h>
 #include <PFMultiplayer.h>
 #include <PFMatchmaking.h>
 THIRD_PARTY_INCLUDES_END
-
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnMatchmakingTicketCompleted, bool, FName);
 typedef FOnMatchmakingTicketCompleted::FDelegate FOnMatchmakingTicketCompletedDelegate;
@@ -28,7 +28,10 @@ public:
 	FMatchmakingInterfacePlayFab(FOnlineSubsystemPlayFab* InOSSPlayFab);
 	virtual ~FMatchmakingInterfacePlayFab() = default;
 
-	bool CreateMatchMakingTicket(const TArray< TSharedRef<const FUniqueNetId> >& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings);
+	bool CreateMatchMakingTicket(const TArray< TSharedRef<const FUniqueNetId> >& LocalPlayers, 
+		FName SessionName, 
+		const FOnlineSessionSettings& NewSessionSettings, 
+		TSharedRef<FOnlineSessionSearch>& SearchSettings);
 	bool CancelMatchmakingTicket(const PFEntityKey entity, const FName& SessionName);
 
 	void DoWork();

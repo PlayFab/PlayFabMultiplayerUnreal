@@ -31,11 +31,12 @@ struct UserAuthRequestData
 class FPlayFabUser
 {
 public:
-	FPlayFabUser(const FString& PlatformUserIdStrIn, const FString& EntityTokenIn, const FString& EntityIdIn, const FString& EntityTypeIn, PartyLocalUser* LocalUserIn)
+	FPlayFabUser(const FString& PlatformUserIdStrIn, const FString& EntityTokenIn, const FString& EntityIdIn, const FString& EntityTypeIn, const FString& SessionTicketIn, PartyLocalUser* LocalUserIn)
 		: PlatformUserIdStr(PlatformUserIdStrIn)
 		, EntityToken(EntityTokenIn)
 		, EntityId(EntityIdIn)
 		, EntityType(EntityTypeIn)
+		, SessionTicket(SessionTicketIn)
 		, LocalUser(LocalUserIn)
 		, EntityIdStr(TCHAR_TO_UTF8(*EntityIdIn))
 		, EntityTypeStr(TCHAR_TO_UTF8(*EntityTypeIn))
@@ -47,6 +48,7 @@ public:
 	const FString& GetEntityToken() const { return EntityToken; }
 	const FString& GetEntityId() const { return EntityId; }
 	const FString& GetEntityType() const { return EntityType; }
+	const FString& GetSessionTicket() const { return SessionTicket; }
 	const FDateTime& GetEntityTokenUpdateTime() const { return EntityTokenUpdateTime; }
 	PartyLocalUser* GetPartyLocalUser() const { return LocalUser; }
 	PFEntityKey GetEntityKey() const { return PFEntityKey{ EntityIdStr.c_str(), EntityTypeStr.c_str() }; }
@@ -60,6 +62,7 @@ private:
 	FString EntityToken;
 	FString EntityId;
 	FString EntityType;
+	FString SessionTicket;
 	PartyLocalUser* LocalUser = nullptr;
 	std::string EntityIdStr;
 	std::string EntityTypeStr;
@@ -168,7 +171,7 @@ protected:
 	bool AuthenticateUser(const FString& UserPlatformIdStr);
 	void Auth_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
 
-	void CreateLocalUser(const FString& UserPlatformIdStr, const FString& EntityId, const FString& EntityType, const FString& EntityToken, const FString& TokenExpiration);
+	void CreateLocalUser(const FString& UserPlatformIdStr, const FString& EntityId, const FString& EntityType, const FString& SessionTicket, const FString& EntityToken, const FString& TokenExpiration);
 	void RemoveLocalUser(const FString& PlatformUserIdStr);
 
 private:

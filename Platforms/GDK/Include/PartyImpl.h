@@ -15,7 +15,7 @@ namespace Party {
 #endif // PARTY_SAL_SUPPORT
 
 //
-// PartyManager class implementation
+// PartyLocalUser class implementation
 //
 
 PartyError PartyLocalUser::GetEntityId(
@@ -29,7 +29,7 @@ PartyError PartyLocalUser::GetEntityId(
 
 PartyError PartyLocalUser::UpdateEntityToken(
     PartyString titlePlayerEntityToken
-    ) const party_no_throw
+    ) party_no_throw
 {
     return PartyLocalUserUpdateEntityToken(
         reinterpret_cast<PARTY_LOCAL_USER_HANDLE>(this),
@@ -53,6 +53,10 @@ PartyError PartyLocalUser::SetCustomContext(
         reinterpret_cast<PARTY_LOCAL_USER_HANDLE>(this),
         customContext);
 }
+
+//
+// PartyLocalEndpoint class implementation
+//
 
 PartyError PartyLocalEndpoint::GetLocalUser(
     _Outptr_result_maybenull_ PartyLocalUser ** localUser
@@ -137,12 +141,16 @@ PartyError PartyLocalEndpoint::SetSharedProperties(
     _In_reads_(propertyCount) const PartyDataBuffer * values
     ) party_no_throw
 {
-    return PartyEndpointSetProperties(
+    return PartyEndpointSetSharedProperties(
         reinterpret_cast<PARTY_ENDPOINT_HANDLE>(this),
         propertyCount,
         keys,
         reinterpret_cast<const PARTY_DATA_BUFFER*>(values));
 }
+
+//
+// PartyEndpoint class implementation
+//
 
 PartyError PartyEndpoint::GetLocal(
     _Outptr_result_maybenull_ PartyLocalEndpoint ** localEndpoint
@@ -180,13 +188,13 @@ PartyError PartyEndpoint::GetEntityId(
 
 PartyError PartyEndpoint::GetSharedProperty(
     PartyString key,
-    _Outptr_result_maybenull_ const PartyDataBuffer ** value
+    _Out_ PartyDataBuffer * value
     ) const party_no_throw
 {
-    return PartyEndpointGetProperty(
+    return PartyEndpointGetSharedProperty(
         reinterpret_cast<PARTY_ENDPOINT_HANDLE>(this),
         key,
-        reinterpret_cast<const PARTY_DATA_BUFFER**>(value));
+        reinterpret_cast<PARTY_DATA_BUFFER*>(value));
 }
 
 PartyError PartyEndpoint::GetSharedPropertyKeys(
@@ -194,7 +202,7 @@ PartyError PartyEndpoint::GetSharedPropertyKeys(
     _Outptr_result_buffer_(*propertyCount) const PartyString ** keys
     ) const party_no_throw
 {
-    return PartyEndpointGetPropertyKeys(
+    return PartyEndpointGetSharedPropertyKeys(
         reinterpret_cast<PARTY_ENDPOINT_HANDLE>(this),
         propertyCount,
         keys);
@@ -245,6 +253,10 @@ PartyError PartyEndpoint::SetCustomContext(
         customContext);
 }
 
+//
+// PartyLocalDevice class implementation
+//
+
 PartyError PartyLocalDevice::CreateChatControl(
     const PartyLocalUser * localUser,
     _In_opt_ PartyString languageCode,
@@ -277,12 +289,16 @@ PartyError PartyLocalDevice::SetSharedProperties(
     _In_reads_(propertyCount) const PartyDataBuffer * values
     ) party_no_throw
 {
-    return PartyDeviceSetProperties(
+    return PartyDeviceSetSharedProperties(
         reinterpret_cast<PARTY_DEVICE_HANDLE>(this),
         propertyCount,
         keys,
         reinterpret_cast<const PARTY_DATA_BUFFER*>(values));
 }
+
+//
+// PartyDevice class implementation
+//
 
 PartyError PartyDevice::GetLocal(
     _Outptr_result_maybenull_ PartyLocalDevice ** localDevice
@@ -322,13 +338,13 @@ PartyError PartyDevice::GetChatControls(
 
 PartyError PartyDevice::GetSharedProperty(
     PartyString key,
-    _Outptr_result_maybenull_ const PartyDataBuffer ** value
+    _Out_ PartyDataBuffer * value
     ) const party_no_throw
 {
-    return PartyDeviceGetProperty(
+    return PartyDeviceGetSharedProperty(
         reinterpret_cast<PARTY_DEVICE_HANDLE>(this),
         key,
-        reinterpret_cast<const PARTY_DATA_BUFFER**>(value));
+        reinterpret_cast<PARTY_DATA_BUFFER*>(value));
 }
 
 PartyError PartyDevice::GetSharedPropertyKeys(
@@ -336,7 +352,7 @@ PartyError PartyDevice::GetSharedPropertyKeys(
     _Outptr_result_buffer_(*propertyCount) const PartyString ** keys
     ) const party_no_throw
 {
-    return PartyDeviceGetPropertyKeys(
+    return PartyDeviceGetSharedPropertyKeys(
         reinterpret_cast<PARTY_DEVICE_HANDLE>(this),
         propertyCount,
         keys);
@@ -359,6 +375,10 @@ PartyError PartyDevice::SetCustomContext(
         reinterpret_cast<PARTY_DEVICE_HANDLE>(this),
         customContext);
 }
+
+//
+// PartyInvitation class implementation
+//
 
 PartyError PartyInvitation::GetCreatorEntityId(
     _Outptr_result_maybenull_ PartyString * entityId
@@ -395,6 +415,10 @@ PartyError PartyInvitation::SetCustomContext(
         reinterpret_cast<PARTY_INVITATION_HANDLE>(this),
         customContext);
 }
+
+//
+// PartyNetwork class implementation
+//
 
 PartyError PartyNetwork::AuthenticateLocalUser(
     const PartyLocalUser * localUser,
@@ -461,9 +485,9 @@ PartyError PartyNetwork::GetInvitations(
 
 PartyError PartyNetwork::CreateEndpoint(
     _In_opt_ const PartyLocalUser * localUser,
-    uint32_t propertyCount,
-    _In_reads_opt_(propertyCount) const PartyString * keys,
-    _In_reads_opt_(propertyCount) const PartyDataBuffer * values,
+    uint32_t sharedPropertyCount,
+    _In_reads_opt_(sharedPropertyCount) const PartyString * keys,
+    _In_reads_opt_(sharedPropertyCount) const PartyDataBuffer * values,
     _In_opt_ void * asyncIdentifier,
     _Outptr_opt_ PartyLocalEndpoint ** localEndpoint
     ) party_no_throw
@@ -471,7 +495,7 @@ PartyError PartyNetwork::CreateEndpoint(
     return PartyNetworkCreateEndpoint(
         reinterpret_cast<PARTY_NETWORK_HANDLE>(this),
         reinterpret_cast<const PARTY_LOCAL_USER_HANDLE>(localUser),
-        propertyCount,
+        sharedPropertyCount,
         keys,
         reinterpret_cast<const PARTY_DATA_BUFFER*>(values),
         asyncIdentifier,
@@ -584,13 +608,13 @@ PartyError PartyNetwork::KickUser(
 
 PartyError PartyNetwork::GetSharedProperty(
     PartyString key,
-    _Outptr_result_maybenull_ const PartyDataBuffer ** value
+    _Out_ PartyDataBuffer * value
     ) const party_no_throw
 {
-    return PartyNetworkGetProperty(
+    return PartyNetworkGetSharedProperty(
         reinterpret_cast<PARTY_NETWORK_HANDLE>(this),
         key,
-        reinterpret_cast<const PARTY_DATA_BUFFER**>(value));
+        reinterpret_cast<PARTY_DATA_BUFFER*>(value));
 }
 
 PartyError PartyNetwork::GetSharedPropertyKeys(
@@ -598,7 +622,7 @@ PartyError PartyNetwork::GetSharedPropertyKeys(
     _Outptr_result_buffer_(*propertyCount) const PartyString ** keys
     ) const party_no_throw
 {
-    return PartyNetworkGetPropertyKeys(
+    return PartyNetworkGetSharedPropertyKeys(
         reinterpret_cast<PARTY_NETWORK_HANDLE>(this),
         propertyCount,
         keys);
@@ -610,7 +634,7 @@ PartyError PartyNetwork::SetSharedProperties(
     _In_reads_(propertyCount) const PartyDataBuffer * values
     ) party_no_throw
 {
-    return PartyNetworkSetProperties(
+    return PartyNetworkSetSharedProperties(
         reinterpret_cast<PARTY_NETWORK_HANDLE>(this),
         propertyCount,
         keys,
@@ -680,6 +704,21 @@ PartyError PartyNetwork::SetCustomContext(
         reinterpret_cast<PARTY_NETWORK_HANDLE>(this),
         customContext);
 }
+
+PartyError PartyNetwork::GetDeviceConnectionType(
+    const PartyDevice* targetDevice,
+    _Out_ PartyDeviceConnectionType * deviceConnectionType
+    ) const party_no_throw
+{
+    return PartyNetworkGetDeviceConnectionType(
+        reinterpret_cast<PARTY_NETWORK_HANDLE>(this),
+        reinterpret_cast<PARTY_DEVICE_HANDLE>(targetDevice),
+        reinterpret_cast<PARTY_DEVICE_CONNECTION_TYPE*>(deviceConnectionType));
+}
+
+//
+// PartyLocalChatControl class implementation
+//
 
 PartyError PartyLocalChatControl::GetLocalUser(
     _Outptr_ PartyLocalUser ** localUser
@@ -1029,7 +1068,7 @@ PartyError PartyLocalChatControl::SetSharedProperties(
     _In_reads_(propertyCount) const PartyDataBuffer * values
     ) party_no_throw
 {
-    return PartyChatControlSetProperties(
+    return PartyChatControlSetSharedProperties(
         reinterpret_cast<PARTY_CHAT_CONTROL_HANDLE>(this),
         propertyCount,
         keys,
@@ -1076,6 +1115,10 @@ PartyError PartyLocalChatControl::GetAudioManipulationRenderStream(
         const_cast<PARTY_AUDIO_MANIPULATION_SINK_STREAM_HANDLE*>(reinterpret_cast<const PARTY_AUDIO_MANIPULATION_SINK_STREAM_HANDLE*>(stream)));
 }
 
+//
+// PartyChatControl class implementation
+//
+
 PartyError PartyChatControl::GetLocal(
     _Outptr_result_maybenull_ PartyLocalChatControl ** localChatControl
     ) const party_no_throw
@@ -1121,13 +1164,13 @@ PartyError PartyChatControl::GetEntityId(
 
 PartyError PartyChatControl::GetSharedProperty(
     PartyString key,
-    _Outptr_result_maybenull_ const PartyDataBuffer ** value
+    _Out_ PartyDataBuffer * value
     ) const party_no_throw
 {
-    return PartyChatControlGetProperty(
+    return PartyChatControlGetSharedProperty(
         reinterpret_cast<PARTY_CHAT_CONTROL_HANDLE>(this),
         key,
-        reinterpret_cast<const PARTY_DATA_BUFFER**>(value));
+        reinterpret_cast<PARTY_DATA_BUFFER*>(value));
 }
 
 PartyError PartyChatControl::GetSharedPropertyKeys(
@@ -1135,7 +1178,7 @@ PartyError PartyChatControl::GetSharedPropertyKeys(
     _Outptr_result_buffer_(*propertyCount) const PartyString ** keys
     ) const party_no_throw
 {
-    return PartyChatControlGetPropertyKeys(
+    return PartyChatControlGetSharedPropertyKeys(
         reinterpret_cast<PARTY_CHAT_CONTROL_HANDLE>(this),
         propertyCount,
         keys);
@@ -1190,6 +1233,10 @@ PartyError PartyChatControl::GetAudioManipulationVoiceStream(
         const_cast<PARTY_AUDIO_MANIPULATION_SOURCE_STREAM_HANDLE*>(reinterpret_cast<const PARTY_AUDIO_MANIPULATION_SOURCE_STREAM_HANDLE*>(sourceStream)));
 }
 
+//
+// PartyTextToSpeechProfile class implementation
+//
+
 PartyError PartyTextToSpeechProfile::GetIdentifier(
     _Outptr_ PartyString * identifier
     ) const party_no_throw
@@ -1243,6 +1290,10 @@ PartyError PartyTextToSpeechProfile::SetCustomContext(
         reinterpret_cast<PARTY_TEXT_TO_SPEECH_PROFILE_HANDLE>(this),
         customContext);
 }
+
+//
+// PartyAudioManipulationSourceStream class implementation
+//
 
 PartyError PartyAudioManipulationSourceStream::GetConfiguration(
     _Out_ PartyAudioManipulationSourceStreamConfiguration* configuration
@@ -1307,6 +1358,10 @@ PartyError PartyAudioManipulationSourceStream::SetCustomContext(
         customContext);
 }
 
+//
+// PartyAudioManipulationSinkStream class implementation
+//
+
 PartyError PartyAudioManipulationSinkStream::GetConfiguration(
     _Out_ PartyAudioManipulationSinkStreamConfiguration* configuration
     ) const party_no_throw
@@ -1351,6 +1406,10 @@ PartyError PartyAudioManipulationSinkStream::SetCustomContext(
         reinterpret_cast<PARTY_AUDIO_MANIPULATION_SINK_STREAM_HANDLE>(this),
         customContext);
 }
+
+//
+// PartyManager class implementation
+//
 
 PartyManager::PartyManager() :
     _handle(nullptr)
@@ -1435,6 +1494,26 @@ PartyError PartyManager::GetMemoryCallbacks(
     return PartyGetMemoryCallbacks(allocateMemoryCallback, freeMemoryCallback);
 }
 
+PartyError PartyManager::SetProfilingCallbacksForMethodEntryExit(
+    _In_opt_ PartyProfilingMethodEntranceCallback profilingMethodEntranceCallback,
+    _In_opt_ PartyProfilingMethodExitCallback profilingMethodExitCallback
+    ) party_no_throw
+{
+    return PartySetProfilingCallbacksForMethodEntryExit(
+        reinterpret_cast<PARTY_PROFILING_METHOD_ENTRANCE_FUNC>(profilingMethodEntranceCallback),
+        reinterpret_cast<PARTY_PROFILING_METHOD_EXIT_FUNC>(profilingMethodExitCallback));
+}
+
+PartyError PartyManager::GetProfilingCallbacksForMethodEntryExit(
+    _Outptr_result_maybenull_ PartyProfilingMethodEntranceCallback * profilingMethodEntranceCallback,
+    _Outptr_result_maybenull_ PartyProfilingMethodExitCallback * profilingMethodExitCallback
+    ) party_no_throw
+{
+    return PartyGetProfilingCallbacksForMethodEntryExit(
+        reinterpret_cast<PARTY_PROFILING_METHOD_ENTRANCE_FUNC*>(profilingMethodEntranceCallback),
+        reinterpret_cast<PARTY_PROFILING_METHOD_EXIT_FUNC*>(profilingMethodExitCallback));
+}
+
 PartyError PartyManager::SetThreadAffinityMask(
     PartyThreadId threadId,
     uint64_t threadAffinityMask
@@ -1453,6 +1532,26 @@ PartyError PartyManager::GetThreadAffinityMask(
     return PartyGetThreadAffinityMask(
         static_cast<PARTY_THREAD_ID>(threadId),
         threadAffinityMask);
+}
+
+PartyError PartyManager::SetWorkMode(
+    PartyThreadId threadId,
+    PartyWorkMode workMode
+    ) party_no_throw
+{
+    return PartySetWorkMode(
+        static_cast<PARTY_THREAD_ID>(threadId),
+        static_cast<PARTY_WORK_MODE>(workMode));
+}
+
+PartyError PartyManager::GetWorkMode(
+    PartyThreadId threadId,
+    _Out_ PartyWorkMode * workMode
+    ) party_no_throw
+{
+    return PartyGetWorkMode(
+        static_cast<PARTY_THREAD_ID>(threadId),
+        reinterpret_cast<PARTY_WORK_MODE *>(workMode));
 }
 
 PartyError PartyManager::Initialize(
@@ -1500,6 +1599,15 @@ PartyError PartyManager::FinishProcessingStateChanges(
         reinterpret_cast<PARTY_HANDLE>(_handle),
         stateChangeCount,
         reinterpret_cast<const PARTY_STATE_CHANGE * const *>(stateChanges));
+}
+
+PartyError PartyManager::DoWork(
+    PartyThreadId threadId
+    ) party_no_throw
+{
+    return PartyDoWork(
+        reinterpret_cast<PARTY_HANDLE>(_handle),
+        static_cast<PARTY_THREAD_ID>(threadId));
 }
 
 PartyError PartyManager::GetRegions(
@@ -1640,6 +1748,7 @@ PartyError PartyManager::GetChatControls(
 // BEGIN GENERATED SECTION: DO NOT EDIT
 
 PARTY_C_ASSERT(PARTY_MAX_NETWORK_CONFIGURATION_MAX_DEVICE_COUNT == c_maxNetworkConfigurationMaxDeviceCount);
+PARTY_C_ASSERT(PARTY_MAX_DIRECT_PEER_CONNECTIONS_PER_DEVICE == c_maxDirectPeerConnectionsPerDevice);
 PARTY_C_ASSERT(PARTY_MAX_NETWORK_CONFIGURATION_MAX_ENDPOINTS_PER_DEVICE_COUNT == c_maxNetworkConfigurationMaxEndpointsPerDeviceCount);
 PARTY_C_ASSERT(PARTY_MAX_LOCAL_USERS_PER_DEVICE_COUNT == c_maxLocalUsersPerDeviceCount);
 PARTY_C_ASSERT(PARTY_OPAQUE_CONNECTION_INFORMATION_BYTE_COUNT == c_opaqueConnectionInformationByteCount);
@@ -1687,10 +1796,6 @@ PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_ENDPOINT_MESSAGE_RECEIVED == static_cast<
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_DATA_BUFFERS_RETURNED == static_cast<uint32_t>(PartyStateChangeType::DataBuffersReturned));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_ENDPOINT_PROPERTIES_CHANGED == static_cast<uint32_t>(PartyStateChangeType::EndpointPropertiesChanged));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_SYNCHRONIZE_MESSAGES_BETWEEN_ENDPOINTS_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::SynchronizeMessagesBetweenEndpointsCompleted));
-PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_CREATE_INVITATION_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::CreateInvitationCompleted));
-PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_REVOKE_INVITATION_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::RevokeInvitationCompleted));
-PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_INVITATION_CREATED == static_cast<uint32_t>(PartyStateChangeType::InvitationCreated));
-PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_INVITATION_DESTROYED == static_cast<uint32_t>(PartyStateChangeType::InvitationDestroyed));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_NETWORK_PROPERTIES_CHANGED == static_cast<uint32_t>(PartyStateChangeType::NetworkPropertiesChanged));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_KICK_DEVICE_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::KickDeviceCompleted));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_KICK_USER_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::KickUserCompleted));
@@ -1707,15 +1812,19 @@ PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_LOCAL_CHAT_AUDIO_INPUT_CHANGED == static_
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_LOCAL_CHAT_AUDIO_OUTPUT_CHANGED == static_cast<uint32_t>(PartyStateChangeType::LocalChatAudioOutputChanged));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_SET_TEXT_TO_SPEECH_PROFILE_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::SetTextToSpeechProfileCompleted));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_SYNTHESIZE_TEXT_TO_SPEECH_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::SynthesizeTextToSpeechCompleted));
-PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_SET_LANGUAGE_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::SetLanguageCompleted));
-PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_SET_TRANSCRIPTION_OPTIONS_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::SetTranscriptionOptionsCompleted));
-PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_SET_TEXT_CHAT_OPTIONS_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::SetTextChatOptionsCompleted));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_CHAT_CONTROL_PROPERTIES_CHANGED == static_cast<uint32_t>(PartyStateChangeType::ChatControlPropertiesChanged));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_CHAT_CONTROL_JOINED_NETWORK == static_cast<uint32_t>(PartyStateChangeType::ChatControlJoinedNetwork));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_CHAT_CONTROL_LEFT_NETWORK == static_cast<uint32_t>(PartyStateChangeType::ChatControlLeftNetwork));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_CONNECT_CHAT_CONTROL_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::ConnectChatControlCompleted));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_DISCONNECT_CHAT_CONTROL_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::DisconnectChatControlCompleted));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_POPULATE_AVAILABLE_TEXT_TO_SPEECH_PROFILES_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::PopulateAvailableTextToSpeechProfilesCompleted));
+PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_CREATE_INVITATION_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::CreateInvitationCompleted));
+PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_REVOKE_INVITATION_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::RevokeInvitationCompleted));
+PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_INVITATION_CREATED == static_cast<uint32_t>(PartyStateChangeType::InvitationCreated));
+PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_INVITATION_DESTROYED == static_cast<uint32_t>(PartyStateChangeType::InvitationDestroyed));
+PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_SET_LANGUAGE_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::SetLanguageCompleted));
+PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_SET_TRANSCRIPTION_OPTIONS_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::SetTranscriptionOptionsCompleted));
+PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_SET_TEXT_CHAT_OPTIONS_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::SetTextChatOptionsCompleted));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_CONFIGURE_AUDIO_MANIPULATION_VOICE_STREAM_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::ConfigureAudioManipulationVoiceStreamCompleted));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_CONFIGURE_AUDIO_MANIPULATION_CAPTURE_STREAM_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::ConfigureAudioManipulationCaptureStreamCompleted));
 PARTY_C_ASSERT(PARTY_STATE_CHANGE_TYPE_CONFIGURE_AUDIO_MANIPULATION_RENDER_STREAM_COMPLETED == static_cast<uint32_t>(PartyStateChangeType::ConfigureAudioManipulationRenderStreamCompleted));
@@ -1747,10 +1856,19 @@ PARTY_C_ASSERT(PARTY_DESTROYED_REASON_KICKED == static_cast<uint32_t>(PartyDestr
 PARTY_C_ASSERT(PARTY_DESTROYED_REASON_DEVICE_LOST_AUTHENTICATION == static_cast<uint32_t>(PartyDestroyedReason::DeviceLostAuthentication));
 PARTY_C_ASSERT(PARTY_DESTROYED_REASON_CREATION_FAILED == static_cast<uint32_t>(PartyDestroyedReason::CreationFailed));
 
+PARTY_C_ASSERT(PARTY_TEXT_CHAT_FILTER_LEVEL_FAMILY_FRIENDLY == static_cast<uint32_t>(PartyTextChatFilterLevel::FamilyFriendly));
+PARTY_C_ASSERT(PARTY_TEXT_CHAT_FILTER_LEVEL_MEDIUM == static_cast<uint32_t>(PartyTextChatFilterLevel::Medium));
+PARTY_C_ASSERT(PARTY_TEXT_CHAT_FILTER_LEVEL_MATURE == static_cast<uint32_t>(PartyTextChatFilterLevel::Mature));
+
 PARTY_C_ASSERT(PARTY_OPTION_LOCAL_UDP_SOCKET_BIND_ADDRESS == static_cast<uint32_t>(PartyOption::LocalUdpSocketBindAddress));
+PARTY_C_ASSERT(PARTY_OPTION_LOCAL_DEVICE_DIRECT_PEER_CONNECTIVITY_OPTIONS_MASK == static_cast<uint32_t>(PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask));
+PARTY_C_ASSERT(PARTY_OPTION_TEXT_CHAT_FILTER_LEVEL == static_cast<uint32_t>(PartyOption::TextChatFilterLevel));
 
 PARTY_C_ASSERT(PARTY_THREAD_ID_AUDIO == static_cast<uint32_t>(PartyThreadId::Audio));
 PARTY_C_ASSERT(PARTY_THREAD_ID_NETWORKING == static_cast<uint32_t>(PartyThreadId::Networking));
+
+PARTY_C_ASSERT(PARTY_WORK_MODE_AUTOMATIC == static_cast<uint32_t>(PartyWorkMode::Automatic));
+PARTY_C_ASSERT(PARTY_WORK_MODE_MANUAL == static_cast<uint32_t>(PartyWorkMode::Manual));
 
 PARTY_C_ASSERT(PARTY_SEND_MESSAGE_OPTIONS_DEFAULT == static_cast<uint32_t>(PartySendMessageOptions::Default));
 PARTY_C_ASSERT(PARTY_SEND_MESSAGE_OPTIONS_GUARANTEED_DELIVERY == static_cast<uint32_t>(PartySendMessageOptions::GuaranteedDelivery));
@@ -1801,6 +1919,7 @@ PARTY_C_ASSERT(PARTY_ENDPOINT_STATISTIC_TIMED_OUT_SEND_MESSAGES == static_cast<u
 PARTY_C_ASSERT(PARTY_ENDPOINT_STATISTIC_TIMED_OUT_SEND_MESSAGE_BYTES == static_cast<uint32_t>(PartyEndpointStatistic::TimedOutSendMessageBytes));
 PARTY_C_ASSERT(PARTY_ENDPOINT_STATISTIC_CANCELED_SEND_MESSAGES == static_cast<uint32_t>(PartyEndpointStatistic::CanceledSendMessages));
 PARTY_C_ASSERT(PARTY_ENDPOINT_STATISTIC_CANCELED_SEND_MESSAGE_BYTES == static_cast<uint32_t>(PartyEndpointStatistic::CanceledSendMessageBytes));
+PARTY_C_ASSERT(PARTY_ENDPOINT_STATISTIC_AVERAGE_DEVICE_ROUND_TRIP_LATENCY_IN_MILLISECONDS == static_cast<uint32_t>(PartyEndpointStatistic::AverageDeviceRoundTripLatencyInMilliseconds));
 
 PARTY_C_ASSERT(PARTY_INVITATION_REVOCABILITY_CREATOR == static_cast<uint32_t>(PartyInvitationRevocability::Creator));
 PARTY_C_ASSERT(PARTY_INVITATION_REVOCABILITY_ANYONE == static_cast<uint32_t>(PartyInvitationRevocability::Anyone));
@@ -1843,6 +1962,8 @@ PARTY_C_ASSERT(PARTY_CHAT_CONTROL_CHAT_INDICATOR_SILENT == static_cast<uint32_t>
 PARTY_C_ASSERT(PARTY_CHAT_CONTROL_CHAT_INDICATOR_TALKING == static_cast<uint32_t>(PartyChatControlChatIndicator::Talking));
 PARTY_C_ASSERT(PARTY_CHAT_CONTROL_CHAT_INDICATOR_INCOMING_VOICE_DISABLED == static_cast<uint32_t>(PartyChatControlChatIndicator::IncomingVoiceDisabled));
 PARTY_C_ASSERT(PARTY_CHAT_CONTROL_CHAT_INDICATOR_INCOMING_COMMUNICATIONS_MUTED == static_cast<uint32_t>(PartyChatControlChatIndicator::IncomingCommunicationsMuted));
+PARTY_C_ASSERT(PARTY_CHAT_CONTROL_CHAT_INDICATOR_NO_REMOTE_INPUT == static_cast<uint32_t>(PartyChatControlChatIndicator::NoRemoteInput));
+PARTY_C_ASSERT(PARTY_CHAT_CONTROL_CHAT_INDICATOR_REMOTE_AUDIO_INPUT_MUTED == static_cast<uint32_t>(PartyChatControlChatIndicator::RemoteAudioInputMuted));
 
 PARTY_C_ASSERT(PARTY_GENDER_NEUTRAL == static_cast<uint32_t>(PartyGender::Neutral));
 PARTY_C_ASSERT(PARTY_GENDER_FEMALE == static_cast<uint32_t>(PartyGender::Female));
@@ -1861,9 +1982,11 @@ PARTY_C_ASSERT(PARTY_VOICE_CHAT_TRANSCRIPTION_OPTIONS_TRANSCRIBE_OTHER_CHAT_CONT
 PARTY_C_ASSERT(PARTY_VOICE_CHAT_TRANSCRIPTION_OPTIONS_DISABLE_HYPOTHESIS_PHRASES == static_cast<uint32_t>(PartyVoiceChatTranscriptionOptions::DisableHypothesisPhrases));
 PARTY_C_ASSERT(PARTY_VOICE_CHAT_TRANSCRIPTION_OPTIONS_TRANSLATE_TO_LOCAL_LANGUAGE == static_cast<uint32_t>(PartyVoiceChatTranscriptionOptions::TranslateToLocalLanguage));
 PARTY_C_ASSERT(PARTY_VOICE_CHAT_TRANSCRIPTION_OPTIONS_DISABLE_PROFANITY_MASKING == static_cast<uint32_t>(PartyVoiceChatTranscriptionOptions::DisableProfanityMasking));
+PARTY_C_ASSERT(PARTY_VOICE_CHAT_TRANSCRIPTION_OPTIONS_TRANSCRIBE_SELF_REGARDLESS_OF_NETWORK_STATE == static_cast<uint32_t>(PartyVoiceChatTranscriptionOptions::TranscribeSelfRegardlessOfNetworkState));
 
 PARTY_C_ASSERT(PARTY_TEXT_CHAT_OPTIONS_NONE == static_cast<uint32_t>(PartyTextChatOptions::None));
 PARTY_C_ASSERT(PARTY_TEXT_CHAT_OPTIONS_TRANSLATE_TO_LOCAL_LANGUAGE == static_cast<uint32_t>(PartyTextChatOptions::TranslateToLocalLanguage));
+PARTY_C_ASSERT(PARTY_TEXT_CHAT_OPTIONS_FILTER_OFFENSIVE_TEXT == static_cast<uint32_t>(PartyTextChatOptions::FilterOffensiveText));
 
 PARTY_C_ASSERT(PARTY_TRANSLATION_RECEIVED_OPTIONS_NONE == static_cast<uint32_t>(PartyTranslationReceivedOptions::None));
 PARTY_C_ASSERT(PARTY_TRANSLATION_RECEIVED_OPTIONS_TRUNCATED == static_cast<uint32_t>(PartyTranslationReceivedOptions::Truncated));
@@ -1876,6 +1999,22 @@ PARTY_C_ASSERT(PARTY_AUDIO_SAMPLE_TYPE_FLOAT == static_cast<uint32_t>(PartyAudio
 
 PARTY_C_ASSERT(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_OPTIONS_NONE == static_cast<uint32_t>(PartyLocalUdpSocketBindAddressOptions::None));
 PARTY_C_ASSERT(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_OPTIONS_EXCLUDE_GAME_CORE_PREFERRED_UDP_MULTIPLAYER_PORT == static_cast<uint32_t>(PartyLocalUdpSocketBindAddressOptions::ExcludeGameCorePreferredUdpMultiplayerPort));
+
+PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_NONE == static_cast<uint32_t>(PartyDirectPeerConnectivityOptions::None));
+PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_SAME_PLATFORM_TYPE == static_cast<uint32_t>(PartyDirectPeerConnectivityOptions::SamePlatformType));
+PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_DIFFERENT_PLATFORM_TYPE == static_cast<uint32_t>(PartyDirectPeerConnectivityOptions::DifferentPlatformType));
+PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_ANY_PLATFORM_TYPE == static_cast<uint32_t>(PartyDirectPeerConnectivityOptions::AnyPlatformType));
+PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_SAME_ENTITY_LOGIN_PROVIDER == static_cast<uint32_t>(PartyDirectPeerConnectivityOptions::SameEntityLoginProvider));
+PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_DIFFERENT_ENTITY_LOGIN_PROVIDER == static_cast<uint32_t>(PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider));
+PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_ANY_ENTITY_LOGIN_PROVIDER == static_cast<uint32_t>(PartyDirectPeerConnectivityOptions::AnyEntityLoginProvider));
+
+PARTY_C_ASSERT(PARTY_DEVICE_CONNECTION_TYPE_RELAY_SERVER == static_cast<uint32_t>(PartyDeviceConnectionType::RelayServer));
+PARTY_C_ASSERT(PARTY_DEVICE_CONNECTION_TYPE_DIRECT_PEER_CONNECTION == static_cast<uint32_t>(PartyDeviceConnectionType::DirectPeerConnection));
+
+PARTY_C_ASSERT(PARTY_CHAT_TEXT_RECEIVED_OPTIONS_NONE == static_cast<uint32_t>(PartyChatTextReceivedOptions::None));
+PARTY_C_ASSERT(PARTY_CHAT_TEXT_RECEIVED_OPTIONS_FILTERED_OFFENSIVE_TERMS == static_cast<uint32_t>(PartyChatTextReceivedOptions::FilteredOffensiveTerms));
+PARTY_C_ASSERT(PARTY_CHAT_TEXT_RECEIVED_OPTIONS_FILTERED_ENTIRE_MESSAGE == static_cast<uint32_t>(PartyChatTextReceivedOptions::FilteredEntireMessage));
+PARTY_C_ASSERT(PARTY_CHAT_TEXT_RECEIVED_OPTIONS_FILTERED_DUE_TO_ERROR == static_cast<uint32_t>(PartyChatTextReceivedOptions::FilteredDueToError));
 
 PARTY_C_ASSERT(sizeof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION) == sizeof(PartyLocalUdpSocketBindAddressConfiguration));
 PARTY_C_ASSERT(sizeof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION::options) == sizeof(PartyLocalUdpSocketBindAddressConfiguration::options));
@@ -1902,6 +2041,8 @@ PARTY_C_ASSERT(sizeof(PARTY_NETWORK_CONFIGURATION::maxDevicesPerUserCount) == si
 PARTY_C_ASSERT(offsetof(PARTY_NETWORK_CONFIGURATION, maxDevicesPerUserCount) == offsetof(PartyNetworkConfiguration, maxDevicesPerUserCount));
 PARTY_C_ASSERT(sizeof(PARTY_NETWORK_CONFIGURATION::maxEndpointsPerDeviceCount) == sizeof(PartyNetworkConfiguration::maxEndpointsPerDeviceCount));
 PARTY_C_ASSERT(offsetof(PARTY_NETWORK_CONFIGURATION, maxEndpointsPerDeviceCount) == offsetof(PartyNetworkConfiguration, maxEndpointsPerDeviceCount));
+PARTY_C_ASSERT(sizeof(PARTY_NETWORK_CONFIGURATION::directPeerConnectivityOptions) == sizeof(PartyNetworkConfiguration::directPeerConnectivityOptions));
+PARTY_C_ASSERT(offsetof(PARTY_NETWORK_CONFIGURATION, directPeerConnectivityOptions) == offsetof(PartyNetworkConfiguration, directPeerConnectivityOptions));
 
 PARTY_C_ASSERT(sizeof(PARTY_REGION) == sizeof(PartyRegion));
 PARTY_C_ASSERT(sizeof(PARTY_REGION::regionName) == sizeof(PartyRegion::regionName));
@@ -2364,6 +2505,12 @@ PARTY_C_ASSERT(sizeof(PARTY_CHAT_TEXT_RECEIVED_STATE_CHANGE::translationCount) =
 PARTY_C_ASSERT(offsetof(PARTY_CHAT_TEXT_RECEIVED_STATE_CHANGE, translationCount) == offsetof(PartyChatTextReceivedStateChange, translationCount));
 PARTY_C_ASSERT(sizeof(PARTY_CHAT_TEXT_RECEIVED_STATE_CHANGE::translations) == sizeof(PartyChatTextReceivedStateChange::translations));
 PARTY_C_ASSERT(offsetof(PARTY_CHAT_TEXT_RECEIVED_STATE_CHANGE, translations) == offsetof(PartyChatTextReceivedStateChange, translations));
+PARTY_C_ASSERT(sizeof(PARTY_CHAT_TEXT_RECEIVED_STATE_CHANGE::options) == sizeof(PartyChatTextReceivedStateChange::options));
+PARTY_C_ASSERT(offsetof(PARTY_CHAT_TEXT_RECEIVED_STATE_CHANGE, options) == offsetof(PartyChatTextReceivedStateChange, options));
+PARTY_C_ASSERT(sizeof(PARTY_CHAT_TEXT_RECEIVED_STATE_CHANGE::originalChatText) == sizeof(PartyChatTextReceivedStateChange::originalChatText));
+PARTY_C_ASSERT(offsetof(PARTY_CHAT_TEXT_RECEIVED_STATE_CHANGE, originalChatText) == offsetof(PartyChatTextReceivedStateChange, originalChatText));
+PARTY_C_ASSERT(sizeof(PARTY_CHAT_TEXT_RECEIVED_STATE_CHANGE::errorDetail) == sizeof(PartyChatTextReceivedStateChange::errorDetail));
+PARTY_C_ASSERT(offsetof(PARTY_CHAT_TEXT_RECEIVED_STATE_CHANGE, errorDetail) == offsetof(PartyChatTextReceivedStateChange, errorDetail));
 
 PARTY_C_ASSERT(sizeof(PARTY_VOICE_CHAT_TRANSCRIPTION_RECEIVED_STATE_CHANGE) == sizeof(PartyVoiceChatTranscriptionReceivedStateChange));
 PARTY_C_ASSERT(sizeof(PARTY_VOICE_CHAT_TRANSCRIPTION_RECEIVED_STATE_CHANGE::result) == sizeof(PartyVoiceChatTranscriptionReceivedStateChange::result));
@@ -2590,6 +2737,14 @@ PARTY_C_ASSERT(sizeof(PARTY_CONFIGURE_AUDIO_MANIPULATION_RENDER_STREAM_COMPLETED
 PARTY_C_ASSERT(offsetof(PARTY_CONFIGURE_AUDIO_MANIPULATION_RENDER_STREAM_COMPLETED_STATE_CHANGE, configuration) == offsetof(PartyConfigureAudioManipulationRenderStreamCompletedStateChange, configuration));
 PARTY_C_ASSERT(sizeof(PARTY_CONFIGURE_AUDIO_MANIPULATION_RENDER_STREAM_COMPLETED_STATE_CHANGE::asyncIdentifier) == sizeof(PartyConfigureAudioManipulationRenderStreamCompletedStateChange::asyncIdentifier));
 PARTY_C_ASSERT(offsetof(PARTY_CONFIGURE_AUDIO_MANIPULATION_RENDER_STREAM_COMPLETED_STATE_CHANGE, asyncIdentifier) == offsetof(PartyConfigureAudioManipulationRenderStreamCompletedStateChange, asyncIdentifier));
+
+PARTY_C_ASSERT(sizeof(PARTY_PROFILING_METHOD_ENTRANCE_EVENT_DATA) == sizeof(PartyProfilingMethodEntranceEventData));
+PARTY_C_ASSERT(sizeof(PARTY_PROFILING_METHOD_ENTRANCE_EVENT_DATA::methodName) == sizeof(PartyProfilingMethodEntranceEventData::methodName));
+PARTY_C_ASSERT(offsetof(PARTY_PROFILING_METHOD_ENTRANCE_EVENT_DATA, methodName) == offsetof(PartyProfilingMethodEntranceEventData, methodName));
+
+PARTY_C_ASSERT(sizeof(PARTY_PROFILING_METHOD_EXIT_EVENT_DATA) == sizeof(PartyProfilingMethodExitEventData));
+PARTY_C_ASSERT(sizeof(PARTY_PROFILING_METHOD_EXIT_EVENT_DATA::methodName) == sizeof(PartyProfilingMethodExitEventData::methodName));
+PARTY_C_ASSERT(offsetof(PARTY_PROFILING_METHOD_EXIT_EVENT_DATA, methodName) == offsetof(PartyProfilingMethodExitEventData, methodName));
 
 PARTY_C_ASSERT(sizeof(PARTY_ENDPOINT_HANDLE) == sizeof(PartyEndpoint*));
 PARTY_C_ASSERT(sizeof(PARTY_ENDPOINT_HANDLE) == sizeof(PartyLocalEndpoint*));

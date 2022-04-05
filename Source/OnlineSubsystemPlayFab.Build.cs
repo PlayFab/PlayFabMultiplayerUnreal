@@ -6,168 +6,284 @@
 using UnrealBuildTool;
 using System;
 using System.IO;
+using System.Reflection;
+using System.Linq;
+using System.Diagnostics;
+using System.Threading;
 using Tools.DotNETCommon;
 
 public class OnlineSubsystemPlayFab : ModuleRules
 {
-	private void SetupPlatformDefine(UnrealTargetPlatform TargetPlatform)
-	{
-		PublicDefinitions.Add(String.Format("OSS_PLAYFAB_{0}=1", TargetPlatform.ToString().ToUpper()));
-		Log.TraceInformation("OnlineSubsystemPlayFab: building for platform {0}", TargetPlatform.ToString().ToUpper());
-	}
+    private static bool VerboseVOIPLoggingEnabled = false;
+    private static bool VerbosePacketLevelLoggingEnabled = false;
 
-	public OnlineSubsystemPlayFab(ReadOnlyTargetRules Target) : base(Target)
-	{
-		// We don't want to try and load when doing project gen, editor, server, etc
-		if (Target.bGenerateProjectFiles || (Target.Type != TargetType.Game && Target.Type != TargetType.Client))
-		{
-			return;
-		}
+    private void SetupPlatformDefine(UnrealTargetPlatform TargetPlatform)
+    {
+        PublicDefinitions.Add(String.Format("OSS_PLAYFAB_{0}=1", TargetPlatform.ToString().ToUpper()));
+        Log.TraceInformation("OnlineSubsystemPlayFab: building for platform {0}", TargetPlatform.ToString().ToUpper());
+    }
 
-		string PlayFabPartyExtensionPath = string.Empty;
-		string PlayFabPartyRedistPath = string.Empty;
-		string PlayFabPartyXblExtensionPath = string.Empty;
-		string PlayFabPartyXblRedistPath = string.Empty;
-		bool bPlatformHasPlayFabPartyBundled = false;
+    public OnlineSubsystemPlayFab(ReadOnlyTargetRules Target) : base(Target)
+    {
+        // We don't want to try and load when doing project gen, editor, server, etc
+        if (Target.bGenerateProjectFiles || (Target.Type != TargetType.Game && Target.Type != TargetType.Client))
+        {
+            PrecompileForTargets = PrecompileTargetsType.None;
+            return;
+        }
 
-		SetupPlatformDefine(Target.Platform);
+        PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		// Use the Platforms folder libs if available, these are not included by default so should be considered an override if present.
-		string PlatformDirName = "UNKNOWN";
-		if (Target.Platform.IsInGroup(UnrealPlatformGroup.GDK))
-		{
-			PlatformDirName = "GDK";
-			bPlatformHasPlayFabPartyBundled = true;
-		}
-		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
-		{
-			PlatformDirName = "XDK";
-		}
+        AddCommonModuleDependencies();
+  
+        SetCommonDefinitions();
 
-		string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", PlatformDirName);
+        SetupPlatformDefine(Target.Platform);
 
-		if (Target.Platform == UnrealBuildTool.UnrealTargetPlatform.WinGDK)
-		{
-			PublicDefinitions.Add("OSS_PLAYFAB_IS_PC=1");
-		}
-		else
-		{
-			PublicDefinitions.Add("OSS_PLAYFAB_IS_PC=0");
-		}
+        PlayFabOSSSupportedPlatformType Platform = DeterminePlatformType();
 
-		// For debugging purposes
-		PublicDefinitions.Add("OSS_PLAYFAB_VERBOSE_VOIP_LOGGING=0");
-		PublicDefinitions.Add("OSS_PLAYFAB_VERBOSE_PACKET_LEVEL_LOGGING=0");
+        IPlayFabOSSPlatformConfigurator PlatformConfigurator = GetConfiguratorForPlatform(Platform);
 
-		// Add OSS definitions
-		PublicDefinitions.Add("PLAYFAB_SUBSYSTEM=FName(TEXT(\"PLAYFAB\"))");
+        PublicDefinitions.Add("OSS_PLAYFAB_IS_PC=" + (PlatformConfigurator.IsPCPlatform(Target) ? "1" : "0"));
 
-		if (Directory.Exists(PlatformDir) && Directory.Exists(Path.Combine(PlatformDir, "Lib")) && Directory.Exists(Path.Combine(PlatformDir, "Redist")) && Directory.Exists(Path.Combine(PlatformDir, "Include")))
-		{
-			PlayFabPartyXblExtensionPath = PlayFabPartyExtensionPath = PlatformDir;
-			PlayFabPartyXblRedistPath = PlayFabPartyRedistPath = Path.Combine(PlatformDir, "Redist");
+        PlatformConfigurator.AddModuleDependencies(this);
+        PlatformConfigurator.SetPlatformDefinitions(this);
+        PlatformConfigurator.ConfigurePlayFabDependencies(Target, this);
+    }
 
-			Log.TraceInformation("OnlineSubsystemPlayFab: Using PlayFab Party library provided as an override.");
+    private void AddCommonModuleDependencies()
+    {
+        PublicDependencyModuleNames.AddRange(
+        new string[] {
+                "OnlineSubsystemUtils",
+        });
 
-		}
-		else if (bPlatformHasPlayFabPartyBundled) // Use GDK version
-		{
-			PlayFabPartyExtensionPath = GDKExports.GetExtensionDirectory("PlayFab.Party.Cpp", false);
-			PlayFabPartyRedistPath = GDKExports.GetExtensionDirectory("PlayFab.Party.Cpp", true);
+        PrivateDependencyModuleNames.AddRange(
+            new string[] {
+                "Core",
+                "CoreUObject",
+                "NetCore",
+                "Engine",
+                "Sockets",
+                "Voice",
+                "AudioMixer",
+                "OnlineSubsystem",
+                "Json",
+                "PacketHandler",
+                "Projects",
+                "HTTP"
+            }
+        );
+    }
 
-			if (!Directory.Exists(PlayFabPartyExtensionPath) || !Directory.Exists(PlayFabPartyRedistPath))
-			{
-				throw new BuildException("PlayFab Party was not found. Please validate your GDK installation or provide an override library.");
-			}
+    private void SetCommonDefinitions()
+    {
+        PublicDefinitions.Add("PLAYFAB_SUBSYSTEM=FName(TEXT(\"PLAYFAB\"))");
+        PrivateDefinitions.Add("ONLINESUBSYSTEMPLAYFAB_PACKAGE=1");
 
-			Log.TraceInformation("OnlineSubsystemPlayFab: Using PlayFab Party library from GDK installation at {0}", PlayFabPartyExtensionPath);
+        // For debugging purposes
+        PublicDefinitions.Add("OSS_PLAYFAB_VERBOSE_VOIP_LOGGING=" + (VerboseVOIPLoggingEnabled ? "1" : "0"));
+        PublicDefinitions.Add("OSS_PLAYFAB_VERBOSE_PACKET_LEVEL_LOGGING=" + (VerbosePacketLevelLoggingEnabled ? "1" : "0"));
+    }
 
-			PlayFabPartyXblExtensionPath = GDKExports.GetExtensionDirectory("PlayFab.PartyXboxLive.Cpp", false);
-			PlayFabPartyXblRedistPath = GDKExports.GetExtensionDirectory("PlayFab.PartyXboxLive.Cpp", true);
+    // Because GDK platform determination relies on a type, GDKExports" that only exists in GDK enabled builds of the UE, we use reflection to dynamically
+    // look for the existence of the GDKExports type and expose the needed methods here via MethodInfo.
+    private static class GDKExports
+    {
+        private static Type ReflectedType;
+        private static MethodInfo GetExtendedDirectoryMethodInfo = null;
 
-			if (!Directory.Exists(PlayFabPartyXblExtensionPath) || !Directory.Exists(PlayFabPartyXblRedistPath))
-			{
-				throw new BuildException("PlayFab Party XboxLive Extension was not found. Please validate your GDK installation or provide an override library.");
-			}
+        static GDKExports()
+        {
+            ReflectedType = FindType();
+            if (ReflectedType == null)
+            {
+                throw new Exception("Failed to locate GDKExports");
+            }
+            else
+            {
+                GetExtendedDirectoryMethodInfo = ReflectedType.GetMethod("GetExtensionDirectory", BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy );
+                if (GetExtendedDirectoryMethodInfo == null)
+                {
+                    throw new Exception("Faild to locate GetExtensionDirectory");
+                }
+            }
+        }
 
-			Log.TraceInformation("OnlineSubsystemPlayFab: Using PlayFab Party XboxLive library from GDK installation at {0}", PlayFabPartyXblExtensionPath);
-		}
-		else
-		{
-			throw new BuildException("PlayFab Party was not found. This platforms SDK does not have PlayFab Party bundled with it, and you have not provided an override library.");
-		}
+        private static Type FindType()
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(x => x.GetName().Name.Equals("UnrealBuildTool"))
+                    .GetTypes()
+                    .FirstOrDefault(x => x.Name.Equals("GDKExports"));
+        }
 
-		string PlayFabPartyIncludePath = Path.Combine(PlayFabPartyExtensionPath, "Include");
-		string PlayFabPartyLibraryPath = Path.Combine(PlayFabPartyExtensionPath, "Lib");
-		string PlayFabPartyXblIncludePath = Path.Combine(PlayFabPartyXblExtensionPath, "Include");
-		string PlayFabPartyXblLibraryPath = Path.Combine(PlayFabPartyXblExtensionPath, "Lib");
+        public static string GetExtensionDirectory(string ExtensionDirectory, bool IsForRedistribution)
+        {
+            return GetExtendedDirectoryMethodInfo != null ? (string)GetExtendedDirectoryMethodInfo.Invoke(null, new object[] { ExtensionDirectory, IsForRedistribution }) : string.Empty;
+        }
+    }
 
-		PrivateDefinitions.Add("ONLINESUBSYSTEMPLAYFAB_PACKAGE=1");
-		PrivateDefinitions.Add("ONLINESUBSYSTEMGDK_PACKAGE=1");
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+    private enum PlayFabOSSSupportedPlatformType
+    {
+        Undefined,
+        GDK,
+        Windows
+    }
 
-		PublicSystemIncludePaths.Add(PlayFabPartyIncludePath);
-		PublicSystemIncludePaths.Add(PlayFabPartyXblIncludePath);
+    private PlayFabOSSSupportedPlatformType DeterminePlatformType()
+    {
+        // Because GDK platform determination relies on a type that only exists in GDK enabled builds of the UE, we use reflection to dynamically
+        // look for the existence of the GDK field on the UnrealPlatformGroup type.
+        FieldInfo UnrealPlatformGroupGDKField = typeof(UnrealPlatformGroup).GetField("GDK", BindingFlags.Public | BindingFlags.Static);
+        if (UnrealPlatformGroupGDKField != null)
+        {
+            Log.TraceInformation("OnlineSubsystemPlayFab: GDK Platform Field Exists!");
+            UnrealPlatformGroup GDK = (UnrealPlatformGroup)UnrealPlatformGroupGDKField.GetValue(null);
+            if (GDK != null)
+            {
+                Log.TraceInformation("OnlineSubsystemPlayFab: GDK Platform Field Exists!");
+                if (Target.Platform.IsInGroup(GDK))
+                {
+                    return PlayFabOSSSupportedPlatformType.GDK;
+                }
+            }
+        }
+        else if (Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            return PlayFabOSSSupportedPlatformType.Windows;
+        }
+        else
+        {
+            throw new PlatformNotSupportedException(Target.Platform.ToString() + " is not supported.");
+        }
+        return PlayFabOSSSupportedPlatformType.Undefined;
+    }
 
-		// We need party.lib, this is either in the GDK, or via Platforms override
-		PublicSystemLibraries.Add(Path.Combine(PlayFabPartyLibraryPath, "Party.lib"));
-		PublicSystemLibraries.Add(Path.Combine(PlayFabPartyXblLibraryPath, "PartyXboxLive.lib"));
-		PublicAdditionalLibraries.Add(Path.Combine(PlayFabPartyLibraryPath, "PlayFabMultiplayerGDK.lib"));
-		Log.TraceInformation("OnlineSubsystemPlayFab: Using PlayFab Multiplayer library from GDK installation at {0}", Path.Combine(PlayFabPartyLibraryPath, "PlayFabMultiplayerGDK.lib"));
+    private IPlayFabOSSPlatformConfigurator GetConfiguratorForPlatform(PlayFabOSSSupportedPlatformType Platform)
+    {
+        switch (Platform)
+        {
+            case PlayFabOSSSupportedPlatformType.GDK:
+                {
+                    return new GDKPlatformConfigurator();
+                }
+            case PlayFabOSSSupportedPlatformType.Windows:
+                {
+                    return new WindowsPlatformConfigurator();
+                }
+            default:
+                {
+                    throw new PlatformNotSupportedException(Target.Platform.ToString() + " is not supported.");
+                }
+        }
+    }
 
-		PublicDependencyModuleNames.AddRange(
-			new string[] {
-				"OnlineSubsystemUtils"
-			}
-		);
+    public interface IPlayFabOSSPlatformConfigurator
+    {
+        bool IsPCPlatform(ReadOnlyTargetRules Target);
+        void AddModuleDependencies(ModuleRules ThisModule);
+        void SetPlatformDefinitions(ModuleRules ThisModule);
+        void ConfigurePlayFabDependencies(ReadOnlyTargetRules Target, ModuleRules ThisModule);
+    }
 
-		PrivateDependencyModuleNames.AddRange(
-			new string[] {
-				"Core",
-				"CoreUObject",
-				"NetCore",
-				"Engine",
-				"Sockets",
-				"Voice",
-				"AudioMixer",
-				"OnlineSubsystem",
-				"Json",
-				"PacketHandler",
-				"Projects",
-				"HTTP"
-			}
-		);
+    private class GDKPlatformConfigurator : IPlayFabOSSPlatformConfigurator
+    {
+        public bool IsPCPlatform(ReadOnlyTargetRules Target)
+        {
+            return Target.Platform == UnrealTargetPlatform.Parse("WinGDK");
+        }
 
-		// GDK is everything gamecore.
-		if (Target.Platform.IsInGroup(UnrealPlatformGroup.GDK))
-		{
-			PublicDependencyModuleNames.Add("GDKCore");
-			PublicDependencyModuleNames.Add("OnlineSubsystemGDK");
-		}
-		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
-		{
-			PublicDependencyModuleNames.Add("OnlineSubsystemLive");
-		}
+        public void AddModuleDependencies(ModuleRules ThisModule)
+        {
+            ThisModule.PublicDependencyModuleNames.Add("GDKCore");
+            ThisModule.PublicDependencyModuleNames.Add("OnlineSubsystemGDK");
+        }
+        public void SetPlatformDefinitions(ModuleRules ThisModule)
+        {
+            ThisModule.PrivateDefinitions.Add("ONLINESUBSYSTEMGDK_PACKAGE=1");
+        }
+        public void ConfigurePlayFabDependencies(ReadOnlyTargetRules Target, ModuleRules ThisModule)
+        {
+            string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "GDK");
 
-		RuntimeDependencies.Add("$(TargetOutputDir)/Party.dll", Path.Combine(PlayFabPartyRedistPath, "Party.dll"), StagedFileType.SystemNonUFS);
-		RuntimeDependencies.Add("$(TargetOutputDir)/Party.pdb", Path.Combine(PlayFabPartyRedistPath, "Party.pdb"), StagedFileType.DebugNonUFS);	
+            if (!Directory.Exists(PlatformDir) ||
+                !Directory.Exists(Path.Combine(PlatformDir, "Redist")) ||
+                !Directory.Exists(Path.Combine(PlatformDir, "Include")) ||
+                !Directory.Exists(Path.Combine(PlatformDir, "Lib"))
+                )
+            {
+                throw new BuildException("PlayFab precompiled dependencies were not found for the platform you are trying to compile.");
+            }
 
-		RuntimeDependencies.Add("$(TargetOutputDir)/PartyXboxLive.dll", Path.Combine(PlayFabPartyXblRedistPath, "PartyXboxLive.dll"), StagedFileType.SystemNonUFS);
-		RuntimeDependencies.Add("$(TargetOutputDir)/PartyXboxLive.pdb", Path.Combine(PlayFabPartyXblRedistPath, "PartyXboxLive.pdb"), StagedFileType.DebugNonUFS);
+            string PlayFabPartyIncludePath = Path.Combine(PlatformDir, "Include");
+            ThisModule.PublicSystemIncludePaths.Add(PlayFabPartyIncludePath);
 
-		RuntimeDependencies.Add("$(TargetOutputDir)/PlayFabMultiplayerGDK.dll", Path.Combine(PlayFabPartyRedistPath, "PlayFabMultiplayerGDK.dll"), StagedFileType.SystemNonUFS);
-		RuntimeDependencies.Add("$(TargetOutputDir)/PlayFabMultiplayerGDK.pdb", Path.Combine(PlayFabPartyRedistPath, "PlayFabMultiplayerGDK.pdb"), StagedFileType.DebugNonUFS);
+            string PlayFabPartyLibraryPath = Path.Combine(PlatformDir, "Lib");
+            ThisModule.PublicSystemLibraries.Add(Path.Combine(PlayFabPartyLibraryPath, "Party.lib"));
+            ThisModule.PublicSystemLibraries.Add(Path.Combine(PlayFabPartyLibraryPath, "PartyXboxLive.lib"));
+            ThisModule.PublicAdditionalLibraries.Add(Path.Combine(PlayFabPartyLibraryPath, "PlayFabMultiplayerGDK.lib"));
 
-		if (Target.Platform.IsInGroup(UnrealPlatformGroup.GDK))
-		{
-			// Add XCurl redistributable
-			string XCurlRedistDir = GDKExports.GetExtensionDirectory("Xbox.XCurl.API", true);
-			if (XCurlRedistDir != null)
-			{
-				RuntimeDependencies.Add("$(TargetOutputDir)/XCurl.dll", Path.Combine(XCurlRedistDir, "XCurl.dll"), StagedFileType.SystemNonUFS);
-				RuntimeDependencies.Add("$(TargetOutputDir)/XCurl.pdb", Path.Combine(XCurlRedistDir, "XCurl.pdb"), StagedFileType.DebugNonUFS);
-				PublicDelayLoadDLLs.Add("XCurl.dll");
-			}
-		}
-	}
+            string PlayFabPartyRedistPath = Path.Combine(PlatformDir, "Redist");
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/Party.dll", Path.Combine(PlayFabPartyRedistPath, "Party.dll"), StagedFileType.SystemNonUFS);
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/Party.pdb", Path.Combine(PlayFabPartyRedistPath, "Party.pdb"), StagedFileType.DebugNonUFS);
+
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/PartyXboxLive.dll", Path.Combine(PlayFabPartyRedistPath, "PartyXboxLive.dll"), StagedFileType.SystemNonUFS);
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/PartyXboxLive.pdb", Path.Combine(PlayFabPartyRedistPath, "PartyXboxLive.pdb"), StagedFileType.DebugNonUFS);
+
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/PlayFabMultiplayerGDK.dll", Path.Combine(PlayFabPartyRedistPath, "PlayFabMultiplayerGDK.dll"), StagedFileType.SystemNonUFS);
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/PlayFabMultiplayerGDK.pdb", Path.Combine(PlayFabPartyRedistPath, "PlayFabMultiplayerGDK.pdb"), StagedFileType.DebugNonUFS);
+
+            string XCurlRedistDir = GDKExports.GetExtensionDirectory("Xbox.XCurl.API", true);
+            if (XCurlRedistDir != null)
+            {
+                ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/XCurl.dll", Path.Combine(XCurlRedistDir, "XCurl.dll"), StagedFileType.SystemNonUFS);
+                ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/XCurl.pdb", Path.Combine(XCurlRedistDir, "XCurl.pdb"), StagedFileType.DebugNonUFS);
+                ThisModule.PublicDelayLoadDLLs.Add("XCurl.dll");
+            }
+        }
+    }
+
+    private class WindowsPlatformConfigurator : IPlayFabOSSPlatformConfigurator
+    {
+        public bool IsPCPlatform(ReadOnlyTargetRules Target)
+        {
+            return true;
+        }
+
+        public void AddModuleDependencies(ModuleRules ThisModule)
+        {
+            //No windows specific module dependencies.
+        }
+        public void SetPlatformDefinitions(ModuleRules ThisModule)
+        {
+            //No windows specific platform definitions.
+        }
+        public void ConfigurePlayFabDependencies(ReadOnlyTargetRules Target, ModuleRules ThisModule)
+        {
+            string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "Windows");
+
+            if (!Directory.Exists(PlatformDir) || 
+                !Directory.Exists(Path.Combine(PlatformDir, "Redist")) || 
+                !Directory.Exists(Path.Combine(PlatformDir, "Include")) ||
+                !Directory.Exists(Path.Combine(PlatformDir, "Lib"))
+                )
+            {
+                throw new BuildException("PlayFab precompiled dependencies were not found for the platform you are trying to compile.");
+            }
+
+            string PlayFabPartyIncludePath = Path.Combine(PlatformDir, "Include");
+            ThisModule.PublicSystemIncludePaths.Add(PlayFabPartyIncludePath);
+
+            string PlayFabPartyLibraryPath = Path.Combine(PlatformDir, "Lib");
+            ThisModule.PublicSystemLibraries.Add(Path.Combine(PlayFabPartyLibraryPath, "Party.lib"));
+            ThisModule.PublicAdditionalLibraries.Add(Path.Combine(PlayFabPartyLibraryPath, "PlayFabMultiplayerWin.lib"));
+
+            string PlayFabPartyRedistPath = Path.Combine(PlatformDir, "Redist");
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/PartyWin.dll", Path.Combine(PlayFabPartyRedistPath, "PartyWin.dll"), StagedFileType.SystemNonUFS);
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/PartyWin.pdb", Path.Combine(PlayFabPartyRedistPath, "PartyWin.pdb"), StagedFileType.DebugNonUFS);
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/PlayFabMultiplayerWin.dll", Path.Combine(PlayFabPartyRedistPath, "PlayFabMultiplayerWin.dll"), StagedFileType.SystemNonUFS);
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/PlayFabMultiplayerWin.pdb", Path.Combine(PlayFabPartyRedistPath, "PlayFabMultiplayerWin.pdb"), StagedFileType.DebugNonUFS);
+        }
+    }
 }

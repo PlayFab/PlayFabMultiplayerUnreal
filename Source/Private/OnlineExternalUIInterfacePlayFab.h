@@ -62,8 +62,9 @@ public:
 	virtual bool ShowStoreUI(int32 LocalUserNum, const FShowStoreParams& ShowParams, const FOnShowStoreUIClosedDelegate& Delegate = FOnShowStoreUIClosedDelegate()) override;
 	virtual bool ShowSendMessageUI(int32 LocalUserNum, const FShowSendMessageParams& ShowParams, const FOnShowSendMessageUIClosedDelegate& Delegate = FOnShowSendMessageUIClosedDelegate()) override;
 	
-
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	void HandleShowLoginUIComplete(bool bSuccess, FGDKUserHandle GDKUser, FOnLoginUIClosedDelegate Delegate);
+#endif
 	void HandleReadFriendsComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr);
 	void HandleShowSendGameInvitesUIComplete(bool bIsSuccess);
 	void HandleShowAchievementsUIComplete(bool bIsSuccess);
@@ -73,7 +74,7 @@ public:
 	void Tick(float DeltaTime);
 
 private:
-#if OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	void ProcessShowPlayerPickerResults(TUniquePtr<XAsyncBlock> AsyncBlock);
 #endif
 };

@@ -6,7 +6,7 @@
 #include "HAL/Platform.h"
 PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
 
-#if OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 #include "PlatformDefines.h"
 
 #include "OnlineSubsystemPlayFab.h"

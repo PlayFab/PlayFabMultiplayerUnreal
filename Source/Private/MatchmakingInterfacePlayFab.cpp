@@ -61,9 +61,13 @@ bool FMatchmakingInterfacePlayFab::CreateMatchMakingTicket(const TArray< TShared
 	}
 
 	std::string QueueNameStr = TCHAR_TO_UTF8(*QueueName);
+
+	// If the timeout is negative we set the max timeout from the service side, which is 1 hour.
+	const uint32_t ticketTimeoutInSeconds = (SearchSettings->TimeoutInSeconds < 0) ? 3600 : static_cast<uint32_t>(SearchSettings->TimeoutInSeconds);
+
 	PFMatchmakingTicketConfiguration MatchConfig =
 	{
-		SearchSettings->TimeoutInSeconds,
+		ticketTimeoutInSeconds,
 		QueueNameStr.c_str(),
 		0,
 		nullptr
@@ -125,8 +129,6 @@ bool FMatchmakingInterfacePlayFab::CreateMatchMakingTicket(const TArray< TShared
 
 bool FMatchmakingInterfacePlayFab::CancelMatchmakingTicket(const PFEntityKey entity, const FName& SessionName)
 {
-	UNREFERENCED_PARAMETER(entity);
-
 	FOnlineMatchmakingTicketInfoPtr MatchmakingTicketPtr;
 	if (!GetMatchmakingTicket(SessionName, MatchmakingTicketPtr) || !MatchmakingTicketPtr.IsValid())
 	{
@@ -228,7 +230,7 @@ void FMatchmakingInterfacePlayFab::HandleMatchmakingTicketCompleted(const PFMatc
 		if (Status == PFMatchmakingTicketStatus::Matched)
 		{
 			const PFMatchmakingMatchDetails* MatchDetails;
-			HRESULT Hr = PFMatchmakingTicketGetMatch(PlayFabMatchTicket, &MatchDetails);
+			Hr = PFMatchmakingTicketGetMatch(PlayFabMatchTicket, &MatchDetails);
 			if (FAILED(Hr))
 			{
 				UE_LOG_ONLINE(Error, TEXT("FMatchmakingInterfacePlayFab::HandleMatchmakingTicketCompleted PFMatchmakingTicketGetMatch failed. ErrorCode=[0x%08x], Error message %s"), Hr, *GetMultiplayerErrorMessage(Hr));

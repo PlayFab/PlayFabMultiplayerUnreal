@@ -21,7 +21,6 @@ class UPlayFabNetDriver : public UIpNetDriver
 	GENERATED_UCLASS_BODY()
 
 public:
-	UPlayFabNetDriver() = default;
 
 	// UIpNetDriver Interface
 	virtual class ISocketSubsystem* GetSocketSubsystem() override;

@@ -77,7 +77,7 @@ bool FPlayFabSocket::SendTo(const uint8* Data, int32 Count, int32& BytesSent, co
 	Party::PartyEndpoint* TargetEndpoints[1] = { RemoteEndpoint };
 
 	uint32 DataBufferCount = 1;
-	Party::PartyDataBuffer DataBuffer[1] = { Data, static_cast<uint32_t>(Count) };
+	Party::PartyDataBuffer DataBuffer[1] = { { Data, static_cast<uint32_t>(Count) } };
 
 	PartyError Err = LocalEndpoint->SendMessage(
 		TargetEndPointCount,		// endpoint count; 0 = broadcast

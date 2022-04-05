@@ -14,7 +14,6 @@ THIRD_PARTY_INCLUDES_START
 #include <PFLobby.h>
 THIRD_PARTY_INCLUDES_END
 
-
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLobbyCreatedAndJoinCompleted, bool, FName);
 typedef FOnLobbyCreatedAndJoinCompleted::FDelegate FOnLobbyCreatedAndJoinCompletedDelegate;
 
@@ -136,5 +135,7 @@ private:
 	FRemoveLocalPlayerData RemoveLocalPlayerData;
 
 public:
-	void OnGetTitlePlayersFromXboxLiveIDsCompleted(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FPendingSendInviteData PendingSendInvite);
+	void OnGetPlayFabIDsFromPlatformIDsCompleted(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FPendingSendInviteData PendingSendInvite);
+	void OnGetTitleAccountIDsFromPlatformIDsCompleted(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FPendingSendInviteData PendingSendInvite);
+	void InviteTitleAccountIDsToLobby(FPendingSendInviteData PendingSendInvite, const FString& TitleAccountInviteeId);
 };

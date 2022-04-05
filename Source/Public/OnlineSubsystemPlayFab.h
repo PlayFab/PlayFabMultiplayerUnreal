@@ -146,7 +146,7 @@ public:
 
 	bool bNetworkInitialized = false;
 	bool bPartyInitialized = false;
-	bool bLobbyInitialized = false;
+	bool bMultiplayerInitialized = false;
 	bool bMemoryCallbacksSet = false;
 
 	int32 MaxDeviceCount = 8;
@@ -173,7 +173,7 @@ private:
 	void UnregisterNetworkInitCallbacks();
 	void TryInitializePlayFabParty();
 	void InitializePlayFabParty();
-	void InitializeLobby();
+	void InitializeMultiplayer();
 	void SetMemoryCallbacks();
 	void CleanUpPlayFab();
 	

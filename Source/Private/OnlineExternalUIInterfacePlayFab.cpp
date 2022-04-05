@@ -23,7 +23,7 @@
 #include "OnlineSubsystemTypes.h"
 #include "OnlineDelegateMacros.h"
 
-#if OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 #include "Windows/AllowWindowsPlatformTypes.h"
 THIRD_PARTY_INCLUDES_START
 #include <XGameUI.h>
@@ -45,6 +45,7 @@ bool FOnlineExternalUIPlayFab::ShowLoginUI(const int32 ControllerIndex, bool bSh
 	return false;
 }
 
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 void FOnlineExternalUIPlayFab::HandleShowLoginUIComplete(bool bSuccess, FGDKUserHandle GDKUser, FOnLoginUIClosedDelegate Delegate)
 {
 	// TODO: investigate if this is needed:
@@ -52,6 +53,7 @@ void FOnlineExternalUIPlayFab::HandleShowLoginUIComplete(bool bSuccess, FGDKUser
 		{
 		});
 }
+#endif
 
 bool FOnlineExternalUIPlayFab::ShowFriendsUI(int32 LocalUserNum)
 {
@@ -63,7 +65,7 @@ bool FOnlineExternalUIPlayFab::ShowFriendsUI(int32 LocalUserNum)
 	return false;
 }
 
-bool FOnlineExternalUIPlayFab::ShowInviteUI(int32 LocalUserNum, FName SessionName)
+bool FOnlineExternalUIPlayFab::ShowInviteUI(int32 LocalUserNum, FName SessionNameParam)
 {
 	const IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
 	check(IdentityIntPtr.IsValid());
@@ -77,18 +79,18 @@ bool FOnlineExternalUIPlayFab::ShowInviteUI(int32 LocalUserNum, FName SessionNam
 	}
 
 	FOnlineSessionPlayFabPtr PlayFabSession = StaticCastSharedPtr<FOnlineSessionPlayFab>(OSSPlayFab->GetSessionInterface());
-	FNamedOnlineSessionPtr Session = PlayFabSession->GetNamedSessionPtr(SessionName);
+	FNamedOnlineSessionPtr Session = PlayFabSession->GetNamedSessionPtr(SessionNameParam);
 	if (!Session.IsValid())
 	{
-		UE_LOG_ONLINE_EXTERNALUI(Warning, TEXT("ShowInviteUI: Named session not found for %s session name. Can't send invite."), *SessionName.ToString());
+		UE_LOG_ONLINE_EXTERNALUI(Warning, TEXT("ShowInviteUI: Named session not found for %s session name. Can't send invite."), *SessionNameParam.ToString());
 		return false;
 	}
 
-	this->SessionName = SessionName;
+	this->SessionName = SessionNameParam;
 	FOnlineSessionInfoPlayFabPtr PlayFabSessionInfo = StaticCastSharedPtr<FOnlineSessionInfoPlayFab>(Session->SessionInfo);
 	if (!PlayFabSessionInfo->IsValid())
 	{
-		UE_LOG_ONLINE_EXTERNALUI(Warning, TEXT("ShowInviteUI: FOnlineSessionInfoPlayFab not valid for %s. Can't send invite."), *SessionName.ToString());
+		UE_LOG_ONLINE_EXTERNALUI(Warning, TEXT("ShowInviteUI: FOnlineSessionInfoPlayFab not valid for %s. Can't send invite."), *SessionNameParam.ToString());
 		return false;
 	}
 
@@ -110,6 +112,10 @@ bool FOnlineExternalUIPlayFab::ShowInviteUI(int32 LocalUserNum, FName SessionNam
 
 void FOnlineExternalUIPlayFab::HandleReadFriendsComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr)
 {
+#if defined(OSS_PLAYFAB_WIN64)
+	UE_LOG_ONLINE_EXTERNALUI(Error, TEXT("HandleReadFriendsCompleted is not implemented for this platform."));
+	return;
+#elif defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	if (!bWasSuccessful)
 	{
 		UE_LOG_ONLINE_EXTERNALUI(Error, TEXT("HandleReadFriendsComplete: Couldn't read friends list for LocalUserNum %d."), LocalUserNum);
@@ -129,17 +135,16 @@ void FOnlineExternalUIPlayFab::HandleReadFriendsComplete(int32 LocalUserNum, boo
 	auto FriendsCount = FriendsList.Num();
 	if (FriendsCount > 0)
 	{
-		int i = 0;
+		unsigned playerIndex = 0;
 		for (const TSharedRef<FOnlineFriend>& FriendPtr: FriendsList)
 		{
-			this->InviteUISelectFromPlayers[i] = StaticCastSharedRef<const FUniqueNetIdGDK>(FriendPtr->GetUserId())->ToUint64();
-			this->InviteUIPreSelectedPlayers[i] = StaticCastSharedRef<const FUniqueNetIdGDK>(FriendPtr->GetUserId())->ToUint64();
-			i++;
+			this->InviteUISelectFromPlayers[playerIndex] = StaticCastSharedRef<const FUniqueNetIdGDK>(FriendPtr->GetUserId())->ToUint64();
+			this->InviteUIPreSelectedPlayers[playerIndex] = StaticCastSharedRef<const FUniqueNetIdGDK>(FriendPtr->GetUserId())->ToUint64();
+			playerIndex++;
 		}
 	}
 
 	// Show friend selection UI
-#if OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 	XAsyncBlock* pNewAsyncBlock = new XAsyncBlock();
 	ZeroMemory(pNewAsyncBlock, sizeof(*pNewAsyncBlock));
 	pNewAsyncBlock->context = this;
@@ -177,7 +182,7 @@ void FOnlineExternalUIPlayFab::HandleReadFriendsComplete(int32 LocalUserNum, boo
 #endif
 }
 
-#if OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 void FOnlineExternalUIPlayFab::ProcessShowPlayerPickerResults(TUniquePtr<XAsyncBlock> AsyncBlock)
 {
 	uint32_t ResultPlayersCount = 0;

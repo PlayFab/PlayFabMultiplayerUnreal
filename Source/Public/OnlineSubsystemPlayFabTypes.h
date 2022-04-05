@@ -89,7 +89,7 @@ public:
 		return sizeof(FOnlineSessionInfoPlayFab);
 	}
 
-	FString GetConnnectionString() const
+	FString GetConnectionString() const
 	{
 		return ConnectionString;
 	}
@@ -228,8 +228,7 @@ public:
 
 	virtual FName GetType() const override
 	{
-		// This should be platform specific
-		return GDK_SUBSYSTEM;
+        return PLAYFAB_SUBSYSTEM;
 	}
 
 	/**
