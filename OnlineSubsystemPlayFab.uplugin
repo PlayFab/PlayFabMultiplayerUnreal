@@ -1,0 +1,60 @@
+{
+	"FileVersion" : 3,
+    "FriendlyName": "Online Subsystem PlayFab Party & Multiplayer",
+	"Version": 2.00,
+	"VersionName": "2.0.0",
+	"Description": "Support for the PlayFab Party and Multiplayer platform",
+	"Category": "Networking",
+	"CreatedBy": "Microsoft Corporation",
+	"CreatedByURL": "https://www.playfab.com",
+	"EnabledByDefault": false,
+
+	"SupportedTargetPlatforms": [
+		"XboxOneGDK",
+		"WinGDK",
+		"XSX",
+		"Win64"
+	],
+
+    "Modules": [
+        {
+            "Name": "OnlineSubsystemPlayFab",
+            "Type": "Runtime",
+            "LoadingPhase" : "Default",
+            "WhitelistPlatforms": [
+				"XboxOneGDK",
+				"WinGDK",
+				"XSX",
+				"Win64"
+			]
+        }
+    ],
+	"LocalizationTargets": [
+		{
+			"Name": "OnlineSubsystemPlayFab",
+			"LoadingPolicy": "Always",
+            "LoadingPhase" : "Default"
+        }
+    ],
+	"Plugins": [
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemUtils",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemGDK",
+			"Enabled": false,
+			"WhitelistPlatforms" :
+			[
+				"XSX",
+                "WinGDK",
+                "XboxOneGDK"
+			]
+		}
+	]
+
+}
