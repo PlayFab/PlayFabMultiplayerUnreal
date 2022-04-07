@@ -155,7 +155,7 @@ public:
 	int32 MaxUserCount = 8;
 	int32 MaxUsersPerDeviceCount = 1;
 	PartyDirectPeerConnectivityOptions DirectPeerConnectivityOptions = PartyDirectPeerConnectivityOptions::AnyPlatformType |
-																	   PartyDirectPeerConnectivityOptions::AnyEntityLoginProvider;
+									   PartyDirectPeerConnectivityOptions::AnyEntityLoginProvider;
 
 	EPlayFabPartyNetworkState NetworkState = EPlayFabPartyNetworkState::NoNetwork;
 	PartyNetwork* Network = nullptr;

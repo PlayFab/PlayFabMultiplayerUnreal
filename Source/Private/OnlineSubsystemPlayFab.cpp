@@ -212,11 +212,11 @@ const static TMap<FString, PartyDirectPeerConnectivityOptions> ConnectivityOptio
 	{"SamePlatformType", PartyDirectPeerConnectivityOptions::SamePlatformType},
 	{"DifferentPlatformType", PartyDirectPeerConnectivityOptions::DifferentPlatformType},
 	{"AnyPlatformType", PartyDirectPeerConnectivityOptions::SamePlatformType |
-						PartyDirectPeerConnectivityOptions::DifferentPlatformType},
+			    PartyDirectPeerConnectivityOptions::DifferentPlatformType},
 	{"SameEntityLoginProvider", PartyDirectPeerConnectivityOptions::SameEntityLoginProvider},
 	{"DifferentEntityLoginProvider", PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider},
 	{"AnyEntityLoginProvider", PartyDirectPeerConnectivityOptions::SameEntityLoginProvider |
-							   PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider},
+				   PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider},
 };
 
 void FOnlineSubsystemPlayFab::ParseDirectPeerConnectivityOptions()
