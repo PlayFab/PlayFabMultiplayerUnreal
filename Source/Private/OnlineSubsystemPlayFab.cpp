@@ -82,6 +82,7 @@ bool FOnlineSubsystemPlayFab::Init()
 	GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("MaxEndpointsPerDeviceCount"), MaxEndpointsPerDeviceCount, GEngineIni);
 	GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("MaxUserCount"), MaxUserCount, GEngineIni);
 	GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("MaxUsersPerDeviceCount"), MaxUsersPerDeviceCount, GEngineIni);
+	ParseDirectPeerConnectivityOptions();
 
 	TSharedPtr<IPlugin> SocketsPlugin = IPluginManager::Get().FindPlugin(TEXT("PlayFab"));
 	if (!SocketsPlugin.IsValid() || (SocketsPlugin.IsValid() && !SocketsPlugin->IsEnabled()))
@@ -204,6 +205,43 @@ void FOnlineSubsystemPlayFab::CleanUpPlayFab()
 		}
 		MultiplayerHandle = nullptr;
 	}
+}
+
+const static TMap<FString, PartyDirectPeerConnectivityOptions> ConnectivityOptionsMap  = {
+	{"None", PartyDirectPeerConnectivityOptions::None},
+	{"SamePlatformType", PartyDirectPeerConnectivityOptions::SamePlatformType},
+	{"DifferentPlatformType", PartyDirectPeerConnectivityOptions::DifferentPlatformType},
+	{"AnyPlatformType", PartyDirectPeerConnectivityOptions::SamePlatformType |
+						PartyDirectPeerConnectivityOptions::DifferentPlatformType},
+	{"SameEntityLoginProvider", PartyDirectPeerConnectivityOptions::SameEntityLoginProvider},
+	{"DifferentEntityLoginProvider", PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider},
+	{"AnyEntityLoginProvider", PartyDirectPeerConnectivityOptions::SameEntityLoginProvider |
+							   PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider},
+};
+
+void FOnlineSubsystemPlayFab::ParseDirectPeerConnectivityOptions()
+{
+	TArray<FString> ConnectivityOptionsArr;
+	GConfig->GetArray(TEXT("OnlineSubsystemPlayFab"), TEXT("DirectPeerConnectivityOptions"), ConnectivityOptionsArr, GEngineIni);
+	if (!ConnectivityOptionsArr.Num())
+	{
+		UE_LOG_ONLINE(Warning, TEXT("DirectPeerConnectivityOptions not provided - using default."));
+		return; // use default value for DirectPeerConnectivity Options
+	}
+	
+	PartyDirectPeerConnectivityOptions ConnectivityOptions = PartyDirectPeerConnectivityOptions::None;
+	for (const FString& ConnType : ConnectivityOptionsArr)
+	{
+		const PartyDirectPeerConnectivityOptions* ConnectivityOption = ConnectivityOptionsMap.Find(ConnType);
+		if (!ConnectivityOption)
+		{ // LOG error and exit, default value will be used
+			UE_LOG_ONLINE(Error, TEXT("Engine INI OnlineSubsystemPlayFab section contains erroneous value for key DirectPeerConnectivityOptions"));
+			return;
+		}
+		ConnectivityOptions |= *ConnectivityOption;
+	}
+	// On success, set class variable
+	DirectPeerConnectivityOptions = ConnectivityOptions;
 }
 
 bool FOnlineSubsystemPlayFab::Shutdown()
@@ -537,8 +575,8 @@ bool FOnlineSubsystemPlayFab::CreateAndConnectToPlayFabPartyNetwork()
 	PlayFabPartyNetworkConfig.maxDevicesPerUserCount = MaxDevicesPerUserCount;		
 	PlayFabPartyNetworkConfig.maxEndpointsPerDeviceCount = MaxEndpointsPerDeviceCount;	
 	PlayFabPartyNetworkConfig.maxUserCount = MaxUserCount;					
-	PlayFabPartyNetworkConfig.maxUsersPerDeviceCount = MaxUsersPerDeviceCount;	
-	PlayFabPartyNetworkConfig.directPeerConnectivityOptions = PartyDirectPeerConnectivityOptions::None;
+	PlayFabPartyNetworkConfig.maxUsersPerDeviceCount = MaxUsersPerDeviceCount;
+	PlayFabPartyNetworkConfig.directPeerConnectivityOptions = DirectPeerConnectivityOptions;
 
 	// Setup the network invitation configuration to use the network id as an invitation id and allow anyone to join.
 	PartyInvitationConfiguration PartyInviteConfig{
@@ -1011,6 +1049,7 @@ void FOnlineSubsystemPlayFab::OnNetworkConfigurationMadeAvailable(const PartySta
 			MaxEndpointsPerDeviceCount = Result->networkConfiguration->maxEndpointsPerDeviceCount;
 			MaxUserCount = Result->networkConfiguration->maxUserCount;
 			MaxUsersPerDeviceCount = Result->networkConfiguration->maxUsersPerDeviceCount;
+			DirectPeerConnectivityOptions = Result->networkConfiguration->directPeerConnectivityOptions;
 		}
 		else
 		{

@@ -140,24 +140,18 @@ public class OnlineSubsystemPlayFab : ModuleRules
         {
             Log.TraceInformation("OnlineSubsystemPlayFab: GDK Platform Field Exists!");
             UnrealPlatformGroup GDK = (UnrealPlatformGroup)UnrealPlatformGroupGDKField.GetValue(null);
-            if (GDK != null)
+            if (GDK != null && Target.Platform.IsInGroup(GDK))
             {
-                Log.TraceInformation("OnlineSubsystemPlayFab: GDK Platform Field Exists!");
-                if (Target.Platform.IsInGroup(GDK))
-                {
-                    return PlayFabOSSSupportedPlatformType.GDK;
-                }
+                 return PlayFabOSSSupportedPlatformType.GDK;
             }
         }
-        else if (Target.Platform == UnrealTargetPlatform.Win64)
+
+        if (Target.Platform == UnrealTargetPlatform.Win64)
         {
             return PlayFabOSSSupportedPlatformType.Windows;
         }
-        else
-        {
-            throw new PlatformNotSupportedException(Target.Platform.ToString() + " is not supported.");
-        }
-        return PlayFabOSSSupportedPlatformType.Undefined;
+
+        throw new PlatformNotSupportedException(Target.Platform.ToString() + " is not supported.");
     }
 
     private IPlayFabOSSPlatformConfigurator GetConfiguratorForPlatform(PlayFabOSSSupportedPlatformType Platform)

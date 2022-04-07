@@ -154,6 +154,8 @@ public:
 	int32 MaxEndpointsPerDeviceCount = 1;
 	int32 MaxUserCount = 8;
 	int32 MaxUsersPerDeviceCount = 1;
+	PartyDirectPeerConnectivityOptions DirectPeerConnectivityOptions = PartyDirectPeerConnectivityOptions::AnyPlatformType |
+																	   PartyDirectPeerConnectivityOptions::AnyEntityLoginProvider;
 
 	EPlayFabPartyNetworkState NetworkState = EPlayFabPartyNetworkState::NoNetwork;
 	PartyNetwork* Network = nullptr;
@@ -176,6 +178,7 @@ private:
 	void InitializeMultiplayer();
 	void SetMemoryCallbacks();
 	void CleanUpPlayFab();
+	void ParseDirectPeerConnectivityOptions();
 	
 	void DoWork();
 
