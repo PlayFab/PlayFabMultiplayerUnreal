@@ -112,7 +112,7 @@ bool FOnlineExternalUIPlayFab::ShowInviteUI(int32 LocalUserNum, FName SessionNam
 
 void FOnlineExternalUIPlayFab::HandleReadFriendsComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr)
 {
-#if defined(OSS_PLAYFAB_WIN64)
+#if defined(OSS_PLAYFAB_WIN64) || defined(OSS_PLAYFAB_SWITCH)
 	UE_LOG_ONLINE_EXTERNALUI(Error, TEXT("HandleReadFriendsCompleted is not implemented for this platform."));
 	return;
 #elif defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)

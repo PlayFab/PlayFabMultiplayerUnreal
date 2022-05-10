@@ -13,7 +13,8 @@
 		"XboxOneGDK",
 		"WinGDK",
 		"XSX",
-		"Win64"
+		"Win64",
+		"Switch"
 	],
 
     "Modules": [
@@ -25,7 +26,8 @@
 				"XboxOneGDK",
 				"WinGDK",
 				"XSX",
-				"Win64"
+				"Win64",
+				"Switch"
 			]
         }
     ],
@@ -54,7 +56,14 @@
                 "WinGDK",
                 "XboxOneGDK"
 			]
+		},
+		{
+			"Name": "OnlineSubsystemSwitch",
+			"Enabled": false,
+			"WhitelistPlatforms" :
+			[
+				"Switch"
+			]
 		}
 	]
-
 }

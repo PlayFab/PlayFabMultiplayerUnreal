@@ -16,7 +16,7 @@ MakePlayFabRestRequest(
 	FString fullUrl = FString::Printf(TEXT("https://%s.playfabapi.com%s"), *TitleId, *UrlPath);
 	httpRequest->SetHeader(TEXT("X-EntityToken"), *EntityToken);
 	httpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-	for (const auto extraHeader : ExtraHeaders)
+	for (const auto& extraHeader : ExtraHeaders)
 	{
 		httpRequest->SetHeader(extraHeader.Key, extraHeader.Value);
 	}
@@ -48,7 +48,7 @@ GenerateGetTitlePlayersFromXboxLiveIDsRequestBody(
 {
 	TSharedPtr<FJsonObject> HttpRequestJson = MakeShareable(new FJsonObject());
 	TArray<TSharedPtr<FJsonValue>> XuidsJson;
-	for (const auto Xuid : Xuids)
+	for (const auto& Xuid : Xuids)
 	{
 		XuidsJson.Add(MakeShared<FJsonValueString>(Xuid));
 	}
@@ -72,6 +72,23 @@ GenerateGetPlayFabIDsFromSteamIDsRequestBody(
 	}
 
 	HttpRequestJson->SetArrayField(TEXT("SteamStringIDs"), steamIDsJson);
+	generatedRequestBody = SerializeRequestJson(HttpRequestJson);
+}
+
+void
+GenerateGetPlayFabIDsFromNsaIDsRequestBody(
+	const TArray<FString>& NsaUniqueIDs,
+	FString& generatedRequestBody
+)
+{
+	TSharedPtr<FJsonObject> HttpRequestJson = MakeShareable(new FJsonObject());
+	TArray<TSharedPtr<FJsonValue>> NsaIDsJson;
+	for (const auto& NsaID : NsaUniqueIDs)
+	{
+		NsaIDsJson.Add(MakeShared<FJsonValueString>(NsaID));
+	}
+
+	HttpRequestJson->SetArrayField(TEXT("NintendoAccountIDs"), NsaIDsJson);
 	generatedRequestBody = SerializeRequestJson(HttpRequestJson);
 }
 
@@ -104,7 +121,7 @@ bool ParseDataObjectFromPlayFabResponse(
 	if (HttpResponse->GetResponseCode() != 200)
 	{
 		const FString ErrorResponseStr = HttpResponse->GetContentAsString();
-		UE_LOG_ONLINE(Error, TEXT("ParseTitlePlayersFromPlatformIDsResponse failed with response code %u, response:%s!"), HttpResponse->GetResponseCode(), *ErrorResponseStr);
+		UE_LOG_ONLINE(Error, TEXT("ParseDataObjectFromPlayFabResponse failed with response code %u, response:%s!"), HttpResponse->GetResponseCode(), *ErrorResponseStr);
 		return false;
 	}
 
@@ -127,7 +144,7 @@ bool ParseSteamIdToPlayFabIdMappingDataObject(
 )
 {
 //{
-//	"code": 200,
+//		"code": 200,
 //		"status" : "OK",
 //		"data" : {
 //		"Data": [
@@ -145,7 +162,7 @@ bool ParseSteamIdToPlayFabIdMappingDataObject(
 		return false;
 	}
 
-	for (const auto Value : (*JsonIDPairArrayObject))
+	for (const auto& Value : *JsonIDPairArrayObject)
 	{
 		if (Value.IsValid())
 		{
@@ -165,6 +182,50 @@ bool ParseSteamIdToPlayFabIdMappingDataObject(
 	return true;
 }
 
+bool
+ParseNsaIdToPlayFabIdMappingDataObject(
+	const TSharedPtr<FJsonObject>* JsonDataObject,
+	TMap<FString, FString>& EntityIdMapping
+)
+{
+	//{
+	//		"code": 200,
+	//		"status" : "OK",
+	//		"data" : {
+	//		"Data": [
+	//		{
+	//			"NintendoServiceAccountId": 12ba56789012345678,
+	//			"PlayFabId" : "9876543210987654321"
+	//		}
+	//		]
+	//	}
+	//}
+	const TArray<TSharedPtr<FJsonValue>>* JsonIDPairArrayObject = nullptr;
+	if (!(*JsonDataObject)->TryGetArrayField(TEXT("Data"), JsonIDPairArrayObject))
+	{
+		return false;
+	}
+
+	for (const auto& Value : *JsonIDPairArrayObject)
+	{
+		if (Value.IsValid())
+		{
+			FString NsaId;
+			if (!(Value->AsObject())->TryGetStringField(TEXT("NintendoServiceAccountId"), NsaId))
+			{
+				continue;
+			}
+			FString PlayFabId;
+			if (!(Value->AsObject())->TryGetStringField(TEXT("PlayFabId"), PlayFabId))
+			{
+				continue;
+			}
+			EntityIdMapping.Add(NsaId, PlayFabId);
+		}
+	}
+	return true;
+}
+
 bool ParsePlayFabIdsFromPlatformIdsResponse(
 	const FHttpResponsePtr HttpResponse,
 	TMap<FString, FString>& EntityIdMapping
@@ -179,15 +240,12 @@ bool ParsePlayFabIdsFromPlatformIdsResponse(
 		return false;
 	}
 
-#if OSS_PLAYFAB_WIN64
-	if (!ParseSteamIdToPlayFabIdMappingDataObject(JsonDataObject, EntityIdMapping))
-	{
-		return false;
-	}
-#else
-	return false;
+#ifdef OSS_PLAYFAB_WIN64	
+	return ParseSteamIdToPlayFabIdMappingDataObject(JsonDataObject, EntityIdMapping);
+#elif defined(OSS_PLAYFAB_SWITCH)
+	return ParseNsaIdToPlayFabIdMappingDataObject(JsonDataObject, EntityIdMapping);
 #endif
-	return true;
+	return false;
 }
 
 bool ParseTitleAccountIDsFromPlatformIDsResponse(

@@ -19,10 +19,10 @@ The quickstart guide for OnlineSubsystemPlayFab can be found at:
 ## Version
 |OSS version
 |-|
-|2.1.0
+|2.2.0
 
 ## Compatibility
 |Unreal Engine version|4.27|
 |-|-|
-Multiplayer SDK|v1.1.0
-Platforms|GDK, Win64+Steam
+Multiplayer SDK|v1.1.0+
+Platforms|GDK, Win64+Steam, Switch
