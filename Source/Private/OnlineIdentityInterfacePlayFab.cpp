@@ -260,7 +260,7 @@ void FOnlineIdentityPlayFab::Tick(float DeltaTime)
 				User->GetUserAttribute(USER_ATTR_ID, PlatformUserIdStr);
 				UsersToAuth.Add(PlatformUserIdStr);
 			}
-#if OSS_PLAYFAB_WIN64
+#ifdef OSS_PLAYFAB_WIN64
 			AutoLogin(0);
 #endif
 			bAuthAllUsers = false;
@@ -480,11 +480,13 @@ void FOnlineIdentityPlayFab::FinishRequest(bool bPlatformDataSuccess, const FStr
 			TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestBodySerialized);
 			FJsonSerializer::Serialize(RequestBodyJson.ToSharedRef(), Writer);
 
-#if defined(OSS_PLAYFAB_WIN64)
+#ifdef OSS_PLAYFAB_SWITCH
+			const FString LoginApi = "LoginWithNintendoServiceAccount";
+#elif defined(OSS_PLAYFAB_WIN64)
 			const FString LoginApi = "LoginWithSteam";
 #else
 			const FString LoginApi = "LoginWithXbox";
-#endif
+#endif // OSS_PLAYFAB_SWITCH
 
 			const FString URI = FString::Printf(TEXT("https://%s.playfabapi.com/Client/%s"), *TitleIdStr, *LoginApi);
 

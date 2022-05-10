@@ -128,7 +128,8 @@ public class OnlineSubsystemPlayFab : ModuleRules
     {
         Undefined,
         GDK,
-        Windows
+        Windows,
+        Switch
     }
 
     private PlayFabOSSSupportedPlatformType DeterminePlatformType()
@@ -146,10 +147,15 @@ public class OnlineSubsystemPlayFab : ModuleRules
             }
         }
 
+        if (Target.Platform == UnrealTargetPlatform.Switch)
+        {
+            return PlayFabOSSSupportedPlatformType.Switch;
+        }
+
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
             return PlayFabOSSSupportedPlatformType.Windows;
-        }
+        }        
 
         throw new PlatformNotSupportedException(Target.Platform.ToString() + " is not supported.");
     }
@@ -161,6 +167,10 @@ public class OnlineSubsystemPlayFab : ModuleRules
             case PlayFabOSSSupportedPlatformType.GDK:
                 {
                     return new GDKPlatformConfigurator();
+                }
+            case PlayFabOSSSupportedPlatformType.Switch:
+                {
+                    return new SwitchPlatformConfigurator();
                 }
             case PlayFabOSSSupportedPlatformType.Windows:
                 {
@@ -235,6 +245,83 @@ public class OnlineSubsystemPlayFab : ModuleRules
                 ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/XCurl.pdb", Path.Combine(XCurlRedistDir, "XCurl.pdb"), StagedFileType.DebugNonUFS);
                 ThisModule.PublicDelayLoadDLLs.Add("XCurl.dll");
             }
+        }
+    }
+
+    private class SwitchPlatformConfigurator : IPlayFabOSSPlatformConfigurator
+    {
+        public bool IsPCPlatform(ReadOnlyTargetRules Target)
+        {
+            return false;
+        }
+
+        public void AddModuleDependencies(ModuleRules ThisModule)
+        {
+            ThisModule.PublicDependencyModuleNames.Add("OnlineSubsystemSwitch");
+        }
+        public void SetPlatformDefinitions(ModuleRules ThisModule)
+        {
+            //No switch specific platform definitions.
+        }
+        public void ConfigurePlayFabDependencies(ReadOnlyTargetRules Target, ModuleRules ThisModule)
+        {
+            string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "Switch");
+
+            if (!Directory.Exists(PlatformDir))
+            {
+                throw new BuildException("PlayFab precompiled dependencies were not found.");
+            }        
+
+            // Find the MLP and Party library names under the PlatformDir.
+            string[] PlatformDirectories = System.IO.Directory.GetDirectories(PlatformDir);
+            string MultiplayerDirectory = PlatformDirectories.Where(d => d.Contains("PlayFab.Multiplayer")).FirstOrDefault();
+            string PartyDirectory = PlatformDirectories.Where(d => d.Contains("PlayFab.PlayFabParty")).FirstOrDefault();
+            
+            if(String.IsNullOrWhiteSpace(MultiplayerDirectory) || String.IsNullOrWhiteSpace(PartyDirectory))
+            {
+                throw new BuildException("PlayFab Party precompiled dependencies were not found.");
+            }
+
+            // Load Party binaries.
+            string PartyIncludePath = Path.Combine(PartyDirectory, "build", "native", "include");
+            string PartyLibraryPath = Path.Combine(PartyDirectory, "build", "native", "lib", "NX64", "release");
+
+            if (!Directory.Exists(PartyIncludePath) ||
+                !Directory.Exists(PartyLibraryPath))
+            {
+                throw new BuildException("PlayFab Party precompiled dependencies were not found.");
+            }
+
+            ThisModule.PublicSystemIncludePaths.Add(PartyIncludePath);
+            ThisModule.PublicAdditionalLibraries.Add(Path.Combine(PartyLibraryPath, "Party.nrs"));
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/Party.nro", Path.Combine(PartyLibraryPath, "Party.nro"), StagedFileType.SystemNonUFS);
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/Party.nrr", Path.Combine(PartyLibraryPath, "Party.nrr"), StagedFileType.DebugNonUFS);
+
+            // Load Multiplayer binaries
+            string MultiplayerIncludePath = Path.Combine(MultiplayerDirectory, "build", "native", "include");
+            string MultiplayerLibraryPath = Path.Combine(MultiplayerDirectory, "build", "native", "lib", "NX64", "release");
+
+            if (!Directory.Exists(MultiplayerIncludePath) ||
+                !Directory.Exists(MultiplayerLibraryPath))
+            {
+                throw new BuildException("PlayFab Multiplayer precompiled dependencies were not found.");
+            }
+
+            ThisModule.PublicSystemIncludePaths.Add(MultiplayerIncludePath);
+            ThisModule.PublicAdditionalLibraries.Add(Path.Combine(MultiplayerLibraryPath, "libPlayFabMultiplayer.nrs"));
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/libPlayFabMultiplayer.nro", Path.Combine(MultiplayerLibraryPath, "libPlayFabMultiplayer.nro"), StagedFileType.SystemNonUFS);
+            ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/libPlayFabMultiplayer.nrr", Path.Combine(MultiplayerLibraryPath, "libPlayFabMultiplayer.nrr"), StagedFileType.DebugNonUFS);
+            
+            // Load Nintendo SDK dependencies.
+            string NintendoSdkRoot = Environment.GetEnvironmentVariable("NINTENDO_SDK_ROOT");
+            if (String.IsNullOrWhiteSpace(NintendoSdkRoot))
+            {
+                throw new BuildException("NINTENDO_SDK_ROOT environment was not found for the platform you are trying to compile.");
+            }
+
+            string configuration = (Target.Configuration == UnrealTargetConfiguration.Shipping || Target.Configuration == UnrealTargetConfiguration.Test) ? "Release" : "Develop";
+
+            ThisModule.PublicAdditionalLibraries.Add(Path.Combine(NintendoSdkRoot, "Libraries/NX-NXFP2-a64", configuration, "libnn_websocket.a"));
         }
     }
 

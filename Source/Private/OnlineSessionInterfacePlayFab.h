@@ -13,6 +13,9 @@
 #include "MatchmakingInterfacePlayFab.h"
 
 THIRD_PARTY_INCLUDES_START
+#ifdef OSS_PLAYFAB_SWITCH
+#include <PFMultiplayerPal.h>
+#endif // OSS_PLAYFAB_SWITCH
 #include <PFEntityKey.h>
 #include <PFMultiplayer.h>
 #include <PFLobby.h>

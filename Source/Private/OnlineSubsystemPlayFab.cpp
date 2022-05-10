@@ -18,6 +18,9 @@
 #include "Engine/Engine.h"
 
 THIRD_PARTY_INCLUDES_START
+#ifdef OSS_PLAYFAB_SWITCH
+#include <PFMultiplayerPal.h>
+#endif // OSS_PLAYFAB_SWITCH
 #include <PartyImpl.h>
 #include <PartyTypes.h>
 #include <PFLobby.h>
@@ -212,11 +215,11 @@ const static TMap<FString, PartyDirectPeerConnectivityOptions> ConnectivityOptio
 	{"SamePlatformType", PartyDirectPeerConnectivityOptions::SamePlatformType},
 	{"DifferentPlatformType", PartyDirectPeerConnectivityOptions::DifferentPlatformType},
 	{"AnyPlatformType", PartyDirectPeerConnectivityOptions::SamePlatformType |
-			    PartyDirectPeerConnectivityOptions::DifferentPlatformType},
+						PartyDirectPeerConnectivityOptions::DifferentPlatformType},
 	{"SameEntityLoginProvider", PartyDirectPeerConnectivityOptions::SameEntityLoginProvider},
 	{"DifferentEntityLoginProvider", PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider},
 	{"AnyEntityLoginProvider", PartyDirectPeerConnectivityOptions::SameEntityLoginProvider |
-				   PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider},
+							   PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider},
 };
 
 void FOnlineSubsystemPlayFab::ParseDirectPeerConnectivityOptions()
@@ -279,6 +282,10 @@ bool FOnlineSubsystemPlayFab::Shutdown()
 	// Unregister for suspend/resume callbacks
 	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.RemoveAll(this);
 	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.RemoveAll(this);
+
+#ifdef OSS_PLAYFAB_SWITCH
+	CleanUpSwitch();
+#endif // OSS_PLAYFAB_SWITCH
 
 	return true;
 }

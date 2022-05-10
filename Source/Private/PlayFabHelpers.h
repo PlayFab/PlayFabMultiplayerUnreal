@@ -5,6 +5,8 @@ namespace API
 	// The name of the token parameter expected by the PlayFab login API.
 #if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	const FString AuthTokenLabel("XboxToken");
+#elif defined(OSS_PLAYFAB_SWITCH)
+	const FString AuthTokenLabel("IdentityToken");
 #elif defined(OSS_PLAYFAB_WIN64)
 	const FString AuthTokenLabel("SteamTicket");
 #endif // defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
@@ -38,6 +40,12 @@ GenerateGetPlayFabIDsFromSteamIDsRequestBody(
 	const TArray<FString>& SteamUniqueIDs,
 	FString& generatedRequestBody
 	);
+
+void
+GenerateGetPlayFabIDsFromNsaIDsRequestBody(
+	const TArray<FString>& NsaUniqueIDs,
+	FString& generatedRequestBody
+);
 
 bool
 GenerateUserAttributes(

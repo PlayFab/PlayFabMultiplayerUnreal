@@ -303,6 +303,12 @@ bool FPlayFabLobby::UpdateLobby(FName SessionName, const FOnlineSessionSettings&
 		return false;
 	}
 
+	if (OwnerPtr == nullptr)
+	{
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::UpdateLobby found no owner"));
+		return false;
+	}
+
 	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
 	if (!IdentityIntPtr.IsValid())
 	{
@@ -647,10 +653,10 @@ bool FPlayFabLobby::SendInvite(const FUniqueNetId& SenderId, FName SessionName, 
 		return false;
 	}
 
-	TArray<FString> FriendXuidStrings;
+	TArray<FString> FriendIdStrings;
 	for (auto FriendUniqueId : FriendUniqueIds)
 	{
-		FriendXuidStrings.Add(*FriendUniqueId->ToString());
+		FriendIdStrings.Add(*FriendUniqueId->ToString());
 	}
 
 	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
@@ -672,21 +678,27 @@ bool FPlayFabLobby::SendInvite(const FUniqueNetId& SenderId, FName SessionName, 
 	FPendingSendInviteData PendingSendInvite;
 	PendingSendInvite.SessionName = SessionName;
 	PendingSendInvite.PlayFabSendingUser = LocalUser;
-	PendingSendInvite.FriendUniqueIdStrings = FriendXuidStrings;
+	PendingSendInvite.FriendUniqueIdStrings = FriendIdStrings;
 
 	FHttpRequestCompleteDelegate GetPlayFabDataFromPlatformIDCompleteDelegate;
 	FString GetTitlePlayersFromPlatformIDsRequestBody;
 	TArray<TPair<FString, FString>> ExtraHeaders;
-#if OSS_PLAYFAB_WIN64
+#ifdef OSS_PLAYFAB_WIN64
 	ExtraHeaders.Add(MakeTuple(FString("X-Authorization"), LocalUser->GetSessionTicket()));
 	const FString RequestPath = TEXT("/Client/GetPlayFabIDsFromSteamIDs");
-	GenerateGetPlayFabIDsFromSteamIDsRequestBody(FriendXuidStrings, GetTitlePlayersFromPlatformIDsRequestBody);
+	GenerateGetPlayFabIDsFromSteamIDsRequestBody(FriendIdStrings, GetTitlePlayersFromPlatformIDsRequestBody);
 	GetPlayFabDataFromPlatformIDCompleteDelegate.BindRaw(this, &FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted, PendingSendInvite);
 #elif defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	const FString RequestPath = TEXT("/Profile/GetTitlePlayersFromXboxLiveIDs");
-	GenerateGetTitlePlayersFromXboxLiveIDsRequestBody(FriendXuidStrings, OSSPlayFab->GetSandBox(), GetTitlePlayersFromPlatformIDsRequestBody);
+	GenerateGetTitlePlayersFromXboxLiveIDsRequestBody(FriendIdStrings, OSSPlayFab->GetSandBox(), GetTitlePlayersFromPlatformIDsRequestBody);
 	GetPlayFabDataFromPlatformIDCompleteDelegate.BindRaw(this, &FPlayFabLobby::OnGetTitleAccountIDsFromPlatformIDsCompleted, PendingSendInvite);
+#elif defined(OSS_PLAYFAB_SWITCH)
+	ExtraHeaders.Add(MakeTuple(FString("X-Authorization"), LocalUser->GetSessionTicket()));
+	const FString RequestPath = TEXT("/Client/GetPlayFabIDsFromNintendoServiceAccountIds");
+	GenerateGetPlayFabIDsFromNsaIDsRequestBody(FriendIdStrings, GetTitlePlayersFromPlatformIDsRequestBody);
+	GetPlayFabDataFromPlatformIDCompleteDelegate.BindRaw(this, &FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted, PendingSendInvite);
 #else
+	const FString RequestPath;
 	UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::SendInvite does not support this platform!"));
 	return false;
 #endif
@@ -872,12 +884,19 @@ void FPlayFabLobby::HandleJoinLobbyCompleted(const PFLobbyJoinLobbyCompletedStat
 	{
 		JoinResult = EOnJoinSessionCompleteResult::Success;
 
-		const PFEntityKey* OwnerPtr;
-		HRESULT Hr = PFLobbyGetOwner(StateChange.lobby, &OwnerPtr);
+		const PFEntityKey* OwnerEntityKeyPtr;
+		HRESULT Hr = PFLobbyGetOwner(StateChange.lobby, &OwnerEntityKeyPtr);
 		if (SUCCEEDED(Hr))
 		{
-			auto SessionInterface = OSSPlayFab->GetSessionInterfacePlayFab();
-			SessionInterface->SetHostOnSession(*SessionName, *OwnerPtr);
+			if (OwnerEntityKeyPtr == nullptr)
+			{
+				UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleJoinLobbyCompleted found no owner"));
+			}
+			else
+			{
+				auto SessionInterface = OSSPlayFab->GetSessionInterfacePlayFab();
+				SessionInterface->SetHostOnSession(*SessionName, *OwnerEntityKeyPtr);
+			}
 		}
 		else
 		{
@@ -1041,7 +1060,7 @@ void FPlayFabLobby::HandleLeaveLobbyCompleted(const PFLobbyLeaveLobbyCompletedSt
 	else
 	{
 		TriggerOnLeaveLobbyCompletedDelegates(FName(), false);
-		RemoveLocalPlayerData.UnregisterLocalPlayerCompleteDelegate.ExecuteIfBound(*FUniqueNetIdPlayFab::Create(0), false);
+		RemoveLocalPlayerData.UnregisterLocalPlayerCompleteDelegate.ExecuteIfBound(*FUniqueNetIdPlayFab::Create(""), false);
 	}
 }
 

@@ -48,7 +48,6 @@ TSharedPtr<const FUniqueNetId> FOnlineSessionPlayFab::CreateSessionIdFromString(
 
 FNamedOnlineSession* FOnlineSessionPlayFab::GetNamedSession(FName SessionName)
 {
-
 	FScopeLock ScopeLock(&SessionLock);
 	for (FNamedOnlineSessionRef& Session : Sessions)
 	{
@@ -330,7 +329,7 @@ bool FOnlineSessionPlayFab::EndSession(FName SessionName)
 
 bool FOnlineSessionPlayFab::DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate /*= FOnDestroySessionCompleteDelegate()*/)
 {
-	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::DestroySession SessionName:%s"), *(SessionName.ToString()));
+	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::DestroySession SessionName:%s"), *SessionName.ToString());
 	// Leave the PlayFab Party network
 	if (OSSPlayFab)
 	{
@@ -439,7 +438,7 @@ void FOnlineSessionPlayFab::OnCancelMatchmakingComplete(FName SessionName, bool 
 void FOnlineSessionPlayFab::OnMatchmakingComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnMatchmakingComplete()"));
-	MatchmakingCompleteSessionName = SessionName; // TODO: This probably isn't a safe way to do this
+	MatchmakingCompleteSessionName = SessionName;
 
 	if (OSSPlayFab == nullptr)
 	{
@@ -860,46 +859,15 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 
 	if (StateChange.ownerUpdated)
 	{
-		const PFEntityKey* OwnerPtr;
-		Hr = PFLobbyGetOwner(StateChange.lobby, &OwnerPtr);
+		const PFEntityKey* OwnerEntityKeyPtr;
+		Hr = PFLobbyGetOwner(StateChange.lobby, &OwnerEntityKeyPtr);
 		if (SUCCEEDED(Hr))
 		{
-			if (OwnerPtr != nullptr)
+			if (OwnerEntityKeyPtr != nullptr)
 			{
-				if (!SetHostOnSession(SessionName, *OwnerPtr))
+				if (!SetHostOnSession(SessionName, *OwnerEntityKeyPtr))
 				{
 					UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate invalid owner!"));
-				}
-				else
-				{
-					// Update owner's platform id in existing session
-					IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
-					if (!IdentityIntPtr.IsValid())
-					{
-						UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Identity Interface is invalid"));
-						return;
-					}
-
-					FOnlineIdentityPlayFab* PlayFabIdentityInt = static_cast<FOnlineIdentityPlayFab*>(IdentityIntPtr.Get());
-
-					FString* HostPlatformId = EntityPlatformIdMapping.Find(FString(OwnerPtr->id));
-					if (HostPlatformId == nullptr)
-					{
-						UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate couldn't find a new lobby owner in the entity mapping cache!"));
-						return;
-					}
-
-					const TSharedRef<const FUniqueNetId> HostNetId = FUniqueNetIdPlayFab::Create(*HostPlatformId);
-					TSharedPtr<FPlayFabUser> LocalUser = PlayFabIdentityInt->GetPartyLocalUserFromPlatformId(*HostNetId);
-					if (LocalUser == nullptr)
-					{
-						UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Identity Interface's GetPartyLocalUserFromPlatformId returned empty user!"));
-						return;
-					}
-
-					// TODO we want to use a gamertag for OwningUserName
-					ExistingNamedSession->OwningUserName = FString(LocalUser->GetPlatformUserId());
-					ExistingNamedSession->OwningUserId = FUniqueNetIdPlayFab::Create(FString(LocalUser->GetPlatformUserId()));
 				}
 			}
 			else
@@ -954,15 +922,15 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 	for (uint32_t i = 0; i < StateChange.memberUpdateCount; ++i)
 	{
 		const PFLobbyMemberUpdateSummary& MemberUpdate = StateChange.memberUpdates[i];
-		const PFEntityKey* MemberEntity = &MemberUpdate.member;
-		// TODO store the Xuid/platformId of the Player in lobby member properties so that we don't rely on Voice iterface to provide xuid off entityid
-		FString* Xuid = EntityPlatformIdMapping.Find(FString(MemberEntity->id));
-		if ((Xuid != nullptr) && (!Xuid->IsEmpty()))
+		const PFEntityKey* MemberEntity = &MemberUpdate.member;		
+		const FString* PlatformId = EntityPlatformIdMapping.Find(FString(MemberEntity->id));
+
+		if ((PlatformId != nullptr) && (!PlatformId->IsEmpty()))
 		{
-			FSessionSettings* MemberSettings = ExistingNamedSession->SessionSettings.MemberSettings.Find(FUniqueNetIdPlayFab::Create(*Xuid));
+			FSessionSettings* MemberSettings = ExistingNamedSession->SessionSettings.MemberSettings.Find(FUniqueNetIdPlayFab::Create(*PlatformId));
 			if (!MemberSettings)
 			{
-				MemberSettings = &ExistingNamedSession->SessionSettings.MemberSettings.Add(MakeShared<FUniqueNetIdPlayFab>(*Xuid), FSessionSettings());
+				MemberSettings = &ExistingNamedSession->SessionSettings.MemberSettings.Add(MakeShared<FUniqueNetIdPlayFab>(*PlatformId), FSessionSettings());
 			}
 			for (uint32_t j = 0; j < MemberUpdate.updatedMemberPropertyCount; ++j)
 			{
@@ -1023,8 +991,26 @@ void FOnlineSessionPlayFab::OnInvitationReceived(const PFLobbyInviteReceivedStat
 		FOnlineSessionSearchResult SearchResult = CreateSearchResultFromInvite(StateChange);
 		FOnlineIdentityPlayFab* PlayFabIdentityInt = static_cast<FOnlineIdentityPlayFab*>(IdentityIntPtr.Get());
 		FString PlatformUserIdStr = PlayFabIdentityInt->GetPartyLocalUserFromEntityIdString(FString(StateChange.listeningEntity.id))->GetPlatformUserId();
-		FUniqueNetIdPlayFabRef UniqueNetId = FUniqueNetIdPlayFab::Create(PlatformUserIdStr);
-		TriggerOnSessionUserInviteAcceptedDelegates(true, 0 /*TODO*/, UniqueNetId, SearchResult);
+
+		const int32 ControllerIndex = 0; // TODO
+		const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+		if (NativeSubsystem == nullptr)
+		{
+			UE_LOG_ONLINE(Error, TEXT("FOnlineIdentityPlayFab::OnInvitationReceived: Native subsystem not found."));
+			TriggerOnSessionUserInviteAcceptedDelegates(false, ControllerIndex, nullptr, SearchResult);
+			return;
+		}
+
+		const IOnlineIdentityPtr NativeIdentityInterface = NativeSubsystem->GetIdentityInterface();
+		if (NativeIdentityInterface == nullptr || !NativeIdentityInterface.IsValid())
+		{
+			UE_LOG_ONLINE(Error, TEXT("FOnlineIdentityPlayFab::OnInvitationReceived: Native identity interface not found."));
+			TriggerOnSessionUserInviteAcceptedDelegates(false, ControllerIndex, nullptr, SearchResult);
+			return;
+		}
+
+		const FUniqueNetIdPtr UniqueNetId = NativeIdentityInterface->CreateUniquePlayerId(PlatformUserIdStr);
+		TriggerOnSessionUserInviteAcceptedDelegates(true, ControllerIndex, UniqueNetId, SearchResult);
 	}
 }
 
@@ -1053,21 +1039,47 @@ bool FOnlineSessionPlayFab::SetHostOnSession(FName SessionName, const PFEntityKe
 	FNamedOnlineSessionPtr ExistingNamedSession = GetNamedSessionPtr(SessionName);
 	if (!ExistingNamedSession.IsValid())
 	{
-		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::SetHostOnSession No session found with SessionName:%s!"), *(SessionName.ToString()));
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::SetHostOnSession No session found with SessionName: %s!"), *(SessionName.ToString()));
 		return false;
 	}
 
 	if (FCStringAnsi::Strcmp(HostEntityKey.type, ENTITY_TYPE_TITLE_PLAYER) != 0)
 	{
-		UE_LOG_ONLINE(Warning, TEXT("FOnlineSessionPlayFab::SetHostOnSession owner type is not title_player_account:%s!"), *(FString(HostEntityKey.type)));
+		UE_LOG_ONLINE(Warning, TEXT("FOnlineSessionPlayFab::SetHostOnSession owner type is not title_player_account: %s!"), *(FString(HostEntityKey.type)));
+	}
+
+	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
+	if (!IdentityIntPtr.IsValid())
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::SetHostOnSession Identity Interface is invalid"));
+		return false;
+	}	
+
+	FString* HostPlatformId = EntityPlatformIdMapping.Find(FString(HostEntityKey.id));
+	if (HostPlatformId == nullptr)
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::SetHostOnSession couldn't find a new lobby owner in the entity mapping cache!"));
 		return false;
 	}
 
-	FString* HostPlatformId = EntityPlatformIdMapping.Find(FString(HostEntityKey.id));
+	ExistingNamedSession->OwningUserId = FUniqueNetIdPlayFab::Create(*HostPlatformId);
+	ExistingNamedSession->OwningUserName = *HostPlatformId; // TODO we want to use a gamertag for OwningUserName	
 
-	const TSharedRef<const FUniqueNetId> HostNetId = FUniqueNetIdPlayFab::Create(*HostPlatformId);
-	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::SetHostOnSession set host updated:%s"), *HostNetId->ToString());
-	ExistingNamedSession->OwningUserId = HostNetId;
+	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::SetHostOnSession set host updated:%s"), *ExistingNamedSession->OwningUserId->ToString());
+
+	FOnlineIdentityPlayFab* PlayFabIdentityInt = static_cast<FOnlineIdentityPlayFab*>(IdentityIntPtr.Get());
+	TSharedPtr<FPlayFabUser> LocalUser = PlayFabIdentityInt->GetPartyLocalUserFromPlatformIdString(*HostPlatformId);
+
+	if (LocalUser == nullptr)
+	{
+		UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::SetHostOnSession Identity Interface's GetPartyLocalUserFromPlatformId returned empty user. Local user is not the host."));
+	}
+	else
+	{
+		ExistingNamedSession->bHosting = true;
+		ExistingNamedSession->LocalOwnerId = ExistingNamedSession->OwningUserId->AsShared();
+	}
+
 	return true;
 }
 
@@ -1674,7 +1686,7 @@ FOnlineSessionSearchResult FOnlineSessionPlayFab::CreateSearchResultFromInvite(c
 	FOnlineSessionSearchResult NewSearchResult;
 	NewSearchResult.Session.SessionInfo = MakeShared<FOnlineSessionInfoPlayFab>(FString(StateChange.connectionString));
 	// TODO we do not receive the owner, but only the inviting Entity.
-	NewSearchResult.Session.OwningUserId = FUniqueNetIdPlayFab::Create(0);
+	NewSearchResult.Session.OwningUserId = FUniqueNetIdPlayFab::Create("");
 
 	NewSearchResult.Session.SessionSettings.Set(SETTING_CONNECTION_STRING, FString(StateChange.connectionString), EOnlineDataAdvertisementType::ViaOnlineService);
 

@@ -16,6 +16,9 @@
 #include <string>
 
 THIRD_PARTY_INCLUDES_START
+#ifdef OSS_PLAYFAB_SWITCH
+#include <PFMultiplayerPal.h>
+#endif // OSS_PLAYFAB_SWITCH
 #include <Party.h>
 #include <PFEntityKey.h>
 #include <PFMultiplayer.h>

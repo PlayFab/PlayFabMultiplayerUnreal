@@ -152,7 +152,7 @@ private:
 	FName SessionName;
 };
 
-const uint64 INVALID_UNIQUE_NETID = 0;
+const FString INVALID_UNIQUE_NETID = TEXT("");
 
 using FUniqueNetIdPlayFabRef = TSharedRef<const class FUniqueNetIdPlayFab>;
 using FUniqueNetIdPlayFabPtr = TSharedPtr<const class FUniqueNetIdPlayFab>;
@@ -164,11 +164,11 @@ class FUniqueNetIdPlayFab : public FUniqueNetId
 {
 protected:
 	/** Holds the net id for a player */
-	uint64 UniqueNetId;
+	FString UniqueNetId;
 
 	/** Hidden on purpose */
 	FUniqueNetIdPlayFab() :
-		UniqueNetId(0)
+		UniqueNetId()
 	{
 	}
 
@@ -178,20 +178,11 @@ protected:
 	* @param Src the id to copy
 	*/
 	explicit FUniqueNetIdPlayFab(const FUniqueNetIdPlayFab& Src) :
-		UniqueNetId(Src.UniqueNetId)
+		UniqueNetId(FString(Src.UniqueNetId))
 	{
 	}
 
 public:
-	/**
-	* Constructs this object with the specified net id
-	*
-	* @param InUniqueNetId the id to set ours to
-	*/
-	explicit FUniqueNetIdPlayFab(uint64 InUniqueNetId) :
-		UniqueNetId(InUniqueNetId)
-	{
-	}
 
 	/**
 	 * Constructs this object with the specified net id
@@ -199,7 +190,7 @@ public:
 	 * @param String textual representation of an id
 	 */
 	explicit FUniqueNetIdPlayFab(const FString& Str) :
-		UniqueNetId(FCString::Atoi64(*Str))
+		UniqueNetId(FString(Str, 0).ToLower())
 	{
 	}
 
@@ -209,7 +200,7 @@ public:
 	 * @param InUniqueNetId the id to set ours to (assumed to be FUniqueNetIdPlayFab in fact)
 	 */
 	explicit FUniqueNetIdPlayFab(const FUniqueNetId& InUniqueNetId) :
-		UniqueNetId(*(uint64*)InUniqueNetId.GetBytes())
+		UniqueNetId(*(FString*)InUniqueNetId.GetBytes())
 	{
 	}
 
@@ -217,10 +208,7 @@ public:
 	{
 		return MakeShareable(new FUniqueNetIdPlayFab(InUniqueNetIdStr));
 	}
-	static FUniqueNetIdPlayFabRef Create(uint64 InUniqueNetId)
-	{
-		return MakeShareable(new FUniqueNetIdPlayFab(InUniqueNetId));
-	}
+	
 	static FUniqueNetIdPlayFabRef Create(const FUniqueNetId& InUniqueNetId)
 	{
 		return StaticCastSharedRef<const FUniqueNetIdPlayFab>(InUniqueNetId.AsShared());
@@ -249,7 +237,7 @@ public:
 	*/
 	virtual int32 GetSize() const override
 	{
-		return sizeof(uint64);
+		return UniqueNetId.GetAllocatedSize();
 	}
 
 	/** Is our structure currently pointing to a valid EntityId? */
@@ -265,16 +253,6 @@ public:
 	 */
 	virtual FString ToString() const override
 	{
-		return FString::Printf(TEXT("%llu"), UniqueNetId);
-	}
-
-	/**
-	 * Platform specific conversion to string representation of data
-	 *
-	 * @return data in uint64 form
-	 */
-	virtual uint64 ToUint64() const
-	{
 		return UniqueNetId;
 	}
 
@@ -286,15 +264,7 @@ public:
 	 */
 	virtual FString ToDebugString() const override
 	{
-		const FString UniqueNetIdStr = FString::Printf(TEXT("[0x%llX]"), UniqueNetId);
-		if (IsValid())
-		{
-			return FString::Printf(TEXT("%s"), *OSS_UNIQUEID_REDACT(*this, UniqueNetIdStr));
-		}
-		else
-		{
-			return TEXT("INVALID") + OSS_UNIQUEID_REDACT(*this, UniqueNetIdStr);
-		}
+		return FString::Printf(TEXT("%s"), *OSS_UNIQUEID_REDACT(*this, UniqueNetId));
 	}
 
 	/** global static instance of invalid (zero) id */
@@ -304,9 +274,19 @@ public:
 		return EmptyId;
 	}
 
-	bool operator==(uint64 RawEntityId) const
+	bool operator==(FString RawEntityId) const
 	{
-		return RawEntityId && UniqueNetId == RawEntityId;
+		return UniqueNetId.Equals(RawEntityId, ESearchCase::IgnoreCase);
+	}
+
+	bool operator!=(FString RawEntityId) const
+	{
+		return !UniqueNetId.Equals(RawEntityId, ESearchCase::IgnoreCase);
+	}
+
+	virtual bool Compare(const FUniqueNetId& Other) const override
+	{		
+		return Other.ToString().Equals(this->ToString(), ESearchCase::IgnoreCase);	
 	}
 
 	virtual ~FUniqueNetIdPlayFab() = default;
@@ -370,7 +350,6 @@ private:
 	TSharedPtr<FPlayFabUser> HostUser;
 
 public:
-	//TSharedRef<const FUniqueNetIdPlayFab> FirstUserNetId;
 	FName SessionName;
 	FOnlineSessionSettings SessionSettings;
 	FUniqueNetIdPlayFabPtr SearchingPlayerNetId;

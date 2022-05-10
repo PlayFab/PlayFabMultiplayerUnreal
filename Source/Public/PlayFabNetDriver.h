@@ -8,6 +8,9 @@
 #include "UObject/ObjectMacros.h"
 #include "IpNetDriver.h"
 #include "OnlineSubsystemPlayFabPackage.h"
+#ifdef OSS_PLAYFAB_SWITCH
+#include <PFMultiplayerPal.h>
+#endif // OSS_PLAYFAB_SWITCH
 #include <Party.h>
 #include "PlayFabNetDriver.generated.h"
 

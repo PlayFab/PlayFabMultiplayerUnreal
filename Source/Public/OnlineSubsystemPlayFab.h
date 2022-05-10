@@ -15,6 +15,9 @@
 #include "..\PlatformSpecific\PlatformDefines.h"
 
 THIRD_PARTY_INCLUDES_START
+#ifdef OSS_PLAYFAB_SWITCH
+#include <PFMultiplayerPal.h>
+#endif // OSS_PLAYFAB_SWITCH
 #include <Party.h>
 #include <PFEntityKey.h>
 #include <PFMultiplayer.h>
@@ -155,7 +158,7 @@ public:
 	int32 MaxUserCount = 8;
 	int32 MaxUsersPerDeviceCount = 1;
 	PartyDirectPeerConnectivityOptions DirectPeerConnectivityOptions = PartyDirectPeerConnectivityOptions::AnyPlatformType |
-									   PartyDirectPeerConnectivityOptions::AnyEntityLoginProvider;
+																	   PartyDirectPeerConnectivityOptions::AnyEntityLoginProvider;
 
 	EPlayFabPartyNetworkState NetworkState = EPlayFabPartyNetworkState::NoNetwork;
 	PartyNetwork* Network = nullptr;
@@ -178,6 +181,16 @@ private:
 	void InitializeMultiplayer();
 	void SetMemoryCallbacks();
 	void CleanUpPlayFab();
+
+#ifdef OSS_PLAYFAB_SWITCH
+	void* LibBufferParty;
+	void* LibBufferMultiplayer;
+	void* PartyDllHandle;
+	void* MultiplayerDllHandle;
+
+	void CleanUpSwitch();
+#endif // OSS_PLAYFAB_SWITCH
+
 	void ParseDirectPeerConnectivityOptions();
 	
 	void DoWork();
