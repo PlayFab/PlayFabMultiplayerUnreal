@@ -1,7 +1,7 @@
 {
 	"FileVersion" : 3,
     "FriendlyName": "Online Subsystem PlayFab Party & Multiplayer",
-	"Version": 2.2.0,
+	"Version": 2.20,
 	"VersionName": "2.2.0",
 	"Description": "Support for the PlayFab Party and Multiplayer platform",
 	"Category": "Networking",
