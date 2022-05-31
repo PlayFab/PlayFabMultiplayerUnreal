@@ -13,7 +13,7 @@ keywords: playfab, multiplayer, networking, unreal, unreal engine, unreal engine
 
 The PlayFab Online Subsystem (PF OSS) v2 enables you to make use of PlayFab Multiplayer features like Lobby, Matchmaking, Party and Azure Cognitive Services in your Unreal Engine 4 (UE4) game.
 
-These features include cross-platform VOIP , cross-play, and accessibility features like real-time text chat translation and voice transcription services. It is currently designed for use when developing PC, Xbox, Steam and Nintendo Switch games. This OSS layer works seamlessly on top of the existing base platform OSS layers (such as the base GDK OSS layer provided by Epic for Xbox and PC Game Pass)  . PlayFab OSS compliments the base OSS by adding support for PlayFab Lobby, Matchmaking, Party networking and Voice over Internet Protocol (VOIP).
+These features include cross-platform VOIP , cross-play, and accessibility features like real-time text chat translation and voice transcription services. It is currently designed for use when developing PC, Xbox, Steam and Nintendo Switch games. This OSS layer works seamlessly on top of the existing base platform OSS layers (such as the base GDK OSS layer provided by Epic for Xbox and PC Game Pass). PlayFab OSS compliments the base OSS by adding support for PlayFab Lobby, Matchmaking, Party networking and Voice over Internet Protocol (VOIP).
 
 ## Getting Started
 
