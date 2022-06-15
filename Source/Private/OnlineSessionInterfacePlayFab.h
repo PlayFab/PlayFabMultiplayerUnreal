@@ -12,6 +12,10 @@
 #include "PlayFabLobby.h"
 #include "MatchmakingInterfacePlayFab.h"
 
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+#include "OnlineSubsystemGDKTypes.h"
+#endif
+
 THIRD_PARTY_INCLUDES_START
 #ifdef OSS_PLAYFAB_SWITCH
 #include <PFMultiplayerPal.h>
@@ -114,7 +118,8 @@ public:
 	void OnLobbyDisconnected(FName SessionName);
 	bool SetHostOnSession(FName SessionName, const PFEntityKey& HostEntityKey);
 
-	void SetMultiplayerActivity(const FName SessionName, PFLobbyHandle lobby);
+	void SetMultiplayerActivity(const FName SessionName, PFLobbyHandle lobby) const;
+	void DeleteMultiplayerActivity(const FName SessionName) const;
 
 PACKAGE_SCOPE:
 	/** Critical sections for thread safe operation of session lists */
@@ -189,12 +194,41 @@ public:
 	void OnFindFriendLobbiesCompleted(int32 LocalUserNum, bool bSuccess, TSharedPtr<FOnlineSessionSearch> SearchResults);
 	FDelegateHandle OnFindFriendLobbiesCompletedHandle;
 
+	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+	FGDKContextHandle GetGDKContextSample(const FName SessionName) const;
+	#endif
+
 private:
 	bool InternalCreateSession(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings);
 	void RegisterVoice(const FUniqueNetId& PlayerId);
 	void UnregisterVoice(const FUniqueNetId& PlayerId);
 	FString GetPlatformIdFromEntityId(const FString& EntityId);
 	FOnlineSessionSearchResult CreateSearchResultFromInvite(const PFLobbyInviteReceivedStateChange& StateChange);
+
+	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+	void RecordRecentlyMetPlayer(const PFEntityKey& MemberAddedEntity, const FName SessionName, const char* PlatformIdValue) const;
+	XTaskQueueRegistrationToken InviteAcceptedHandler = { 0 };
+	void SaveInviteFromActivation(void* Context, const char* InviteUri);
+	void SaveInviteSession(const int32 ControllerIndex,
+						   const FOnlineSessionSearchResult & SearchResult);
+	void TickPendingGDKInvites();
+	
+	struct FPendingGDKInviteData
+	{
+		FPendingGDKInviteData() = default;
+		FPendingGDKInviteData(const int32 ControllerIndex,
+							  const FOnlineSessionSearchResult& SearchResult)
+		: bControllerIndex(ControllerIndex),
+		  bSearchResult(SearchResult)
+		{}
+
+		int32 bControllerIndex;
+		FOnlineSessionSearchResult bSearchResult;
+		bool bHasActiveInvite = false;
+	};
+
+	FPendingGDKInviteData PendingGDKInviteData;
+	#endif
 
 	TMap<FString, FString> EntityPlatformIdMapping;
 };

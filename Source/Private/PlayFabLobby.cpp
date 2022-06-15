@@ -6,9 +6,73 @@
 #include "PlayFabUtils.h"
 #include "OnlineSubsystemPlayFab.h"
 
+static struct FSearchKeyMappingTable
+{
+	FName SettingKey;
+	int32 KeyNumber;
+	EOnlineKeyValuePairDataType::Type Type;
+} s_SearchKeyMappingTable[] =
+{
+	// String
+	{SETTING_MAPNAME, 					30, EOnlineKeyValuePairDataType::String},
+	{SETTING_GAMEMODE, 					29, EOnlineKeyValuePairDataType::String},
+	{SETTING_REGION, 					28, EOnlineKeyValuePairDataType::String},
+	{SETTING_SUBREGION, 				27, EOnlineKeyValuePairDataType::String},
+	{SETTING_DCID, 						26, EOnlineKeyValuePairDataType::String},
+	{SETTING_ALLOWBROADCASTING, 		25, EOnlineKeyValuePairDataType::String},
+	{SETTING_SESSIONKEY, 				24, EOnlineKeyValuePairDataType::String},
+	{SETTING_CUSTOM, 					23, EOnlineKeyValuePairDataType::String},
+	{SETTING_MATCHING_HOPPER, 			22, EOnlineKeyValuePairDataType::String},
+	{SETTING_MATCHING_ATTRIBUTES, 		21, EOnlineKeyValuePairDataType::String},
+	{SETTING_MATCH_MEMBERS_JSON, 		20, EOnlineKeyValuePairDataType::String},
+	{SETTING_SESSION_MEMBER_CONSTANT_CUSTOM_JSON_XUID_PREFIX, 19, EOnlineKeyValuePairDataType::String},
+	{SETTING_SESSION_TEMPLATE_NAME, 	18, EOnlineKeyValuePairDataType::String},
+	{SETTING_GAME_SESSION_URI, 			17, EOnlineKeyValuePairDataType::String},
+	{SETTING_GROUP_NAME_PREFIX, 		16, EOnlineKeyValuePairDataType::String},
+	{SETTING_CUSTOM_JOIN_INFO, 			15, EOnlineKeyValuePairDataType::String},
+	{SETTING_SESSION_SUBSCRIPTION_TYPES, 14, EOnlineKeyValuePairDataType::String},
+	{SETTING_HOST_MIGRATION, 			13, EOnlineKeyValuePairDataType::String},
+	{SEARCH_DEDICATED_ONLY, 			12, EOnlineKeyValuePairDataType::String},
+	{SEARCH_EXCLUDE_UNIQUEIDS, 			11, EOnlineKeyValuePairDataType::String},
+	{SEARCH_USER, 						10, EOnlineKeyValuePairDataType::String},
+	{SEARCH_KEYWORDS, 					9, EOnlineKeyValuePairDataType::String},
+	{SEARCH_MATCHMAKING_QUEUE, 			8, EOnlineKeyValuePairDataType::String},
+	{SEARCH_SWITCH_SELECTION_METHOD, 	7, EOnlineKeyValuePairDataType::String},
+	{SEARCH_USER_ATTRIBUTE_TEAM, 		6, EOnlineKeyValuePairDataType::String},
+
+	// Number
+	{SETTING_NUMBOTS, 					30, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_BEACONPORT, 				29, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_QOS, 						28, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_NEEDS, 					27, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_NEEDSSORT, 				26, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_MAXSPECTATORS, 			25, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_MATCHING_TIMEOUT, 			24, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_MAX_RESULT,				23, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_CONTRACT_VERSION_FILTER,	22, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_FIND_PRIVATE_SESSIONS,		21, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_FIND_RESERVED_SESSIONS, 	20, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_FIND_INACTIVE_SESSIONS,	19, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_MULTIPLAYER_VISIBILITY,	18, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_CHANGE_NUMBER,				17, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_ALLOW_ARBITER_MIGRATION,	16, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_MATCHING_PRESERVE_SESSION,	15, EOnlineKeyValuePairDataType::Int32},
+	{SEARCH_MINSLOTSAVAILABLE,			14, EOnlineKeyValuePairDataType::Int32},
+	{SETTING_BROADCASTER, 				13, EOnlineKeyValuePairDataType::Bool},
+	{SETTING_PARTYMEMBERSPECTATOR, 		12, EOnlineKeyValuePairDataType::Bool},
+	{SETTING_PARTY_ENABLED_SESSION, 	11, EOnlineKeyValuePairDataType::Bool},
+	{SEARCH_EMPTY_SERVERS_ONLY, 		10, EOnlineKeyValuePairDataType::Bool},
+	{SEARCH_NONEMPTY_SERVERS_ONLY, 		9, EOnlineKeyValuePairDataType::Bool},
+	{SEARCH_SECURE_SERVERS_ONLY, 		8, EOnlineKeyValuePairDataType::Bool},
+	{SEARCH_PRESENCE, 					7, EOnlineKeyValuePairDataType::Bool},
+	{SEARCH_LOBBIES, 					6, EOnlineKeyValuePairDataType::Bool},
+};
+
 FPlayFabLobby::FPlayFabLobby(FOnlineSubsystemPlayFab* InOSSPlayFab)
 {
 	OSSPlayFab = InOSSPlayFab;
+
+	BuildSearchKeyMappingTable();
 }
 
 bool FPlayFabLobby::CreatePlayFabLobby(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings)
@@ -103,6 +167,32 @@ bool FPlayFabLobby::CreateLobbyWithUser(TSharedPtr<const FPlayFabUser> InPlayFab
 				UE_LOG_ONLINE(Verbose, TEXT("CreateLobbyWithUser: %s: %s."), *SettingNameString, *SettingValueString);
 				SearchKeys.Add(SettingNameString);
 				SearchValues.Add(SettingValueString);
+			}
+		}
+		else
+		{
+			FString SearchKey;
+			EOnlineKeyValuePairDataType::Type Type;
+			if (GetSearchKeyFromSettingMappingTable(SettingNameString, SearchKey, Type))
+			{
+				UE_LOG_ONLINE(Verbose, TEXT("CreateLobbyWithUser: predefined item %s(%s): %s Type: %d."), *SettingNameString, *SearchKey, *SettingValueString, Type);
+				switch (Type)
+				{
+					case EOnlineKeyValuePairDataType::Bool:
+					{
+						const FVariantData& VariantData = SettingValue.Data;
+						bool BoolVal;
+						VariantData.GetValue(BoolVal);
+						SearchKeys.Add(TCHAR_TO_ANSI(*SearchKey));
+						SearchValues.Add(BoolVal == true ? "1" : "0");
+						break;
+					}
+					case EOnlineKeyValuePairDataType::Int32:
+					case EOnlineKeyValuePairDataType::String:
+						SearchKeys.Add(TCHAR_TO_ANSI(*SearchKey));
+						SearchValues.Add(SettingValueString);
+						break;
+				}
 			}
 		}
 	}
@@ -690,7 +780,13 @@ bool FPlayFabLobby::SendInvite(const FUniqueNetId& SenderId, FName SessionName, 
 	GetPlayFabDataFromPlatformIDCompleteDelegate.BindRaw(this, &FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted, PendingSendInvite);
 #elif defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	const FString RequestPath = TEXT("/Profile/GetTitlePlayersFromXboxLiveIDs");
-	GenerateGetTitlePlayersFromXboxLiveIDsRequestBody(FriendIdStrings, OSSPlayFab->GetSandBox(), GetTitlePlayersFromPlatformIDsRequestBody);
+	const FString SandboxId = OSSPlayFab->GetSandBox();
+	if (SandboxId.IsEmpty())
+	{
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::GetSandBox returned empty value!"));
+		return false;
+	}
+	GenerateGetTitlePlayersFromXboxLiveIDsRequestBody(FriendIdStrings, SandboxId, GetTitlePlayersFromPlatformIDsRequestBody);
 	GetPlayFabDataFromPlatformIDCompleteDelegate.BindRaw(this, &FPlayFabLobby::OnGetTitleAccountIDsFromPlatformIDsCompleted, PendingSendInvite);
 #elif defined(OSS_PLAYFAB_SWITCH)
 	ExtraHeaders.Add(MakeTuple(FString("X-Authorization"), LocalUser->GetSessionTicket()));
@@ -859,13 +955,22 @@ void FPlayFabLobby::HandleCreateAndJoinLobbyCompleted(const PFLobbyCreateAndJoin
 		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted failed to GetLobbyId: 0x%08x"), Hr);
 	}
 
-	ExistingNamedSession->SessionInfo = MakeShared<FOnlineSessionInfoPlayFab>(FString(LobbyId), StateChange.lobby, *SessionName);
+	const char* ConnectionString;
+	Hr = PFLobbyGetConnectionString(StateChange.lobby, &ConnectionString);
+	if (FAILED(Hr))
+	{
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted failed to GetConnectionString: 0x%08x"), Hr);
+	}
+
+	ExistingNamedSession->SessionInfo = MakeShared<FOnlineSessionInfoPlayFab>(FString(LobbyId), FString(ConnectionString), StateChange.lobby, *SessionName);
 	ExistingNamedSession->SessionState = EOnlineSessionState::Pending;
 
+	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	if (ExistingNamedSession->SessionSettings.bAllowInvites || ExistingNamedSession->SessionSettings.bAllowJoinViaPresence || ExistingNamedSession->SessionSettings.bAllowJoinViaPresenceFriendsOnly)
 	{
 		SessionInterface->SetMultiplayerActivity(*SessionName, StateChange.lobby);
 	}
+	#endif
 
 	TriggerOnLobbyCreatedAndJoinCompletedDelegates(SUCCEEDED(StateChange.result), *SessionName);
 }
@@ -908,10 +1013,12 @@ void FPlayFabLobby::HandleJoinLobbyCompleted(const PFLobbyJoinLobbyCompletedStat
 	FNamedOnlineSessionPtr ExistingNamedSession = SessionInterface->GetNamedSessionPtr(*SessionName);
 	ExistingNamedSession->bHosting = false; // you are never hosting when you join
 
+	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	if (ExistingNamedSession->SessionSettings.bUsesPresence)
 	{
 		SessionInterface->SetMultiplayerActivity(*SessionName, StateChange.lobby);
 	}
+	#endif
 
 	const char* LobbyId;
 	HRESULT Hr = PFLobbyGetLobbyId(StateChange.lobby, &LobbyId);
@@ -920,7 +1027,14 @@ void FPlayFabLobby::HandleJoinLobbyCompleted(const PFLobbyJoinLobbyCompletedStat
 		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted failed to GetLobbyId: 0x%08x"), Hr);
 	}
 
-	ExistingNamedSession->SessionInfo = MakeShared<FOnlineSessionInfoPlayFab>(LobbyId, StateChange.lobby, *SessionName);
+	const char* ConnectionString;
+	Hr = PFLobbyGetConnectionString(StateChange.lobby, &ConnectionString);
+	if (FAILED(Hr))
+	{
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted failed to GetConnectionString: 0x%08x"), Hr);
+	}
+
+	ExistingNamedSession->SessionInfo = MakeShared<FOnlineSessionInfoPlayFab>(FString(LobbyId), FString(ConnectionString), StateChange.lobby, *SessionName);
 	ExistingNamedSession->SessionState = EOnlineSessionState::Pending;
 
 	TriggerOnJoinLobbyCompletedDelegates(*SessionName, JoinResult);
@@ -980,6 +1094,13 @@ void FPlayFabLobby::HandleJoinArrangedLobbyCompleted(const PFLobbyJoinArrangedLo
 	FNamedOnlineSessionPtr ExistingNamedSession = SessionInterface->GetNamedSessionPtr(*SessionName);
 	ExistingNamedSession->bHosting = bHosting;
 
+	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+	if (ExistingNamedSession->SessionSettings.bUsesPresence)
+	{
+		SessionInterface->SetMultiplayerActivity(*SessionName, StateChange.lobby);
+	}
+	#endif
+
 	const char* LobbyId;
 	Hr = PFLobbyGetLobbyId(StateChange.lobby, &LobbyId);
 	if (FAILED(Hr))
@@ -987,7 +1108,14 @@ void FPlayFabLobby::HandleJoinArrangedLobbyCompleted(const PFLobbyJoinArrangedLo
 		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted failed to GetLobbyId: 0x%08x"), Hr);
 	}
 
-	ExistingNamedSession->SessionInfo = MakeShared<FOnlineSessionInfoPlayFab>(LobbyId, StateChange.lobby, *SessionName);
+	const char* ConnectionString;
+	Hr = PFLobbyGetConnectionString(StateChange.lobby, &ConnectionString);
+	if (FAILED(Hr))
+	{
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted failed to GetConnectionString: 0x%08x"), Hr);
+	}
+
+	ExistingNamedSession->SessionInfo = MakeShared<FOnlineSessionInfoPlayFab>(FString(LobbyId), FString(ConnectionString), StateChange.lobby, *SessionName);
 	ExistingNamedSession->SessionState = EOnlineSessionState::Pending;
 
 	TriggerOnJoinArrangedLobbyCompletedDelegates(*SessionName, true);
@@ -1044,6 +1172,13 @@ void FPlayFabLobby::HandleLeaveLobbyCompleted(const PFLobbyLeaveLobbyCompletedSt
 		FName* SessionName = LobbySessionMap.Find(StateChange.lobby);
 		auto SessionInterface = OSSPlayFab->GetSessionInterfacePlayFab();
 		FNamedOnlineSessionPtr ExistingNamedSession = SessionInterface->GetNamedSessionPtr(*SessionName);
+
+		#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+		if (ExistingNamedSession->SessionSettings.bUsesPresence)
+		{
+			SessionInterface->DeleteMultiplayerActivity(*SessionName);
+		}
+		#endif
 
 		// Check if this is DestroySession or UnregisterLocalUser
 		if (ExistingNamedSession->SessionState == EOnlineSessionState::Destroying)
@@ -1209,7 +1344,26 @@ FOnlineSessionSearchResult FPlayFabLobby::CreateSearchResultFromLobby(const PFLo
 		}
 
 		// return search properties back to session settings
-		NewSearchResult.Session.SessionSettings.Set(FName(SearchPropertyKey), FString(Lobby.searchPropertyValues[i]), EOnlineDataAdvertisementType::ViaOnlineService);
+		auto SettingKey = SearchKeyMappingTable.Find(SearchPropertyKey);
+		if (SettingKey)
+		{
+			switch (SettingKey->Value)
+			{
+				case EOnlineKeyValuePairDataType::Bool:
+					NewSearchResult.Session.SessionSettings.Set(FName(SettingKey->Key), Lobby.searchPropertyValues[i][0] == '1' ? true : false, EOnlineDataAdvertisementType::ViaOnlineService);
+					break;
+				case EOnlineKeyValuePairDataType::Int32:
+					NewSearchResult.Session.SessionSettings.Set(FName(SettingKey->Key), FCStringAnsi::Atoi(Lobby.searchPropertyValues[i]), EOnlineDataAdvertisementType::ViaOnlineService);
+					break;
+				case EOnlineKeyValuePairDataType::String:
+					NewSearchResult.Session.SessionSettings.Set(FName(SettingKey->Key), FString(Lobby.searchPropertyValues[i]), EOnlineDataAdvertisementType::ViaOnlineService);
+					break;
+			}
+		}
+		else
+		{
+			NewSearchResult.Session.SessionSettings.Set(FName(SearchPropertyKey), FString(Lobby.searchPropertyValues[i]), EOnlineDataAdvertisementType::ViaOnlineService);
+		}
 	}
 
 	if (!PlatformIdKeyFound)
@@ -1217,7 +1371,6 @@ FOnlineSessionSearchResult FPlayFabLobby::CreateSearchResultFromLobby(const PFLo
 		UE_LOG_ONLINE_SESSION(Error, TEXT("Platform Id key is not found in lobby search properties, lobby Id %s"), Lobby.lobbyId);
 	}
 
-	NewSearchResult.Session.SessionSettings.bIsDedicated = true;
 	NewSearchResult.Session.NumOpenPrivateConnections = 0;
 	NewSearchResult.Session.NumOpenPublicConnections = Lobby.maxMemberCount - Lobby.currentMemberCount;
 	NewSearchResult.Session.SessionSettings.NumPublicConnections = Lobby.maxMemberCount;
@@ -1236,7 +1389,7 @@ FString FPlayFabLobby::ComposeLobbySearchQueryFilter(const FSearchParams& Search
 	{
 		const FString& SettingName = SearchParam.Key.ToString();
 		const FVariantData& SettingValue = SearchParam.Value.Data;
-		if (SettingValue.ToString().IsEmpty() || !IsSearchKey(SettingName))
+		if (SettingValue.ToString().IsEmpty() || SettingName == SEARCH_PRESENCE.ToString() || SettingName == SEARCH_LOBBIES.ToString())
 		{
 			continue;
 		}
@@ -1294,13 +1447,41 @@ FString FPlayFabLobby::ComposeLobbySearchQueryFilter(const FSearchParams& Search
 			}
 		}
 
-		if (SettingValue.IsNumeric())
+		FString SearchKey;
+		EOnlineKeyValuePairDataType::Type Type;
+		if (GetSearchKeyFromSettingMappingTable(SettingName, SearchKey, Type))
 		{
-			QueryFilter.Append(FString::Printf(TEXT("%s %s %s"), *SettingName, *ComparisonString, *SettingValue.ToString()));
+			UE_LOG_ONLINE(Verbose, TEXT("ComposeLobbySearchQueryFilter: predefined item %s(%s): %s Type: %d."), *SettingName, *SearchKey, *SettingValue.ToString(), Type);
+			switch (Type)
+			{
+			case EOnlineKeyValuePairDataType::Int32:
+				QueryFilter.Append(FString::Printf(TEXT("%s %s %s"), *SearchKey, *ComparisonString, *SettingValue.ToString()));
+				break;
+			case EOnlineKeyValuePairDataType::Bool:
+			{
+				bool BoolVal;
+				SettingValue.GetValue(BoolVal);
+				QueryFilter.Append(FString::Printf(TEXT("%s %s %d"), *SearchKey, *ComparisonString, static_cast<int32>(BoolVal)));
+				break;
+			}
+			case EOnlineKeyValuePairDataType::String:
+				QueryFilter.Append(FString::Printf(TEXT("%s %s '%s'"), *SearchKey, *ComparisonString, *SettingValue.ToString()));
+				break;
+			}
 		}
 		else
 		{
-			QueryFilter.Append(FString::Printf(TEXT("%s %s '%s'"), *SettingName, *ComparisonString, *SettingValue.ToString()));
+			if (IsSearchKey(SettingName))
+			{
+				if (SettingValue.IsNumeric())
+				{
+					QueryFilter.Append(FString::Printf(TEXT("%s %s %s"), *SettingName, *ComparisonString, *SettingValue.ToString()));
+				}
+				else
+				{
+					QueryFilter.Append(FString::Printf(TEXT("%s %s '%s'"), *SettingName, *ComparisonString, *SettingValue.ToString()));
+				}
+			}
 		}
 	}
 
@@ -1407,3 +1588,38 @@ void  FPlayFabLobby::InviteTitleAccountIDsToLobby(FPendingSendInviteData Pending
 		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::PFLobbySendInvite failed: 0x%08x"), Hr);
 	}
 }
+
+void FPlayFabLobby::BuildSearchKeyMappingTable()
+{
+	int32 SizeOfMappingTable = sizeof(s_SearchKeyMappingTable) / sizeof(struct FSearchKeyMappingTable);
+	for (int32 i = 0; i < SizeOfMappingTable; ++ i)
+	{
+		FString SearchKey;
+		switch (s_SearchKeyMappingTable[i].Type)
+		{
+			case EOnlineKeyValuePairDataType::Bool:
+			case EOnlineKeyValuePairDataType::Int32:
+				SearchKey = FString::Printf(TEXT("%skey%d"), *SEARCH_KEY_PREFIX_NUMBER, s_SearchKeyMappingTable[i].KeyNumber);
+				break;
+			case EOnlineKeyValuePairDataType::String:
+				SearchKey = FString::Printf(TEXT("%skey%d"), *SEARCH_KEY_PREFIX_STRING, s_SearchKeyMappingTable[i].KeyNumber);
+				break;
+		}
+		SearchKeyMappingTable.Add(SearchKey, TPair<FString, EOnlineKeyValuePairDataType::Type>(s_SearchKeyMappingTable[i].SettingKey.ToString(), s_SearchKeyMappingTable[i].Type));
+	}
+}
+
+bool FPlayFabLobby::GetSearchKeyFromSettingMappingTable(const FString& SettingKey, FString& SearchKey, EOnlineKeyValuePairDataType::Type& Type) const
+{
+	for (const auto& SearchFilter : SearchKeyMappingTable)
+	{
+		if (SearchFilter.Value.Key.Equals(SettingKey, ESearchCase::IgnoreCase))
+		{
+			SearchKey = SearchFilter.Key;
+			Type = SearchFilter.Value.Value;
+			return true;
+		}
+	}
+	return false;
+}
+

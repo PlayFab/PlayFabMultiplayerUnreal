@@ -109,7 +109,6 @@ public:
 	virtual IOnlineTimePtr GetTimeInterface() const override;
 	virtual IOnlineTitleFilePtr GetTitleFileInterface() const override;
 	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const override;
-	virtual IOnlineStorePtr GetStoreInterface() const override;
 	virtual IOnlineStoreV2Ptr GetStoreV2Interface() const override;
 	virtual IOnlinePurchasePtr GetPurchaseInterface() const override;
 	virtual IOnlineEventsPtr GetEventsInterface() const override;
@@ -157,8 +156,8 @@ public:
 	int32 MaxEndpointsPerDeviceCount = 1;
 	int32 MaxUserCount = 8;
 	int32 MaxUsersPerDeviceCount = 1;
-	PartyDirectPeerConnectivityOptions DirectPeerConnectivityOptions = PartyDirectPeerConnectivityOptions::AnyPlatformType |
-																	   PartyDirectPeerConnectivityOptions::AnyEntityLoginProvider;
+	PartyDirectPeerConnectivityOptions DirectPeerConnectivityOptions 
+		= PartyDirectPeerConnectivityOptions::AnyPlatformType | PartyDirectPeerConnectivityOptions::AnyEntityLoginProvider;
 
 	EPlayFabPartyNetworkState NetworkState = EPlayFabPartyNetworkState::NoNetwork;
 	PartyNetwork* Network = nullptr;
@@ -257,7 +256,7 @@ public:
 	
 	PartyEndpoint* GetPartyEndpoint(uint32 EndpointId);
 
-	FString GetSandBox();
+	const FString GetSandBox() const;
 };
 
 namespace FNetworkProtocolTypes

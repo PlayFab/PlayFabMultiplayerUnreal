@@ -35,7 +35,7 @@ public:
 		FName SessionName, 
 		const FOnlineSessionSettings& NewSessionSettings, 
 		TSharedRef<FOnlineSessionSearch>& SearchSettings);
-	bool CancelMatchmakingTicket(const PFEntityKey entity, const FName& SessionName);
+	bool CancelMatchmakingTicket(const FName& SessionName);
 
 	void DoWork();
 

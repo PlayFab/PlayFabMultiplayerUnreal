@@ -112,6 +112,8 @@ private:
 	FOnlineSessionSearchResult CreateSearchResultFromLobby(const PFLobbySearchResult& Lobby);
 	bool IsSearchKey(const FString& Name);
 	FString ComposeLobbySearchQueryFilter(const FSearchParams& SearchParams);
+	void BuildSearchKeyMappingTable();
+	bool GetSearchKeyFromSettingMappingTable(const FString& SettingKey, FString& SearchKey, EOnlineKeyValuePairDataType::Type& Type) const;
 
 	// we can eliminate this map if we pass SessionName as asyncIdentifier to lobby calls
 	TMap<PFLobbyHandle, FName> LobbySessionMap;
@@ -136,6 +138,8 @@ private:
 		FOnUnregisterLocalPlayerCompleteDelegate UnregisterLocalPlayerCompleteDelegate;
 	};
 	FRemoveLocalPlayerData RemoveLocalPlayerData;
+
+	TMap<FString, TPair<FString, EOnlineKeyValuePairDataType::Type>> SearchKeyMappingTable;
 
 public:
 	void OnGetPlayFabIDsFromPlatformIDsCompleted(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FPendingSendInviteData PendingSendInvite);

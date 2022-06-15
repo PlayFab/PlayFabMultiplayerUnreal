@@ -35,7 +35,6 @@ OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineLeaderboardsPtr, GetLeaderboa
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineTimePtr, GetTimeInterface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineTitleFilePtr, GetTitleFileInterface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineEntitlementsPtr, GetEntitlementsInterface);
-OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineStorePtr, GetStoreInterface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineStoreV2Ptr, GetStoreV2Interface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlinePurchasePtr, GetPurchaseInterface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineEventsPtr, GetEventsInterface);
@@ -215,11 +214,11 @@ const static TMap<FString, PartyDirectPeerConnectivityOptions> ConnectivityOptio
 	{"SamePlatformType", PartyDirectPeerConnectivityOptions::SamePlatformType},
 	{"DifferentPlatformType", PartyDirectPeerConnectivityOptions::DifferentPlatformType},
 	{"AnyPlatformType", PartyDirectPeerConnectivityOptions::SamePlatformType |
-						PartyDirectPeerConnectivityOptions::DifferentPlatformType},
+		PartyDirectPeerConnectivityOptions::DifferentPlatformType},
 	{"SameEntityLoginProvider", PartyDirectPeerConnectivityOptions::SameEntityLoginProvider},
 	{"DifferentEntityLoginProvider", PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider},
 	{"AnyEntityLoginProvider", PartyDirectPeerConnectivityOptions::SameEntityLoginProvider |
-							   PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider},
+		PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider},
 };
 
 void FOnlineSubsystemPlayFab::ParseDirectPeerConnectivityOptions()
@@ -1375,15 +1374,16 @@ PartyEndpoint* FOnlineSubsystemPlayFab::GetPartyEndpoint(uint32 EndpointId)
 	return nullptr;
 }
 
-FString FOnlineSubsystemPlayFab::GetSandBox()
+const FString FOnlineSubsystemPlayFab::GetSandBox() const
 {
-	FString SandboxStr;
-	if (GConfig->GetString(TEXT("OnlineSubsystemPlayFab"), TEXT("Sandbox"), SandboxStr, GEngineIni))
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+	char SandboxId[XSystemXboxLiveSandboxIdMaxBytes] = { 0 };
+	HRESULT hResult = XSystemGetXboxLiveSandboxId(UE_ARRAY_COUNT(SandboxId), SandboxId, nullptr);
+	if (SUCCEEDED(hResult))
 	{
-		return SandboxStr;
+		return UTF8_TO_TCHAR(SandboxId);
 	}
-	else
-	{
-		return FString(TEXT("RETAIL"));
-	}
+	UE_LOG_ONLINE(Error, TEXT("FOnlineSubsystemPlayFab::GetSandBox: failed: %x"), hResult);
+#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+	return TEXT("");
 }

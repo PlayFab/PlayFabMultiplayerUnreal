@@ -12,13 +12,39 @@
 #include "OnlineSubsystemGDK.h"
 THIRD_PARTY_INCLUDES_START
 #include <xsapi-c/multiplayer_activity_c.h>
+#include <XGameInvite.h>
+#include <XGameRuntimeFeature.h>
 THIRD_PARTY_INCLUDES_END
-#endif
+#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 
 #include "OnlineSubsystemPlayFab.h"
 #include "OnlineSubsystemPlayFabPrivate.h"
 
+#include "GenericPlatform/GenericPlatformHttp.h"
+
 #define OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();  IOnlineSessionPtr NativeSessionInterface = NativeSubsystem ? NativeSubsystem->GetSessionInterface() : nullptr; if (NativeSessionInterface)
+
+static FString FindUrlParameter(FString Url, const TCHAR* Name)
+{
+	FString StartToken = FString::Printf(TEXT("%s"), Name);
+	int32 Start = Url.Find(StartToken);
+	if (Start == INDEX_NONE)
+	{
+		return FString();
+	}
+
+	Start += StartToken.Len();
+	int32 End = Url.Find(TEXT("&"), ESearchCase::IgnoreCase, ESearchDir::FromStart, Start);
+
+	// If the session is at the end of the string then end will return not found.
+	int32 CharCount = MAX_int32;
+	if (End != INDEX_NONE)
+	{
+		CharCount = End - Start;
+	}
+
+	return(Url.Mid(Start, CharCount));
+}
 
 FOnlineSessionPlayFab::FOnlineSessionPlayFab(class FOnlineSubsystemPlayFab* InSubsystem) :
 	OSSPlayFab(InSubsystem)
@@ -188,7 +214,7 @@ void FOnlineSessionPlayFab::OnCreatePartyEndpoint(bool bSuccess, uint16 Endpoint
 				PendingCreateSessionInfo.SessionSettings.Set(SETTING_NETWORK_DESCRIPTOR, NetworkDescriptorStr, EOnlineDataAdvertisementType::ViaOnlineService);
 				PendingCreateSessionInfo.SessionSettings.Set(SETTING_HOST_CONNECT_INFO, HostConnectInfo, EOnlineDataAdvertisementType::ViaOnlineService);
 
-				PendingCreateSessionInfo.SessionSettings.bIsDedicated = true;
+				PendingCreateSessionInfo.SessionSettings.bIsDedicated = IsRunningDedicatedServer();
 			}
 			else
 			{
@@ -609,7 +635,7 @@ void FOnlineSessionPlayFab::OnCreatePartyEndpoint_Matchmaking(bool bSuccess, uin
 					SessionSettings->Set(SETTING_NETWORK_DESCRIPTOR, NetworkDescriptorStr, EOnlineDataAdvertisementType::ViaOnlineService);
 					SessionSettings->Set(SETTING_HOST_CONNECT_INFO, HostConnectInfo, EOnlineDataAdvertisementType::ViaOnlineService);
 
-					SessionSettings->bIsDedicated = true;
+					SessionSettings->bIsDedicated = IsRunningDedicatedServer();
 
 					OnUpdateSession_MatchmakingDelegateHandle = OSSPlayFab->GetPlayFabLobbyInterface()->AddOnUpdateLobbyCompletedDelegate_Handle(FOnUpdateLobbyCompletedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnUpdateSession_Matchmaking));
 					if (!OSSPlayFab->GetPlayFabLobbyInterface()->UpdateLobby(MatchmakingCompleteSessionName, *SessionSettings))
@@ -691,18 +717,10 @@ bool FOnlineSessionPlayFab::CancelMatchmaking(const FUniqueNetId& SearchingPlaye
 {
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::CancelMatchmaking()"));
 
-	PFEntityKey key;
-	FOnlineIdentityPlayFabPtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityPlayFab>(OSSPlayFab->GetIdentityInterface());
-	TSharedPtr<FPlayFabUser> user = IdentityInterface->GetPartyLocalUserFromPlatformId(SearchingPlayerId);
-	if (user != nullptr)
-	{
-		key = user->GetEntityKey();
-	}
-
 	OnCancelMatchmakingCompleteDelegateHandle = FOnCancelMatchmakingCompleteDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnCancelMatchmakingComplete);
 	OnCancelMatchmakingCompleteHandle = OSSPlayFab->GetMatchmakingInterface()->AddOnCancelMatchmakingCompleteDelegate_Handle(OnCancelMatchmakingCompleteDelegateHandle);
 
-	return OSSPlayFab->GetMatchmakingInterface()->CancelMatchmakingTicket(key, SessionName);
+	return OSSPlayFab->GetMatchmakingInterface()->CancelMatchmakingTicket(SessionName);
 }
 
 bool FOnlineSessionPlayFab::FindSessions(int32 SearchingPlayerNum, const TSharedRef<FOnlineSessionSearch>& SearchSettings)
@@ -771,6 +789,21 @@ void FOnlineSessionPlayFab::RegisterForUpdates()
 	OnLobbyMemberRemovedDelegateHandle = OSSPlayFab->GetPlayFabLobbyInterface()->AddOnLobbyMemberRemovedDelegate_Handle(FOnLobbyMemberRemovedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnLobbyMemberRemoved));
 	OnInvitationReceivedDelegateHandle = OSSPlayFab->GetPlayFabLobbyInterface()->AddOnInvitationReceivedDelegate_Handle(FOnInvitationReceivedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnInvitationReceived));
 	OnLobbyDisconnectedDelegateHandle = OSSPlayFab->GetPlayFabLobbyInterface()->AddOnLobbyDisconnectedDelegate_Handle(FOnLobbyDisconnectedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnLobbyDisconnected));
+	
+	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+	if (XGameRuntimeIsFeatureAvailable(XGameRuntimeFeature::XGameInvite))
+	{		
+		auto InviteHandlerLambda = [](void* Context, const char* InviteUri)
+		{
+			reinterpret_cast<FOnlineSessionPlayFab*>(Context)->SaveInviteFromActivation(Context, InviteUri);
+		};
+		HRESULT Hr = XGameInviteRegisterForEvent(FGDKAsyncTaskQueue::GetGenericQueue(), this, InviteHandlerLambda, &InviteAcceptedHandler);
+		if (FAILED(Hr))
+		{
+			UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::RegisterForUpdates failed to call XGameInviteRegisterForEvent with ErrorCode=[0x%08x]!"), Hr);
+		}
+	}
+	#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 }
 
 void FOnlineSessionPlayFab::UnregisterForUpdates()
@@ -781,6 +814,10 @@ void FOnlineSessionPlayFab::UnregisterForUpdates()
 	OSSPlayFab->GetPlayFabLobbyInterface()->ClearOnLobbyMemberRemovedDelegate_Handle(OnLobbyMemberRemovedDelegateHandle);
 	OSSPlayFab->GetPlayFabLobbyInterface()->ClearOnInvitationReceivedDelegate_Handle(OnInvitationReceivedDelegateHandle);
 	OSSPlayFab->GetPlayFabLobbyInterface()->ClearOnLobbyDisconnectedDelegate_Handle(OnLobbyDisconnectedDelegateHandle);
+
+	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+	XGameInviteUnregisterForEvent(InviteAcceptedHandler, true /* Wait for pending event callbacks to complete.*/);
+	#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 }
 
 void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdatedStateChange& StateChange)
@@ -950,6 +987,15 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 		}
 	}
 
+	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+	bool ActivityNeedsUpdate = StateChange.memberUpdateCount || StateChange.maxMembersUpdated;
+	if (ExistingNamedSession->SessionSettings.bUsesPresence && ActivityNeedsUpdate)
+	{
+		// activity should be updated as players join or leave, if maxPlayerCount changes
+		SetMultiplayerActivity(SessionName, StateChange.lobby);
+	}
+	#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+
 	TriggerOnSessionCustomDataChangedDelegates(SessionName, ExistingNamedSession->SessionSettings);
 }
 
@@ -964,9 +1010,13 @@ void FOnlineSessionPlayFab::OnLobbyMemberAdded(FName SessionName, const PFLobbyM
 		UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyMemberAdded Id:%s, Type:%s PlatformId:%s"), *FString(MemberAddedEntity.id), *FString(MemberAddedEntity.type), *FString(PlatformIdValue));
 		EntityPlatformIdMapping.Add(FString(MemberAddedEntity.id), FString(PlatformIdValue));
 
+		#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+		RecordRecentlyMetPlayer(MemberAddedEntity, SessionName, PlatformIdValue);
+		#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+
 		const TSharedRef<const FUniqueNetId> MemberAddedNetId = FUniqueNetIdPlayFab::Create(FString(PlatformIdValue));
-	TriggerOnSessionParticipantsChangeDelegates(SessionName, *MemberAddedNetId, true);
-}
+		TriggerOnSessionParticipantsChangeDelegates(SessionName, *MemberAddedNetId, true);
+	}
 	else
 	{
 		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::OnLobbyMemberAdded failed to get PlatformId for Entity:%s!"), *FString(MemberAddedEntity.id));
@@ -976,11 +1026,18 @@ void FOnlineSessionPlayFab::OnLobbyMemberAdded(FName SessionName, const PFLobbyM
 void FOnlineSessionPlayFab::OnLobbyMemberRemoved(FName SessionName, const PFLobbyMemberRemovedStateChange& StateChange)
 {
 	const PFEntityKey& MemberRemovedEntity = StateChange.member;
-	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyMemberRemoved Id:%s, Type:%s"), *FString(MemberRemovedEntity.id), *FString(MemberRemovedEntity.type));
-
-	//TODO we have to use a PlatformId here
-	const TSharedRef<const FUniqueNetId> MemberRemovedNetId = FUniqueNetIdPlayFab::Create(FString(MemberRemovedEntity.id));
-	TriggerOnSessionParticipantsChangeDelegates(SessionName, *MemberRemovedNetId, false);
+	const FString* PlatformId = EntityPlatformIdMapping.Find(FString(MemberRemovedEntity.id));
+	if (PlatformId != nullptr && !PlatformId->IsEmpty())
+	{
+		UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyMemberRemoved Id:%s, Type:%s PlatformId:%s"), *FString(MemberRemovedEntity.id), *FString(MemberRemovedEntity.type), **PlatformId);
+		const TSharedRef<const FUniqueNetId> MemberRemovedNetId = FUniqueNetIdPlayFab::Create(**PlatformId);
+		EntityPlatformIdMapping.Remove(FString(MemberRemovedEntity.id));
+		TriggerOnSessionParticipantsChangeDelegates(SessionName, *MemberRemovedNetId, false);
+	}
+	else
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::OnLobbyMemberRemoved failed to get PlatformId for Entity:%s!"), *FString(MemberRemovedEntity.id));
+	}
 }
 
 void FOnlineSessionPlayFab::OnInvitationReceived(const PFLobbyInviteReceivedStateChange& StateChange)
@@ -1083,7 +1140,8 @@ bool FOnlineSessionPlayFab::SetHostOnSession(FName SessionName, const PFEntityKe
 	return true;
 }
 
-void FOnlineSessionPlayFab::SetMultiplayerActivity(const FName SessionName, PFLobbyHandle LobbyHandle)
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+void FOnlineSessionPlayFab::SetMultiplayerActivity(const FName SessionName, PFLobbyHandle LobbyHandle) const
 {
 	const char* connectionString;
 	HRESULT Hr = PFLobbyGetConnectionString(LobbyHandle, &connectionString);
@@ -1110,25 +1168,50 @@ void FOnlineSessionPlayFab::SetMultiplayerActivity(const FName SessionName, PFLo
 		return;
 	}
 
-#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
-	FNamedOnlineSessionPtr NamedSession = GetNamedSessionPtr(SessionName);	
-	FOnlineSubsystemGDK* GDKSubsystem = static_cast<FOnlineSubsystemGDK*>(IOnlineSubsystem::Get(GDK_SUBSYSTEM));
-	if (!GDKSubsystem)
+	const char* LobbyId;
+	Hr = PFLobbyGetLobbyId(LobbyHandle, &LobbyId);
+	if (FAILED(Hr))
 	{
-		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::SetMultiplayerActivity GDK_SUBSYSTEM not found for session!"), *(SessionName.ToString()));
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::SetMultiplayerActivity failed to get GetLobbyId with ErrorCode=[0x%08x], Error message:%s for session %s!"), Hr, *GetMultiplayerErrorMessage(Hr), *(SessionName.ToString()));
 		return;
 	}
 
-	FGDKContextHandle GDKContext = GDKSubsystem->GetGDKContext(*NamedSession->LocalOwnerId);
+	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
+	uint64 Xuid = 0;
+	if (IdentityIntPtr.IsValid())
+	{
+		FOnlineIdentityPlayFab* PlayFabIdentityInt = static_cast<FOnlineIdentityPlayFab*>(IdentityIntPtr.Get());
+		for (uint32_t UserId = 0; UserId < CurrentPlayerCount; UserId++)
+		{
+			if (PlayFabIdentityInt->IsUserLocal(Players[UserId]))
+			{
+				FString XuidStr = PlayFabIdentityInt->GetPartyLocalUserFromEntityIdString(FString(Players[UserId].id))->GetPlatformUserId();
+				Xuid = FCString::Strtoi64(*XuidStr, NULL, 10);
+				break;
+			}
+		}
+		if (Xuid == 0)
+		{
+			UE_LOG_ONLINE(Error, TEXT("Failed to retrieve Xuid from EntityId"));
+			return;
+		}
+	}
 
-	TUniquePtr<XAsyncBlock> pNewAsyncBlock = MakeUnique<XAsyncBlock>();
-	pNewAsyncBlock->queue = FGDKAsyncTaskQueue::GetGenericQueue();
+	FGDKContextHandle GDKContext = GetGDKContextSample(SessionName);
+	if (!GDKContext.IsValid())
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::SetMultiplayerActivity Could not find user context for session!"), *(SessionName.ToString()));
+		return;
+	}
 
-	pNewAsyncBlock->callback = [](XAsyncBlock* ab)
+	TUniquePtr<XAsyncBlock> NewAsyncBlock = MakeUnique<XAsyncBlock>();
+	NewAsyncBlock->queue = FGDKAsyncTaskQueue::GetGenericQueue();
+
+	NewAsyncBlock->callback = [](XAsyncBlock* ab)
 	{
 		TUniquePtr<XAsyncBlock> AsyncBlock{ ab }; // take ownership of XAsyncBlock
 		HRESULT Hr = XAsyncGetStatus(ab, false);
-		UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::SetMultiplayerActivity result 0x%08x"), Hr);
+		UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::SetMultiplayerActivity XAsyncGetStatus: result 0x%08x"), Hr);
 	};
 
 	XblMultiplayerActivityInfo MultiplayerActivityInfo{};
@@ -1136,19 +1219,151 @@ void FOnlineSessionPlayFab::SetMultiplayerActivity(const FName SessionName, PFLo
 	MultiplayerActivityInfo.joinRestriction = XblMultiplayerActivityJoinRestriction::Followed;
 	MultiplayerActivityInfo.maxPlayers = MaxPlayerCount;
 	MultiplayerActivityInfo.currentPlayers = CurrentPlayerCount;
+	MultiplayerActivityInfo.groupId = LobbyId;
+	MultiplayerActivityInfo.xuid = Xuid;
 
-	Hr = XblMultiplayerActivitySetActivityAsync(GDKContext, &MultiplayerActivityInfo, false, pNewAsyncBlock.Get());
+	Hr = XblMultiplayerActivitySetActivityAsync(GDKContext, &MultiplayerActivityInfo, false, NewAsyncBlock.Get());
 	if (SUCCEEDED(Hr))
 	{
-		pNewAsyncBlock.Release();
+		NewAsyncBlock.Release();
 	}
 	else
 	{
 		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::SetMultiplayerActivity XblMultiplayerActivitySetActivityAsync failed with ErrorCode=[0x%08x] for session %s!"), Hr, *(SessionName.ToString()));
 	}
-#endif //OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 }
 
+void FOnlineSessionPlayFab::DeleteMultiplayerActivity(const FName SessionName) const
+{
+	FGDKContextHandle GDKContext = GetGDKContextSample(SessionName);
+	if (!GDKContext.IsValid())
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::DeleteMultiplayerActivity Could not find user context for session!"), *(SessionName.ToString()));
+		return;
+	}
+
+	TUniquePtr<XAsyncBlock> NewAsyncBlock = MakeUnique<XAsyncBlock>();
+	NewAsyncBlock->queue = FGDKAsyncTaskQueue::GetGenericQueue();
+	NewAsyncBlock->callback = [](XAsyncBlock* ab)
+	{
+		TUniquePtr<XAsyncBlock> AsyncBlock{ ab }; // take ownership of XAsyncBlock
+		HRESULT Hr = XAsyncGetStatus(ab, false);
+		UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::DeleteMultiplayerActivity XAsyncGetStatus: result 0x%08x"), Hr);
+	};
+
+	HRESULT Hr = XblMultiplayerActivityDeleteActivityAsync(GDKContext, NewAsyncBlock.Get());
+	if (SUCCEEDED(Hr))
+	{
+		NewAsyncBlock.Release();
+	}
+	else
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::DeleteMultiplayerActivity XblMultiplayerActivityDeleteActivityAsync failed with ErrorCode=[0x%08x] for session %s!"), Hr, *(SessionName.ToString()));
+	}
+}
+
+FGDKContextHandle FOnlineSessionPlayFab::GetGDKContextSample(const FName SessionName) const
+{
+	FNamedOnlineSessionPtr NamedSession = GetNamedSessionPtr(SessionName);	
+	FOnlineSubsystemGDK* GDKSubsystem = static_cast<FOnlineSubsystemGDK*>(IOnlineSubsystem::Get(GDK_SUBSYSTEM));
+	if (!GDKSubsystem)
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::GetGDKContextSample GDK_SUBSYSTEM not found for session!"), *(SessionName.ToString()));
+		return FGDKContextHandle();
+	}
+
+	uint64 Xuid = FCString::Strtoi64(*static_cast<const FUniqueNetIdPlayFab&>(*NamedSession->LocalOwnerId).ToString(), NULL, 10);
+	return GDKSubsystem->GetGDKContext(Xuid);
+}
+
+void FOnlineSessionPlayFab::RecordRecentlyMetPlayer(const PFEntityKey& MemberAddedEntity, const FName SessionName, const char* PlatformIdValue) const
+{
+	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
+	if (IdentityIntPtr.IsValid())
+	{
+		FOnlineIdentityPlayFab* PlayFabIdentityInt = static_cast<FOnlineIdentityPlayFab*>(IdentityIntPtr.Get());
+		if (!PlayFabIdentityInt->IsUserLocal(MemberAddedEntity))
+		{
+			FString XuidStr(PlatformIdValue);
+			uint64 Xuid = FCString::Strtoi64(*XuidStr, NULL, 10);
+			XblMultiplayerActivityRecentPlayerUpdate RecentPlayer{ Xuid };
+			FGDKContextHandle GDKContext = GetGDKContextSample(SessionName);
+			if (!GDKContext.IsValid())
+			{
+				UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::RecordRecentlyMetPlayer Could not find user context for session!"), *(SessionName.ToString()));
+				return;
+			}
+			HRESULT Hr = XblMultiplayerActivityUpdateRecentPlayers(GDKContext, &RecentPlayer, 1 /*updates count*/);
+			if (!SUCCEEDED(Hr))
+			{
+				UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::RecordRecentlyMetPlayer XblMultiplayerActivityUpdateRecentPlayers failed with ErrorCode=[0x%08x] for session %s!"), Hr, *(SessionName.ToString()));
+			}
+		}
+	}
+	else
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::RecordRecentlyMetPlayer GetIdentityInterface not found for session!"), *(SessionName.ToString()));
+	}
+}
+
+void FOnlineSessionPlayFab::SaveInviteFromActivation(void* Context, const char* InviteUri)
+{
+	FString ActivationUri = FString(UTF8_TO_TCHAR(InviteUri));
+	UE_LOG_ONLINE(Verbose, TEXT("SaveInviteFromActivation with InviteUri %s!"), *ActivationUri);
+
+	FString Invited = TEXT("invitedUser=");
+	FString ConnectionStringKeyWord = TEXT("connectionString=");
+
+	FString InvitedXuidString = FindUrlParameter(ActivationUri, *Invited);
+	if (InvitedXuidString.IsEmpty())
+	{
+		UE_LOG_ONLINE(Error, TEXT("SaveInviteFromActivation failed because the PlatformId of the invitee is missing"));
+		return;
+	}
+
+	FString EncodedConnectionString = FindUrlParameter(ActivationUri, *ConnectionStringKeyWord);
+	if (EncodedConnectionString.IsEmpty())
+	{
+		UE_LOG_ONLINE(Error, TEXT("SaveInviteFromActivation failed because the ConnectionString is missing"));
+		return;
+	}
+	// connectionString is encoded in the URI - use Engine API to decode it
+	FString ConnectionString = FGenericPlatformHttp::UrlDecode(EncodedConnectionString);
+
+	FOnlineSessionSearchResult SearchResult;
+	SearchResult.Session.SessionInfo = MakeShared<FOnlineSessionInfoPlayFab>(ConnectionString);
+	SearchResult.Session.SessionSettings.Set(SETTING_CONNECTION_STRING, ConnectionString, EOnlineDataAdvertisementType::ViaOnlineService);
+	const int32 ControllerIndex = 0;
+
+	OSSPlayFab->ExecuteNextTick([this, ControllerIndex, SearchResult]()
+		{
+			SaveInviteSession(ControllerIndex, SearchResult);
+		});
+}
+
+void FOnlineSessionPlayFab::SaveInviteSession(const int32 ControllerIndex,
+											  const FOnlineSessionSearchResult & SearchResult)
+{
+	PendingGDKInviteData = FPendingGDKInviteData(ControllerIndex, SearchResult);
+	PendingGDKInviteData.bHasActiveInvite = true;
+}
+
+void FOnlineSessionPlayFab::TickPendingGDKInvites()
+{
+	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
+	if (IdentityIntPtr.IsValid())
+	{
+		FOnlineIdentityPlayFab* PlayFabIdentityInt = static_cast<FOnlineIdentityPlayFab*>(IdentityIntPtr.Get());
+		if (PlayFabIdentityInt && PlayFabIdentityInt->GetAllPartyLocalUsers().Num() > 0 &&
+			OnSessionUserInviteAcceptedDelegates.IsBound())
+		{
+			TSharedPtr<const FUniqueNetId> LocalUniqueId = IdentityIntPtr->GetUniquePlayerId(PendingGDKInviteData.bControllerIndex);
+			TriggerOnSessionUserInviteAcceptedDelegates(true, PendingGDKInviteData.bControllerIndex, LocalUniqueId, PendingGDKInviteData.bSearchResult);
+			PendingGDKInviteData = FPendingGDKInviteData(); // reset pending invite
+		}
+	}
+}
+#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 
 bool FOnlineSessionPlayFab::JoinSession_PlayFabInternal(int32 ControllerIndex, TSharedPtr<const FUniqueNetId> UserId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession)
 {
@@ -1678,6 +1893,13 @@ void FOnlineSessionPlayFab::Tick(float DeltaTime)
 		OSSPlayFab->GetPlayFabLobbyInterface()->DoWork();
 
 		OSSPlayFab->GetMatchmakingInterface()->DoWork();
+
+		#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+		if (PendingGDKInviteData.bHasActiveInvite)
+		{
+			TickPendingGDKInvites();
+		}
+		#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 	}
 }
 

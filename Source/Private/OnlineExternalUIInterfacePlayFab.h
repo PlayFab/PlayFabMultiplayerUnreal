@@ -28,6 +28,7 @@ private:
 	uint64_t InviteUIPreSelectedPlayers[c_PFInviteMaxPlayerCount] = {};
 	int32 LocalUserNumber;
 	FName SessionName;
+	FString ConnectionString;
 
 PACKAGE_SCOPE:
 
@@ -76,6 +77,7 @@ public:
 private:
 #if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	void ProcessShowPlayerPickerResults(TUniquePtr<XAsyncBlock> AsyncBlock);
+	bool SendGDKPlatformInvite(const TArray<uint64_t> & PlayersToInvite) const;
 #endif
 };
 

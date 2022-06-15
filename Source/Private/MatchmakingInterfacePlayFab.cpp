@@ -131,7 +131,7 @@ bool FMatchmakingInterfacePlayFab::CreateMatchMakingTicket(const TArray< TShared
 	return true;
 }
 
-bool FMatchmakingInterfacePlayFab::CancelMatchmakingTicket(const PFEntityKey entity, const FName& SessionName)
+bool FMatchmakingInterfacePlayFab::CancelMatchmakingTicket(const FName& SessionName)
 {
 	FOnlineMatchmakingTicketInfoPtr MatchmakingTicketPtr;
 	if (!GetMatchmakingTicket(SessionName, MatchmakingTicketPtr) || !MatchmakingTicketPtr.IsValid())
@@ -297,6 +297,7 @@ void FMatchmakingInterfacePlayFab::OnMatchmakingStatusChanged(const FName Sessio
 				FNamedOnlineSessionRef NamedSession = SessionInterface->AddNamedSessionRef(SessionName, Ticket->SessionSettings);
 				NamedSession->HostingPlayerNum = INDEX_NONE;
 				NamedSession->OwningUserId = Ticket->SearchingPlayerNetId;
+				NamedSession->LocalOwnerId = Ticket->SearchingPlayerNetId;
 
 				OnJoinArrangedLobbyCompletedDelegate = FOnJoinArrangedLobbyCompletedDelegate::CreateRaw(this, &FMatchmakingInterfacePlayFab::OnJoinArrangedLobbyCompleted);
 				OnJoinArrangedLobbyCompleteDelegateHandle = OSSPlayFab->GetPlayFabLobbyInterface()->AddOnJoinArrangedLobbyCompletedDelegate_Handle(OnJoinArrangedLobbyCompletedDelegate);

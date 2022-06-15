@@ -21,7 +21,7 @@ public:
 	 * Constructor
 	 */
 	FOnlineSessionInfoPlayFab()
-		: SessionId(FUniqueNetIdString())
+		: SessionId(FUniqueNetIdString::Create(TEXT(""), PLAYFAB_SUBSYSTEM))
 		, ConnectionString(FString())
 		, LobbyHandle(nullptr)
 		, SessionName(FName())
@@ -34,7 +34,7 @@ public:
 	 * @param InConnectionString lobby connection string
 	 */
 	FOnlineSessionInfoPlayFab(FString InConnectionString)
-		: SessionId(FUniqueNetIdString())
+		: SessionId(FUniqueNetIdString::Create(TEXT(""), PLAYFAB_SUBSYSTEM))
 		, ConnectionString(InConnectionString)
 		, LobbyHandle(nullptr)
 		, SessionName(FName())
@@ -48,7 +48,7 @@ public:
 	 * @param InConnectionString lobby connection string
 	 */
 	FOnlineSessionInfoPlayFab(FString LobbyId, FString InConnectionString)
-		: SessionId(FUniqueNetIdString(LobbyId))
+		: SessionId(FUniqueNetIdString::Create(LobbyId, PLAYFAB_SUBSYSTEM))
 		, ConnectionString(InConnectionString)
 		, LobbyHandle(nullptr)
 		, SessionName(FName())
@@ -63,8 +63,25 @@ public:
 	 * @param InSessionName
 	 */
 	FOnlineSessionInfoPlayFab(FString LobbyId, PFLobbyHandle InLobbyHandle, FName InSessionName)
-		: SessionId(FUniqueNetIdString(LobbyId))
+		: SessionId(FUniqueNetIdString::Create(LobbyId, PLAYFAB_SUBSYSTEM))
 		, ConnectionString(FString())
+		, LobbyHandle(InLobbyHandle)
+		, SessionName(InSessionName)
+	{
+	}
+
+	/**
+	 * Constructor
+	 *
+	 * @param LobbyId The lobby associated with this session
+	 * @param InConnectionString lobby connection string
+	 * @param InLobbyHandle
+	 * @param InSessionName
+	 */
+	FOnlineSessionInfoPlayFab(FString LobbyId, FString InConnectionString,
+							  PFLobbyHandle InLobbyHandle, FName InSessionName)
+		: SessionId(FUniqueNetIdString::Create(LobbyId, PLAYFAB_SUBSYSTEM))
+		, ConnectionString(InConnectionString)
 		, LobbyHandle(InLobbyHandle)
 		, SessionName(InSessionName)
 	{
@@ -75,7 +92,7 @@ public:
 
 	virtual const FUniqueNetId& GetSessionId() const override
 	{
-		return SessionId;
+		return *SessionId;
 	}
 
 	virtual const uint8* GetBytes() const override
@@ -106,7 +123,7 @@ public:
 
 	void SetSessionId(FString InSessionId)
 	{
-		SessionId = FUniqueNetIdString(InSessionId);
+		SessionId = FUniqueNetIdString::Create(InSessionId, PLAYFAB_SUBSYSTEM);
 	}
 
 	void SetConnectionString(FString InConnectionString)
@@ -146,7 +163,7 @@ public:
 private:
 
 	/** Placeholder unique id */
-	FUniqueNetIdString SessionId;
+	FUniqueNetIdStringRef SessionId;
 	FString ConnectionString;
 	PFLobbyHandle LobbyHandle;
 	FName SessionName;
@@ -191,16 +208,6 @@ public:
 	 */
 	explicit FUniqueNetIdPlayFab(const FString& Str) :
 		UniqueNetId(FString(Str, 0).ToLower())
-	{
-	}
-
-	/**
-	 * Constructs this object with the specified net id
-	 *
-	 * @param InUniqueNetId the id to set ours to (assumed to be FUniqueNetIdPlayFab in fact)
-	 */
-	explicit FUniqueNetIdPlayFab(const FUniqueNetId& InUniqueNetId) :
-		UniqueNetId(*(FString*)InUniqueNetId.GetBytes())
 	{
 	}
 
