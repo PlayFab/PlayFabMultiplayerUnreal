@@ -49,5 +49,3 @@ For games shipping to Xbox console and PC Game Pass program before September 202
 ## Known Limitations and Issues in the Current Preview Build
 
 - [General] Currently cross-play is only supported between Xbox consoles, PC Game Pass, Steam, and Switch.  Cross-play support between other platforms is coming soon.
-- [Xbox] Currently cannot use Xbox shell to send or receive platform level invites with PF OSS v2. This functionality will be supported in the generally available (GA) release.
-- [Xbox] Currently not fully integrated with Multiplayer Activity Service (Multiplayer activity is not always in-sync with user’s lobby state, user’s joinability is not populated correctly). This functionality will be supported in the generally available (GA) release.

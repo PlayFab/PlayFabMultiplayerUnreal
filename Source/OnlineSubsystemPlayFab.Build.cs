@@ -26,7 +26,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
     public OnlineSubsystemPlayFab(ReadOnlyTargetRules Target) : base(Target)
     {
         // We don't want to try and load when doing project gen, editor, server, etc
-        if (Target.bGenerateProjectFiles || (Target.Type != TargetType.Game && Target.Type != TargetType.Client))
+        if (Target.bGenerateProjectFiles)
         {
             PrecompileForTargets = PrecompileTargetsType.None;
             return;
@@ -203,10 +203,12 @@ public class OnlineSubsystemPlayFab : ModuleRules
             ThisModule.PublicDependencyModuleNames.Add("GDKCore");
             ThisModule.PublicDependencyModuleNames.Add("OnlineSubsystemGDK");
         }
+
         public void SetPlatformDefinitions(ModuleRules ThisModule)
         {
             ThisModule.PrivateDefinitions.Add("ONLINESUBSYSTEMGDK_PACKAGE=1");
         }
+
         public void ConfigurePlayFabDependencies(ReadOnlyTargetRules Target, ModuleRules ThisModule)
         {
             string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "GDK");
@@ -259,10 +261,12 @@ public class OnlineSubsystemPlayFab : ModuleRules
         {
             ThisModule.PublicDependencyModuleNames.Add("OnlineSubsystemSwitch");
         }
+
         public void SetPlatformDefinitions(ModuleRules ThisModule)
         {
             //No switch specific platform definitions.
         }
+
         public void ConfigurePlayFabDependencies(ReadOnlyTargetRules Target, ModuleRules ThisModule)
         {
             string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "Switch");
@@ -277,7 +281,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
             string MultiplayerDirectory = PlatformDirectories.Where(d => d.Contains("PlayFab.Multiplayer")).FirstOrDefault();
             string PartyDirectory = PlatformDirectories.Where(d => d.Contains("PlayFab.PlayFabParty")).FirstOrDefault();
             
-            if(String.IsNullOrWhiteSpace(MultiplayerDirectory) || String.IsNullOrWhiteSpace(PartyDirectory))
+            if (String.IsNullOrWhiteSpace(MultiplayerDirectory) || String.IsNullOrWhiteSpace(PartyDirectory))
             {
                 throw new BuildException("PlayFab Party precompiled dependencies were not found.");
             }
@@ -336,10 +340,12 @@ public class OnlineSubsystemPlayFab : ModuleRules
         {
             //No windows specific module dependencies.
         }
+
         public void SetPlatformDefinitions(ModuleRules ThisModule)
         {
             //No windows specific platform definitions.
         }
+
         public void ConfigurePlayFabDependencies(ReadOnlyTargetRules Target, ModuleRules ThisModule)
         {
             string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "Windows");

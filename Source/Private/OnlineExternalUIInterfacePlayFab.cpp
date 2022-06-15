@@ -27,6 +27,7 @@
 #include "Windows/AllowWindowsPlatformTypes.h"
 THIRD_PARTY_INCLUDES_START
 #include <XGameUI.h>
+#include <xsapi-c/multiplayer_activity_c.h>
 THIRD_PARTY_INCLUDES_END
 #include "Windows/HideWindowsPlatformTypes.h"
 #endif
@@ -86,11 +87,17 @@ bool FOnlineExternalUIPlayFab::ShowInviteUI(int32 LocalUserNum, FName SessionNam
 		return false;
 	}
 
-	this->SessionName = SessionNameParam;
+	SessionName = SessionNameParam;
 	FOnlineSessionInfoPlayFabPtr PlayFabSessionInfo = StaticCastSharedPtr<FOnlineSessionInfoPlayFab>(Session->SessionInfo);
 	if (!PlayFabSessionInfo->IsValid())
 	{
 		UE_LOG_ONLINE_EXTERNALUI(Warning, TEXT("ShowInviteUI: FOnlineSessionInfoPlayFab not valid for %s. Can't send invite."), *SessionNameParam.ToString());
+		return false;
+	}
+	ConnectionString = PlayFabSessionInfo->GetConnectionString();
+	if (ConnectionString.IsEmpty())
+	{
+		UE_LOG_ONLINE_EXTERNALUI(Warning, TEXT("ShowInviteUI: Failed to send invite since Connection String is empty for session %s."), *SessionNameParam.ToString());
 		return false;
 	}
 
@@ -195,17 +202,7 @@ void FOnlineExternalUIPlayFab::ProcessShowPlayerPickerResults(TUniquePtr<XAsyncB
 		Hr = XGameUiShowPlayerPickerResult(AsyncBlock.Get(), ResultPlayersCount, InvitedResultPlayers.GetData(), &InviteResultPlayersCount);
 		if (SUCCEEDED(Hr) && (InviteResultPlayersCount > 0))
 		{
-			IOnlineSessionPtr SessionIntPtr = OSSPlayFab->GetSessionInterface();
-			check(SessionIntPtr.IsValid());
-
-			TArray<TSharedRef<const FUniqueNetId>> SelectedFriends;
-			for (uint32_t i = 0; i < InviteResultPlayersCount; i++)
-			{
-				SelectedFriends.Add(FUniqueNetIdGDK::Create(InvitedResultPlayers[i]));
-			}
-
-			bool SendSessionInviteSuccess = SessionIntPtr->SendSessionInviteToFriends(LocalUserNumber, SessionName, SelectedFriends);
-			if (!SendSessionInviteSuccess)
+			if (!SendGDKPlatformInvite(InvitedResultPlayers))
 			{
 				UE_LOG_ONLINE_EXTERNALUI(Error, TEXT("FOnlineExternalUIPlayFab::ProcessShowPlayerPickerResults: Couldn't send a session invite to selected players for LocalUserNum %d."), LocalUserNumber);
 			}
@@ -218,6 +215,50 @@ void FOnlineExternalUIPlayFab::ProcessShowPlayerPickerResults(TUniquePtr<XAsyncB
 	else
 	{
 		UE_LOG_ONLINE_EXTERNALUI(Error, TEXT("FOnlineExternalUIPlayFab::XGameUiShowPlayerPickerResultCount: failed with ErrorCode=[0x%08x]."), Hr);
+	}
+}
+
+bool FOnlineExternalUIPlayFab::SendGDKPlatformInvite(const TArray<uint64_t> & PlayersToInvite) const
+{
+	if (PlayersToInvite.Num() < 1)
+	{
+		UE_LOG_ONLINE_EXTERNALUI(Warning, TEXT("Attempted to invite any empty array of friends to session %s"), *SessionName.ToString());
+		return false;
+	}
+
+	FOnlineSessionPlayFabPtr PlayFabSession = StaticCastSharedPtr<FOnlineSessionPlayFab>(OSSPlayFab->GetSessionInterface());
+	FGDKContextHandle GDKContext = PlayFabSession->GetGDKContextSample(SessionName);
+	if (!GDKContext.IsValid())
+	{
+		UE_LOG_ONLINE_EXTERNALUI(Error, TEXT("SendGDKPlatformInvite: Could not find user context for session!"), *(SessionName.ToString()));
+		return false;
+	}
+	
+	TUniquePtr<XAsyncBlock> NewAsyncBlock = MakeUnique<XAsyncBlock>();
+	NewAsyncBlock->queue = FGDKAsyncTaskQueue::GetGenericQueue();
+	NewAsyncBlock->callback = [](XAsyncBlock* ab)
+	{
+		TUniquePtr<XAsyncBlock> AsyncBlock{ ab }; // take ownership of XAsyncBlock
+		HRESULT Hr = XAsyncGetStatus(ab, false);
+		UE_LOG_ONLINE_EXTERNALUI(Verbose, TEXT("SendGDKPlatformInvite XAsyncGetStatus: result 0x%08x"), Hr);
+	};
+
+	HRESULT Hr = XblMultiplayerActivitySendInvitesAsync(GDKContext,
+														PlayersToInvite.GetData(),
+														PlayersToInvite.Num(),
+														true /*Send the invite to platforms that may be diff than senders platform*/,
+														TCHAR_TO_UTF8(*ConnectionString),
+														NewAsyncBlock.Get());
+
+	if (SUCCEEDED(Hr))
+	{
+		NewAsyncBlock.Release();
+		return true;
+	}
+	else
+	{
+		UE_LOG_ONLINE_EXTERNALUI(Error, TEXT("FOnlineExternalUIPlayFab::XblMultiplayerActivitySendInvitesAsync: failed with ErrorCode=[0x%08x]."), Hr);
+		return false;
 	}
 }
 #endif
