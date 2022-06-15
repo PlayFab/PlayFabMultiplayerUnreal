@@ -27,7 +27,7 @@ The quickstart guide for OnlineSubsystemPlayFab can be found at:
 
 |OSS version
 |-|
-|2.2.0
+|2.2.1
 
 ## Compatibility
 
