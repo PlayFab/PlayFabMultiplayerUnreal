@@ -110,6 +110,9 @@ bool FOnlineSubsystemPlayFab::Init()
 	VoiceInterface = MakeShared<FOnlineVoicePlayFab, ESPMode::ThreadSafe>(this);
 	CognitiveServicesInterface = MakeShared<FOnlineCognitiveServicesPlayFab, ESPMode::ThreadSafe>(this);
 
+	// Initialize EventTracer
+	InitializeEventTracer();
+
 	return true;
 }
 
@@ -160,6 +163,12 @@ void FOnlineSubsystemPlayFab::InitializeMultiplayer()
 		UE_LOG_ONLINE(Display, TEXT("FOnlineSubsystemPlayFab MultiPlayerManager with PlayFab TitleID %s"), *TitleID);
 		bMultiplayerInitialized = true;
 	}
+}
+
+void FOnlineSubsystemPlayFab::InitializeEventTracer()
+{
+	EventTracer = MakeUnique<PlayFabEventTracer>(this);
+	EventTracer->OnPlayFabMultiplayerManagerInitialize();
 }
 
 void FOnlineSubsystemPlayFab::SetMemoryCallbacks()
@@ -374,6 +383,7 @@ bool FOnlineSubsystemPlayFab::Tick(float DeltaTime)
 	if (IdentityInterface.IsValid())
 	{
 		IdentityInterface->Tick(DeltaTime);
+		EventTracer->DoWork();
 	}
 
 	DoWork();
@@ -391,7 +401,7 @@ bool FOnlineSubsystemPlayFab::Tick(float DeltaTime)
 	if (ExternalUIInterface.IsValid())
 	{
 		ExternalUIInterface->Tick(DeltaTime);
-	}	
+	}
 
 	return true;
 }

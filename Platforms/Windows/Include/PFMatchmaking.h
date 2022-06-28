@@ -285,7 +285,7 @@ PFMULTIPLAYER_API
 PFMultiplayerStartProcessingMatchmakingStateChanges(
     PFMultiplayerHandle handle,
     _Out_ uint32_t* stateChangeCount,
-    _Outptr_result_buffer_(*stateChangeCount) const PFMatchmakingStateChange*const** stateChanges
+    _Outptr_result_buffer_(*stateChangeCount) const PFMatchmakingStateChange * const ** stateChanges
     ) noexcept;
 
 /// <summary>
@@ -330,7 +330,7 @@ PFMULTIPLAYER_API
 PFMultiplayerFinishProcessingMatchmakingStateChanges(
     PFMultiplayerHandle handle,
     uint32_t stateChangeCount,
-    _In_reads_(stateChangeCount) const PFMatchmakingStateChange*const* stateChanges
+    _In_reads_(stateChangeCount) const PFMatchmakingStateChange * const * stateChanges
     ) noexcept;
 
 /// <summary>

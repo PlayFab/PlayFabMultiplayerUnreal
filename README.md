@@ -33,14 +33,14 @@ The quickstart guide for OnlineSubsystemPlayFab can be found at:
 
 |Unreal Engine version|4.27|
 |-|-|
-Multiplayer SDK|v1.1.0+
+Multiplayer SDK|v1.1.4+
 Platforms|GDK, Win64+Steam, Nintendo Switch
 
 ## Important Note
 
-The PlayFab Online Subsystem (PF OSS) v2 is currently in preview. Preview programs give Microsoft and customers the opportunity to evaluate and understand the new feature before it becomes part of the standard feature set of PlayFab.
+The PlayFab Online Subsystem (PF OSS) v2 is currently generally available (GA) for GDK and Win64+Steam and in preview for Nintendo Switch. Preview programs give Microsoft and customers the opportunity to evaluate and understand the new feature before it becomes part of the standard feature set of PlayFab.
 
-Preview SDKs and engine plugins might not support all the scenarios planned for the  generally available (GA) release and are not necessarily fully compliant with the certification requirements for the target platform.
+Preview SDKs and engine plugins might not support all the scenarios planned for the generally available (GA) release and are not necessarily fully compliant with the certification requirements for the target platform.
 
 For platform certification and shipping to retail users, games must use the generally available (GA) release of the SDKs and engine plugins that will become available in the coming months.
 

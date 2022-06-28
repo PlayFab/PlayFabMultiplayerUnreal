@@ -12,7 +12,7 @@ extern "C"
 /// PFEntityKey data model. Combined entity type and ID structure which uniquely identifies a single entity.
 /// </summary>
 /// <remarks>
-/// For more information about entities, see https://docs.microsoft.com/en-us/gaming/playfab/features/data/entities/.
+/// For more information about entities, see https://docs.microsoft.com/gaming/playfab/features/data/entities/.
 /// </remarks>
 typedef struct PFEntityKey
 {

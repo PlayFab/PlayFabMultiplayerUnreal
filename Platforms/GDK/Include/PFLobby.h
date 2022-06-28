@@ -1676,8 +1676,8 @@ PFLobbyGetMembers(
 /// the title will be provided a <see cref="PFLobbyAddMemberCompletedStateChange" /> with the
 /// <see cref="PFLobbyAddMemberCompletedStateChange::result" /> field set to a failure hresult.
 /// <para>
-/// This method is used to add an additional local PlayFab entity to a pre-existing lobby object. Because the lobby
-/// object, must have already been created either via a call to <see cref="PFMultiplayerCreateAndJoinLobby" /> or
+/// This method is used to add another local PlayFab entity to a pre-existing lobby object. Because the lobby
+/// object must have already been created either via a call to <see cref="PFMultiplayerCreateAndJoinLobby" /> or
 /// <see cref="PFMultiplayerJoinLobby" />, this method is primarily useful for multiple local user scenarios.
 /// </para>
 /// <para>
