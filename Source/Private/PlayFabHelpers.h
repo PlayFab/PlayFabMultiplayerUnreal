@@ -73,3 +73,5 @@ bool ParseTitlePlayerAccountFromPlayerCombinedInfoResponse(
 	const FHttpResponsePtr HttpResponse,
 	FString& OutTitlePlayerAccountId
 	);
+
+void ParseDeviceMakeModel(FString& DeviceMake, FString& DeviceModel);

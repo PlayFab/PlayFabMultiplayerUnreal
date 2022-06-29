@@ -13,6 +13,7 @@
 #include "OnlineSubsystemPlayFabDefines.h"
 #include "Misc/ConfigCacheIni.h"
 #include "..\PlatformSpecific\PlatformDefines.h"
+#include "..\Private\PlayFabEventTracer.h"
 
 THIRD_PARTY_INCLUDES_START
 #ifdef OSS_PLAYFAB_SWITCH
@@ -34,7 +35,6 @@ INTERFACE_TYPE FOnlineSubsystemPlayFab::INTERFACE_NAME() const\
 }
 
 /** Forward declarations of all interface classes */
-typedef TSharedPtr<class FOnlineSessionPlayFab, ESPMode::ThreadSafe> FOnlineSessionPlayFabPtr;
 typedef TSharedPtr<class FOnlineSessionPlayFab, ESPMode::ThreadSafe> FOnlineSessionPlayFabPtr;
 typedef TSharedPtr<class FOnlineIdentityPlayFab, ESPMode::ThreadSafe> FOnlineIdentityPlayFabPtr;
 typedef TSharedPtr<class FOnlineExternalUIPlayFab, ESPMode::ThreadSafe> FOnlineExternalUIPlayFabPtr;
@@ -178,6 +178,7 @@ private:
 	void TryInitializePlayFabParty();
 	void InitializePlayFabParty();
 	void InitializeMultiplayer();
+	void InitializeEventTracer();
 	void SetMemoryCallbacks();
 	void CleanUpPlayFab();
 
@@ -203,6 +204,7 @@ private:
 	FOnlineCognitiveServicesPlayFabPtr CognitiveServicesInterface;
 	FPlayFabLobbyPtr PlayFabLobbyInterface;
 	FMatchmakingInterfacePtr MatchmakingInterface;
+	TUniquePtr<PlayFabEventTracer> EventTracer;
 
 	PFMultiplayerHandle MultiplayerHandle;
 	

@@ -1,3 +1,6 @@
+#include "PlayFabHelpers.h"
+
+#include "GenericPlatform/GenericPlatformMisc.h"
 
 bool
 MakePlayFabRestRequest(
@@ -353,4 +356,25 @@ bool ParseTitlePlayerAccountFromPlayerCombinedInfoResponse(
 	}
 
 	return true;
+}
+
+void ParseDeviceMakeModel(FString& DeviceMake, FString& DeviceModel)
+{
+	// "DeviceMake|DeviceModel" if possible, and "CPUVendor|CPUBrand" otherwise
+	// optionally returns "DeviceMake|DeviceModel|CPUChipset" if known
+	// We wont try to read CPUChipset
+	const FString DeviceMakeAndModel = FGenericPlatformMisc::GetDeviceMakeAndModel();
+
+	const int32 FirstIdx = DeviceMakeAndModel.Find(TEXT("|"), ESearchCase::IgnoreCase, ESearchDir::Type::FromStart, 0);
+	if (FirstIdx == INDEX_NONE)
+	{
+		DeviceMake = TEXT("Unknown");
+		DeviceModel = TEXT("Unknown");
+		return;
+	}
+	DeviceMake = DeviceMakeAndModel.Mid(0 /* start */, FirstIdx);
+
+	const int32 SecondIdx = DeviceMakeAndModel.Find(TEXT("|"), ESearchCase::IgnoreCase, ESearchDir::Type::FromStart, FirstIdx + 1);
+	const int32 EndSecondWord = SecondIdx == INDEX_NONE ? DeviceMakeAndModel.Len() : SecondIdx;
+	DeviceModel = DeviceMakeAndModel.Mid(FirstIdx + 1, (EndSecondWord - FirstIdx) - 1);
 }
