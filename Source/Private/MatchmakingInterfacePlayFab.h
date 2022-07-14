@@ -6,7 +6,7 @@
 
 #include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemPlayFabPackage.h"
- #include "PlayFabLobby.h"
+#include "PlayFabLobby.h"
 
 THIRD_PARTY_INCLUDES_START
 #ifdef OSS_PLAYFAB_SWITCH

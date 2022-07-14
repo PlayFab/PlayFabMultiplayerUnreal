@@ -10,13 +10,11 @@ const uint32 FPlayFabSocket::SendTimeout = 500;
 
 FPlayFabSocket::FPlayFabSocket(FOnlineSubsystemPlayFab* InOSSPlayFab, const FString& InSocketDescription, const FName& InSocketProtocol) :
 	FSocket(SOCKTYPE_Datagram, InSocketDescription, InSocketProtocol),
+	OSSPlayFab(InOSSPlayFab),
+	SocketSubsystem(static_cast<FPlayFabSocketSubsystem*>(ISocketSubsystem::Get(PLAYFAB_SOCKET_SUBSYSTEM))),
+	LocalEndpoint(OSSPlayFab->LocalEndpoint),
 	PendingPackets(2048)
 {
-	OSSPlayFab = InOSSPlayFab;
-	SocketSubsystem = static_cast<FPlayFabSocketSubsystem*>(ISocketSubsystem::Get(PLAYFAB_SOCKET_SUBSYSTEM));
-
-	LocalEndpoint = OSSPlayFab->LocalEndpoint;
-
 	PartyQueueConfiguration.priority = Party::c_maxSendMessageQueuingPriority;
 	PartyQueueConfiguration.identityForCancelFilters = static_cast<uint32>(reinterpret_cast<uintptr_t>(this));
 	PartyQueueConfiguration.timeoutInMilliseconds = SendTimeout;

@@ -183,7 +183,6 @@ private:
 	TMap<FString, UserAuthRequestData> UserAuthRequestsInFlight;
 	bool bRegisterAuthDelegates = true;
 	bool bAuthAllUsers = true;
-	float AuthCoolDownTime = 3.0f;
 	float TimeSinceLastAuth = 0.0f;
 	FString LocalUserXToken;
 

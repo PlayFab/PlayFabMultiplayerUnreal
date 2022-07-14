@@ -11,6 +11,7 @@
 #include "Engine/World.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerController.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "Misc/CoreDelegates.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/ScopeLock.h"
@@ -24,6 +25,9 @@
 #include "OnlineDelegateMacros.h"
 
 #if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+#if ENGINE_MAJOR_VERSION >= 5
+#include "GenericPlatform/GenericPlatformMisc.h"
+#endif
 #include "Windows/AllowWindowsPlatformTypes.h"
 THIRD_PARTY_INCLUDES_START
 #include <XGameUI.h>
@@ -166,8 +170,12 @@ void FOnlineExternalUIPlayFab::HandleReadFriendsComplete(int32 LocalUserNum, boo
 
 	//Store the local user
 	LocalUserNumber = LocalUserNum;
-
-	FGDKUserHandle RequestedUser = FGDKUserManager::Get().GetUserHandleByPlatformId(LocalUserNum);
+	FGDKUserHandle RequestedUser;
+	#if ENGINE_MAJOR_VERSION >= 5
+	RequestedUser = FGDKUserManager::Get().GetUserHandleByPlatformId(FPlatformMisc::GetPlatformUserForUserIndex(LocalUserNum));
+	#else
+	RequestedUser = FGDKUserManager::Get().GetUserHandleByPlatformId(LocalUserNum);
+	#endif
 	HRESULT ErrorCode = XGameUiShowPlayerPickerAsync(
 		pNewAsyncBlock,
 		RequestedUser,

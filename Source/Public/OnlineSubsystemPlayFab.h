@@ -258,7 +258,9 @@ public:
 	
 	PartyEndpoint* GetPartyEndpoint(uint32 EndpointId);
 
+	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	const FString GetSandBox() const;
+	#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 };
 
 namespace FNetworkProtocolTypes

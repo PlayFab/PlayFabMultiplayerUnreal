@@ -12,18 +12,14 @@
 
 struct PartyPacket
 {
-	PartyPacket()
-	{
-		SourceEndpoint = 0;
-	}
+	PartyPacket() = default;
 
-	PartyPacket(uint16 InSourceEndpoint, TArray<uint8>& InData)
-	{
-		SourceEndpoint = InSourceEndpoint;
-		Data = InData;
-	}
+	PartyPacket(uint16 InSourceEndpoint, const TArray<uint8>& InData) :
+		SourceEndpoint(InSourceEndpoint),
+		Data(InData)
+	{}
 
-	uint16 SourceEndpoint;
+	uint16 SourceEndpoint = 0;
 	TArray<uint8> Data;
 };
 

@@ -68,10 +68,9 @@ static struct FSearchKeyMappingTable
 	{SEARCH_LOBBIES, 					6, EOnlineKeyValuePairDataType::Bool},
 };
 
-FPlayFabLobby::FPlayFabLobby(FOnlineSubsystemPlayFab* InOSSPlayFab)
+FPlayFabLobby::FPlayFabLobby(FOnlineSubsystemPlayFab* InOSSPlayFab) :
+	OSSPlayFab(InOSSPlayFab)
 {
-	OSSPlayFab = InOSSPlayFab;
-
 	BuildSearchKeyMappingTable();
 }
 

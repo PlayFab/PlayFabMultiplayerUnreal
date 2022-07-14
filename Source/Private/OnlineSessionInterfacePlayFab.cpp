@@ -510,15 +510,7 @@ void FOnlineSessionPlayFab::OnOperationComplete_TryJoinNetwork(bool bJoinLobbyOp
 {
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnOperationComplete_TryJoinNetwork()"));
 
-	FName SessionName;
-	if (bJoinLobbyOperation)
-	{
-		SessionName = JoinSessionCompleteSessionName;
-	}
-	else
-	{
-		SessionName = MatchmakingCompleteSessionName;
-	}
+	FName SessionName = bJoinLobbyOperation ? JoinSessionCompleteSessionName : MatchmakingCompleteSessionName;
 
 	if (OSSPlayFab == nullptr)
 	{
@@ -556,9 +548,7 @@ void FOnlineSessionPlayFab::OnOperationComplete_TryJoinNetwork(bool bJoinLobbyOp
 				OSSPlayFab->AddOnPartyEndpointCreatedDelegate_Handle(FOnPartyEndpointCreatedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnCreatePartyEndpoint_Matchmaking));
 			}
 
-			bool bSuccess = OSSPlayFab->ConnectToPlayFabPartyNetwork(NetworkIdStr, NetworkDescriptorStr);
-
-			if (bSuccess == false)
+			if (!OSSPlayFab->ConnectToPlayFabPartyNetwork(NetworkIdStr, NetworkDescriptorStr))
 			{
 				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnOperationComplete_TryJoinNetwork: ConnectToPlayFabPartyNetwork failed"));
 				if (bJoinLobbyOperation)
@@ -1436,13 +1426,7 @@ bool FOnlineSessionPlayFab::JoinSession_PlayFabInternal(int32 ControllerIndex, T
 
 bool FOnlineSessionPlayFab::JoinSession(int32 ControllerIndex, FName SessionName, const FOnlineSessionSearchResult& DesiredSession)
 {
-	bool bSuccess = false;
-
-	if (OSSPlayFab)
-	{
-		bSuccess = JoinSession_PlayFabInternal(ControllerIndex, nullptr, SessionName, DesiredSession);
-	}
-
+	bool bSuccess = JoinSession_PlayFabInternal(ControllerIndex, nullptr, SessionName, DesiredSession);
 	if (bSuccess == false)
 	{
 		TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::UnknownError);
@@ -1453,12 +1437,7 @@ bool FOnlineSessionPlayFab::JoinSession(int32 ControllerIndex, FName SessionName
 
 bool FOnlineSessionPlayFab::JoinSession(const FUniqueNetId& UserId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession)
 {
-	bool bSuccess = false;
-
-	if (OSSPlayFab)
-	{
-		bSuccess = JoinSession_PlayFabInternal(INDEX_NONE, UserId.AsShared(), SessionName, DesiredSession);
-	}
+	bool bSuccess = JoinSession_PlayFabInternal(INDEX_NONE, UserId.AsShared(), SessionName, DesiredSession);
 
 	if (bSuccess == false)
 	{
@@ -1613,12 +1592,7 @@ bool FOnlineSessionPlayFab::GetResolvedConnectString(const class FOnlineSessionS
 FOnlineSessionSettings* FOnlineSessionPlayFab::GetSessionSettings(FName SessionName)
 {
 	FNamedOnlineSessionPtr MySession = GetNamedSessionPtr(SessionName);
-	if (!MySession.IsValid())
-	{
-		return nullptr;
-	}
-
-	return &MySession->SessionSettings;
+	return MySession.IsValid() ? &MySession->SessionSettings : nullptr;
 }
 
 bool FOnlineSessionPlayFab::RegisterPlayer(FName SessionName, const FUniqueNetId& PlayerId, bool bWasInvited)

@@ -13,10 +13,10 @@
 #include <PFMultiplayerPal.h>
 #endif // OSS_PLAYFAB_SWITCH
 
-FMatchmakingInterfacePlayFab::FMatchmakingInterfacePlayFab(FOnlineSubsystemPlayFab* InOSSPlayFab)
+FMatchmakingInterfacePlayFab::FMatchmakingInterfacePlayFab(FOnlineSubsystemPlayFab* InOSSPlayFab) :
+	OSSPlayFab(InOSSPlayFab)
 {
 	UE_LOG_ONLINE(Verbose, TEXT("FMatchmakingInterfacePlayFab::FMatchmakingInterfacePlayFab: Constructor"));
-	OSSPlayFab = InOSSPlayFab;
 }
 
 bool FMatchmakingInterfacePlayFab::CreateMatchMakingTicket(const TArray< TSharedRef<const FUniqueNetId> >& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
