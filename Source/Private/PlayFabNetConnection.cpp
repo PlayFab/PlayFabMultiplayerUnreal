@@ -13,6 +13,7 @@
 #include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSubsystemPlayfabPrivate.h"
 
+#include "Runtime/Launch/Resources/Version.h"
 
 UPlayFabNetConnection::UPlayFabNetConnection(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -83,7 +84,12 @@ void UPlayFabNetConnection::InitRemoteConnection(UNetDriver* InDriver, class FSo
 
 void UPlayFabNetConnection::FlushNet(bool bIgnoreSimulation)
 {
+	#if ENGINE_MAJOR_VERSION >= 5
+	const EConnectionState CurState = UNetConnection::GetConnectionState();
+	if (CurState == USOCK_Closed || CurState == USOCK_Invalid)
+	#else
 	if (State == USOCK_Closed || State == USOCK_Invalid)
+	#endif
 	{
 		SendBuffer.Reset();
 		InitSendBuffer();

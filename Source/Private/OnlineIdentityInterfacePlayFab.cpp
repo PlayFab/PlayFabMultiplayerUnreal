@@ -15,13 +15,13 @@
 
 #define OSS_PLAYFAB_GET_NATIVE_IDENTITY_INTERFACE IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();  IOnlineIdentityPtr NativeIdentityInterface = NativeSubsystem ? NativeSubsystem->GetIdentityInterface() : nullptr; if (NativeIdentityInterface)
 
+static constexpr float AuthCoolDownTime = 3.0f;
+
 FOnlineIdentityPlayFab::FOnlineIdentityPlayFab(class FOnlineSubsystemPlayFab* InSubsystem) : 
-	OSSPlayFab(InSubsystem)
+	OSSPlayFab(InSubsystem),
+	TimeSinceLastAuth(AuthCoolDownTime) // Don't wait on the cool down to auth on the very first go
 {
 	check(OSSPlayFab);
-
-	// Don't wait on the cool down to auth on the very first go
-	TimeSinceLastAuth = AuthCoolDownTime;
 }
 
 FOnlineIdentityPlayFab::~FOnlineIdentityPlayFab()

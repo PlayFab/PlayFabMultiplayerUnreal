@@ -51,13 +51,19 @@ constexpr uint32_t PFLobbyClientRequestedSearchResultCountUpperLimit = 50;
 /// A special, pre-defined search key which can be used in the <see cref="PFLobbySearchConfiguration" /> filtering and
 /// sorting strings to search for lobbies based on the current number of members in the lobby.
 /// </summary>
-constexpr char PFLobbyMemberCountSearchKey[] = "memberCount";
+/// <remarks>
+/// Example: "lobby/memberCount lt 5"
+/// </remarks>
+constexpr char PFLobbyMemberCountSearchKey[] = "lobby/memberCount";
 
 /// <summary>
 /// A special, pre-defined search key which can be used in the <see cref="PFLobbySearchConfiguration" /> filtering
 /// string to search for lobbies that you are currently a member of.
 /// </summary>
-constexpr char PFLobbyAmMemberSearchKey[] = "amMember";
+/// <remarks>
+/// Example: "lobby/amMember eq true"
+/// </remarks>
+constexpr char PFLobbyAmMemberSearchKey[] = "lobby/amMember";
 
 #pragma pack(push, 8)
 
@@ -819,7 +825,7 @@ struct PFLobbySearchConfiguration
     /// This string cannot exceed 500 characters.
     /// </para>
     /// <para>
-    /// Example: "string_key1 eq 'CaptureTheFlag' and number_key10 gt 50 and memberCount lt 5"
+    /// Example: "string_key1 eq 'CaptureTheFlag' and number_key10 gt 50 and lobby/memberCount lt 5"
     /// </para>
     /// </remarks>
     _Maybenull_ _Null_terminated_ const char * filterString;
@@ -843,7 +849,7 @@ struct PFLobbySearchConfiguration
     /// This string cannot exceed 100 characters.
     /// </para>
     /// <para>
-    /// Example: "string_key1 asc,memberCount desc"
+    /// Example: "string_key1 asc,lobby/memberCount desc"
     /// </para>
     /// </remarks>
     _Maybenull_ _Null_terminated_ const char * sortString;

@@ -10,7 +10,6 @@ using System.Reflection;
 using System.Linq;
 using System.Diagnostics;
 using System.Threading;
-using Tools.DotNETCommon;
 
 public class OnlineSubsystemPlayFab : ModuleRules
 {
@@ -20,7 +19,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
     private void SetupPlatformDefine(UnrealTargetPlatform TargetPlatform)
     {
         PublicDefinitions.Add(String.Format("OSS_PLAYFAB_{0}=1", TargetPlatform.ToString().ToUpper()));
-        Log.TraceInformation("OnlineSubsystemPlayFab: building for platform {0}", TargetPlatform.ToString().ToUpper());
+        System.Console.WriteLine("OnlineSubsystemPlayFab: building for platform {0}", TargetPlatform.ToString().ToUpper());
     }
 
     public OnlineSubsystemPlayFab(ReadOnlyTargetRules Target) : base(Target)
@@ -139,7 +138,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
         FieldInfo UnrealPlatformGroupGDKField = typeof(UnrealPlatformGroup).GetField("GDK", BindingFlags.Public | BindingFlags.Static);
         if (UnrealPlatformGroupGDKField != null)
         {
-            Log.TraceInformation("OnlineSubsystemPlayFab: GDK Platform Field Exists!");
+            System.Console.WriteLine("OnlineSubsystemPlayFab: GDK Platform Field Exists!");
             UnrealPlatformGroup GDK = (UnrealPlatformGroup)UnrealPlatformGroupGDKField.GetValue(null);
             if (GDK != null && Target.Platform.IsInGroup(GDK))
             {

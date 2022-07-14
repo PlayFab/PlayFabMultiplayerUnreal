@@ -116,7 +116,7 @@ FString PlayFabEventTracer::GetPlatformSDKVersion() const
 	return "12.3.2";
 	#else
 	UE_LOG_ONLINE(Error, TEXT("Trying to retrieve SDK version for unsupported platform"));
-	return "Unsupported Platform"
+	return "Unsupported Platform";
 	#endif
 }
 

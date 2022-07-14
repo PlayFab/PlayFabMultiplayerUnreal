@@ -7,7 +7,6 @@
 #include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSubsystemPlayFabDefines.h"
 #include "OnlineSubsystemPlayFabPackage.h"
-#include "OnlineSessionSettings.h"
 #include "OnlineSubsystemPlayFabTypes.h"
 #include "PlayFabLobby.h"
 #include "MatchmakingInterfacePlayFab.h"
@@ -29,6 +28,7 @@ using FNamedOnlineSessionRef = TSharedRef<FNamedOnlineSession, ESPMode::ThreadSa
 using FNamedOnlineSessionPtr = TSharedPtr<FNamedOnlineSession, ESPMode::ThreadSafe>;
 
 class FInternetAddr;
+class FOnlineSettings;
 class FUniqueNetIdPlayFab;
 
 struct FPendingCreateSessionInfo

@@ -10,6 +10,8 @@ THIRD_PARTY_INCLUDES_START
 #include <PFMatchmaking.h> 
 THIRD_PARTY_INCLUDES_END
 
+#include "Runtime/Launch/Resources/Version.h"
+
 /**
  * PlayFab Lobby wrapper
  */
@@ -223,7 +225,19 @@ public:
 
 	virtual FName GetType() const override
 	{
-        return PLAYFAB_SUBSYSTEM;
+		#if ENGINE_MAJOR_VERSION >= 5
+		#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+			return GDK_SUBSYSTEM;
+		#elif defined(OSS_PLAYFAB_SWITCH)
+			return SWITCH_SUBSYSTEM;
+		#elif defined(OSS_PLAYFAB_WIN64)
+			return STEAM_SUBSYSTEM;
+		#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+		UE_LOG_ONLINE(Error, TEXT("Unsupported Platform."));
+		return FName();
+		#else // ENGINE_MAJOR_VERSION
+		return PLAYFAB_SUBSYSTEM;
+		#endif // ENGINE_MAJOR_VERSION
 	}
 
 	/**

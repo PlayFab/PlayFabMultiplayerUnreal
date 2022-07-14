@@ -1384,9 +1384,9 @@ PartyEndpoint* FOnlineSubsystemPlayFab::GetPartyEndpoint(uint32 EndpointId)
 	return nullptr;
 }
 
+#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 const FString FOnlineSubsystemPlayFab::GetSandBox() const
 {
-#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	char SandboxId[XSystemXboxLiveSandboxIdMaxBytes] = { 0 };
 	HRESULT hResult = XSystemGetXboxLiveSandboxId(UE_ARRAY_COUNT(SandboxId), SandboxId, nullptr);
 	if (SUCCEEDED(hResult))
@@ -1394,6 +1394,6 @@ const FString FOnlineSubsystemPlayFab::GetSandBox() const
 		return UTF8_TO_TCHAR(SandboxId);
 	}
 	UE_LOG_ONLINE(Error, TEXT("FOnlineSubsystemPlayFab::GetSandBox: failed: %x"), hResult);
-#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 	return TEXT("");
 }
+#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
