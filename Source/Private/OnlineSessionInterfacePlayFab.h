@@ -231,6 +231,9 @@ private:
 	#endif
 
 	TMap<FString, FString> EntityPlatformIdMapping;
+
+	TMap<FString, ECrossNetworkType> VoiceChatPlatforms;
+	void GenerateCrossNetworkVoiceChatPlatformPermissions();
 };
 
 typedef TSharedPtr<FOnlineSessionPlayFab, ESPMode::ThreadSafe> FOnlineSessionPlayFabPtr;

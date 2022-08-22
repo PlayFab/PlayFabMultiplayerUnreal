@@ -119,8 +119,10 @@ bool FPlayFabLobby::CreateLobbyWithUser(TSharedPtr<const FPlayFabUser> InPlayFab
 	AnsiStringList MemberKeys, MemberValues;
 	MemberKeys.Add(SETTING_PLATFORM_ID);
 	MemberValues.Add(InPlayFabUser->GetPlatformUserId());
+	MemberKeys.Add(SETTING_PLATFORM_MODEL);
+	MemberValues.Add(PLATFORM_MODEL);
 
-	LobbyJoinConfig.memberPropertyCount = 1;
+	LobbyJoinConfig.memberPropertyCount = MemberKeys.GetCount();
 	LobbyJoinConfig.memberPropertyKeys = MemberKeys.GetData();
 	LobbyJoinConfig.memberPropertyValues = MemberValues.GetData();
 
@@ -273,6 +275,8 @@ bool FPlayFabLobby::JoinLobbyWithUser(TSharedPtr<const FPlayFabUser> InPlayFabUs
 	AnsiStringList MemberKeys, MemberValues;
 	MemberKeys.Add(SETTING_PLATFORM_ID);
 	MemberValues.Add(InPlayFabUser->GetPlatformUserId());
+	MemberKeys.Add(SETTING_PLATFORM_MODEL);
+	MemberValues.Add(PLATFORM_MODEL);
 
 	// TODO add the user settings based on Custom flags set by the game, similar to how GDK is doing it.
 	for (FSessionSettings::TConstIterator It(SessionSettings.Settings); It; ++It)
@@ -300,7 +304,7 @@ bool FPlayFabLobby::JoinLobbyWithUser(TSharedPtr<const FPlayFabUser> InPlayFabUs
 		}
 	}
 
-	LobbyConfig.memberPropertyCount = MemberKeys.GetCount();;
+	LobbyConfig.memberPropertyCount = MemberKeys.GetCount();
 	LobbyConfig.memberPropertyKeys = MemberKeys.GetData();
 	LobbyConfig.memberPropertyValues = MemberValues.GetData();
 
@@ -336,6 +340,8 @@ bool FPlayFabLobby::JoinArrangedLobby(FName SessionName, const FOnlineMatchmakin
 	AnsiStringList MemberKeys, MemberValues;
 	MemberKeys.Add(SETTING_PLATFORM_ID);
 	MemberValues.Add(MatchTicket->SearchingPlayerNetId->ToString());
+	MemberKeys.Add(SETTING_PLATFORM_MODEL);
+	MemberValues.Add(PLATFORM_MODEL);
 
 	FString LocalEntityId = MatchTicket->GetHostUser()->GetEntityId();
 	bool localMemberFound = false;
@@ -514,6 +520,8 @@ bool FPlayFabLobby::AddLocalPlayer(const FUniqueNetId& PlayerId, FName SessionNa
 	AnsiStringList MemberKeys, MemberValues;
 	MemberKeys.Add(SETTING_PLATFORM_ID);
 	MemberValues.Add(LocalUser->GetPlatformUserId());
+	MemberKeys.Add(SETTING_PLATFORM_MODEL);
+	MemberValues.Add(PLATFORM_MODEL);
 
 	PFEntityKey JoiningEntityKey = LocalUser->GetEntityKey();
 	HRESULT Hr = PFLobbyAddMember(LobbyHandle, &JoiningEntityKey, MemberKeys.GetCount(), MemberKeys.GetData(), MemberValues.GetData(), nullptr);

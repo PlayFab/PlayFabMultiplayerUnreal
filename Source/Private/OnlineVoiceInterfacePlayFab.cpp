@@ -185,10 +185,10 @@ bool FOnlineVoicePlayFab::RegisterLocalTalker(TSharedPtr<FPlayFabUser> LocalPlay
 	PartyAudioDeviceSelectionType AudioDeviceSelectionType = PartyAudioDeviceSelectionType::PlatformUserDefault;
 	std::string PlatformUserId = TCHAR_TO_UTF8(*LocalPlayer->GetPlatformUserId());
 	PartyString AudioDeviceSelectionContext = PlatformUserId.c_str();
-#if defined(OSS_PLAYFAB_SWITCH)
+#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_WIN64)
 	AudioDeviceSelectionType = PartyAudioDeviceSelectionType::SystemDefault;
 	AudioDeviceSelectionContext = nullptr;
-#endif // OSS_PLAYFAB_SWITCH
+#endif // OSS_PLAYFAB_SWITCH || OSS_PLAYFAB_WIN64
 
 	// Use platform default settings for user for audio in and out devices
 	Err = NewChatControl->SetAudioInput(
