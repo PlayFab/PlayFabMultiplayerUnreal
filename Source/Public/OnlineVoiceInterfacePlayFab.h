@@ -21,6 +21,28 @@ THIRD_PARTY_INCLUDES_END
 
 class FOnlineSubsystemPlayFab;
 
+enum class ECrossNetworkType
+{
+	// Disable voice chat.
+	// To set disabled voice chat platforms, platfroms must be listed in [OnlineSubsystemPlayFabVoiceChatDisabledPlatforms] section in ini configuration file.
+	DISABLED,
+	// GDK platforms which use XBL.
+	// This platform types are allowed all permission on NON-GDK platforms by default.
+	// And, On GDK platforms, they follows XBL permission policy.
+	GDK,
+	// Non-GDK platforms which doesn't use XBL.
+	// This platform types are allowed all permission on NON-GDK platforms by default.
+	// And, On GDK platforms, they follows XBL CrossNetwork permission policy.
+	NONGDK
+};
+
+struct FCrossNetworkTalkerPlayFab
+{
+	ECrossNetworkType Type = ECrossNetworkType::DISABLED;
+	FString RemoteUserId;
+	FString PlatformModel;
+};
+
 class FLocalTalkerPlayFab : public FLocalTalker
 {
 public:
@@ -162,6 +184,10 @@ public:
 	void CleanUpPartyXblManager();
 	void InitPartyXblManager();
 
+	void AddTalkerIdMapping(const FString& EntityId, const FString& UserId);
+	void SetTalkerCrossNetworkPermission(ECrossNetworkType VoiceChatType, const FString& RemoteUserId, const FString& PlatformModel);
+	void UpdatePermissionsForAllControls();
+
 protected:
 	virtual IVoiceEnginePtr CreateVoiceEngine() override;
 
@@ -176,8 +202,6 @@ protected:
 	void OnChatPermissionsChanged(const FString& LocalUserId, const FString& RemoteUserId, PartyChatPermissionOptions perms);
 
 private:
-	void UpdatePermissionsForAllControls();
-
 #if OSS_PLAYFAB_VERBOSE_VOIP_LOGGING
 	void DumpState();
 #endif

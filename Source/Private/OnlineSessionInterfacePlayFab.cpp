@@ -50,6 +50,7 @@ FOnlineSessionPlayFab::FOnlineSessionPlayFab(class FOnlineSubsystemPlayFab* InSu
 	OSSPlayFab(InSubsystem)
 {
 	RegisterForUpdates();
+	GenerateCrossNetworkVoiceChatPlatformPermissions();
 }
 
 FOnlineSessionPlayFab::~FOnlineSessionPlayFab()
@@ -1000,6 +1001,44 @@ void FOnlineSessionPlayFab::OnLobbyMemberAdded(FName SessionName, const PFLobbyM
 		UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyMemberAdded Id:%s, Type:%s PlatformId:%s"), *FString(MemberAddedEntity.id), *FString(MemberAddedEntity.type), *FString(PlatformIdValue));
 		EntityPlatformIdMapping.Add(FString(MemberAddedEntity.id), FString(PlatformIdValue));
 
+		IOnlineVoicePtr VoiceIntPtr = OSSPlayFab->GetVoiceInterface();
+		if (VoiceIntPtr.IsValid())
+		{
+			FString RemoteUserId(PlatformIdValue);
+			auto VoicePlayFab = StaticCastSharedPtr<FOnlineVoicePlayFab>(VoiceIntPtr);
+			VoicePlayFab->AddTalkerIdMapping(FString(MemberAddedEntity.id), RemoteUserId);
+
+			const char* PlatformModelValue = nullptr;
+			Hr = PFLobbyGetMemberProperty(StateChange.lobby, &MemberAddedEntity, TCHAR_TO_UTF8(*SETTING_PLATFORM_MODEL), &PlatformModelValue);
+			if (SUCCEEDED(Hr))
+			{
+				if (PlatformModelValue)
+				{
+					FString PlatformModel(PlatformModelValue);
+					UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyMemberAdded Remote PlatformModel:%s"), *PlatformModel);
+
+					if (VoiceChatPlatforms.Contains(PlatformModel))
+					{
+						auto ChatType = VoiceChatPlatforms.Find(PlatformModel);
+						UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyMemberAdded ChatType of %s platform type is %d"), *PlatformModel, *ChatType);
+						VoicePlayFab->SetTalkerCrossNetworkPermission(*ChatType, RemoteUserId, PlatformModel);
+					}
+					else
+					{
+						UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::OnLobbyMemberAdded Unknown platform (%s)!"), *PlatformModel);
+					}
+				}
+				else
+				{
+					UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::OnLobbyMemberAdded PlatformModel is empty(nullptr)!"));
+				}
+			}
+			else
+			{
+				UE_LOG_ONLINE(Error, TEXT("FOnlineSessionPlayFab::OnLobbyMemberAdded failed to get PlatformModel for Entity:%s!"), *FString(MemberAddedEntity.id));
+			}
+		}
+
 		#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 		RecordRecentlyMetPlayer(MemberAddedEntity, SessionName, PlatformIdValue);
 		#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
@@ -1922,4 +1961,24 @@ void FOnlineSessionPlayFab::OnCreateSessionCompleted(FName SessionName, bool bWa
 	}
 
 	TriggerOnCreateSessionCompleteDelegates(SessionName, bWasSuccessful);
+}
+
+void FOnlineSessionPlayFab::GenerateCrossNetworkVoiceChatPlatformPermissions()
+{
+	VoiceChatPlatforms.Emplace(PLATFORM_MODEL_WINGDK, ECrossNetworkType::GDK);
+	VoiceChatPlatforms.Emplace(PLATFORM_MODEL_XSX, ECrossNetworkType::GDK);
+	VoiceChatPlatforms.Emplace(PLATFORM_MODEL_XBOXONEGDK, ECrossNetworkType::GDK);
+	VoiceChatPlatforms.Emplace(PLATFORM_MODEL_WIN64, ECrossNetworkType::NONGDK);
+	VoiceChatPlatforms.Emplace(PLATFORM_MODEL_SWITCH, ECrossNetworkType::NONGDK);
+	VoiceChatPlatforms.Emplace(PLATFORM_MODEL_PS4, ECrossNetworkType::NONGDK);
+	VoiceChatPlatforms.Emplace(PLATFORM_MODEL_PS5, ECrossNetworkType::NONGDK);
+	
+	// load all voice chat disabled platforms
+	TArray<FString> DisabledPlatforms;
+	GConfig->GetArray(TEXT("OnlineSubsystemPlayFabVoiceChatDisabledPlatforms"), TEXT("Platforms"), DisabledPlatforms, GEngineIni);
+
+	for (auto& DisabledPlatform : DisabledPlatforms)
+	{
+		VoiceChatPlatforms.Emplace(DisabledPlatform, ECrossNetworkType::DISABLED);
+	}
 }
