@@ -27,7 +27,7 @@ The quickstart guide for OnlineSubsystemPlayFab can be found at:
 
 |OSS version
 |-|
-|2.2.2
+|2.2.3
 
 ## Compatibility
 
@@ -43,9 +43,7 @@ Platforms|GDK (October 2021, Update 5), Win64+Steam
 
 ## Important Note
 
-The PlayFab Online Subsystem (PF OSS) v2 is currently generally available (GA) for GDK and in preview for Win64+Steam and Nintendo Switch. Preview programs give Microsoft and customers the opportunity to evaluate and understand the new feature before it becomes part of the standard feature set of PlayFab.
-
-Preview SDKs and engine plugins might not support all the scenarios planned for the generally available (GA) release and are not necessarily fully compliant with the certification requirements for the target platform.
+The PlayFab Online Subsystem (PF OSS) v2 is currently generally available (GA) for GDK and Win64+Steam and Nintendo Switch.
 
 For platform certification and shipping to retail users, games must use the generally available (GA) release of the SDKs and engine plugins that will become available in the coming months.
 
