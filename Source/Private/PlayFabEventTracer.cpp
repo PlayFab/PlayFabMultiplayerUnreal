@@ -55,7 +55,7 @@ PlayFabEventTracer::PlayFabEventTracer(FOnlineSubsystemPlayFab* InOSSPlayFab) :
 void PlayFabEventTracer::OnPlayFabMultiplayerManagerInitialize()
 {
 	EventContents Event;
-	Event.Name = TEXT("unreal_client_initialization_complete");
+	Event.Name = TEXT("unreal_client_initialization_completed");
 	Event.EventNamespace = FString(EventNamespace);
 	Event.OriginalTimestamp = FDateTime::UtcNow();
 
