@@ -4,7 +4,14 @@
 
 #include "PlayFabLobby.h"
 #include "PlayFabUtils.h"
+#include "PlayFabHelpers.h"
 #include "OnlineSubsystemPlayFab.h"
+#include "OnlineSessionInterfacePlayFab.h"
+#include "OnlineSessionSettings.h"
+#include "OnlineSubsystem.h"
+#include "OnlineSubsystemPlayFabPrivate.h"
+#include "OnlineSubsystemSessionSettings.h"
+
 
 static struct FSearchKeyMappingTable
 {

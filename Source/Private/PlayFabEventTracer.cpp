@@ -13,6 +13,9 @@
 #include "Misc/EngineVersion.h"
 #include "Misc/NetworkVersion.h"
 
+#include "OnlineSubsystemPlayFab.h"
+#include "OnlineIdentityInterfacePlayFab.h"
+
 #if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 #include "grdk.h"
 #endif

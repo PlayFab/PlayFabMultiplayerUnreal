@@ -4,6 +4,7 @@
 
 #include "OnlineSubsystemPlayFab.h"
 #include "OnlineIdentityInterfacePlayFab.h"
+#include "OnlineExternalUIInterfacePlayFab.h"
 #include "PlayFabSocketSubsystem.h"
 #include "Interfaces/IPluginManager.h"
 #include "SocketSubsystem.h"

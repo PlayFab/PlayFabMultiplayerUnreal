@@ -8,6 +8,7 @@
 #include "OnlineSubsystemPlayFabDefines.h"
 #include "OnlineSubsystemPlayFabPackage.h"
 #include "OnlineSubsystemPlayFabTypes.h"
+#include "OnlineVoiceInterfacePlayFab.h"
 #include "PlayFabLobby.h"
 #include "MatchmakingInterfacePlayFab.h"
 

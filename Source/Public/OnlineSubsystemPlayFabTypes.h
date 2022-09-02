@@ -4,10 +4,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "OnlineIdentityInterfacePlayFab.h"
+#include "OnlineSessionSettings.h"
+#include "OnlineSubsystemTypes.h"
+
 THIRD_PARTY_INCLUDES_START
 #include <PFEntityKey.h>
 #include <PFMultiplayer.h>
-#include <PFMatchmaking.h> 
+#include <PFMatchmaking.h>
+#include <PFLobby.h>
 THIRD_PARTY_INCLUDES_END
 
 #include "Runtime/Launch/Resources/Version.h"

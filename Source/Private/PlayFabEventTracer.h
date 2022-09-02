@@ -3,6 +3,9 @@
 //--------------------------------------------------------------------------------------
 
 #pragma once
+#include "CoreMinimal.h"
+#include "OnlineSubsystemPackage.h"
+#include "Dom/JsonObject.h"
 
 THIRD_PARTY_INCLUDES_START
 #include <PFEntityKey.h>

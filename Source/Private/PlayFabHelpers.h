@@ -1,5 +1,9 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Dom/JsonObject.h"
+
 namespace API
 {
 	// The name of the token parameter expected by the PlayFab login API.

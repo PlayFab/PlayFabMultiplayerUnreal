@@ -6,6 +6,7 @@
 
 #include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemPlayFabPackage.h"
+#include "OnlineSubsystemPlayFabTypes.h"
 #include "PlayFabLobby.h"
 
 THIRD_PARTY_INCLUDES_START

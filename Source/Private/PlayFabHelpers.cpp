@@ -1,6 +1,11 @@
 #include "PlayFabHelpers.h"
 
 #include "GenericPlatform/GenericPlatformMisc.h"
+#include "HttpModule.h"
+#include "OnlineSubsystem.h"
+#include "Interfaces/IHttpResponse.h"
+#include "Serialization/JsonWriter.h"
+#include "Serialization/JsonSerializer.h"
 
 bool
 MakePlayFabRestRequest(

@@ -6,7 +6,11 @@
 
 #include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemPlayFabPackage.h"
+#include "OnlineSubsystemPlayFabTypes.h"
 #include "Interfaces/OnlineSessionInterface.h"
+
+#include "Interfaces/IHttpRequest.h"
+#include "Interfaces/IHttpResponse.h"
 
 THIRD_PARTY_INCLUDES_START
 #ifdef OSS_PLAYFAB_SWITCH
@@ -49,6 +53,8 @@ typedef FOnInvitationReceived::FDelegate FOnInvitationReceivedDelegate;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLobbyDisconnected, FName);
 typedef FOnLobbyDisconnected::FDelegate FOnLobbyDisconnectedDelegate;
+
+class FPlayFabUser;
 
 class FPlayFabLobby
 {
