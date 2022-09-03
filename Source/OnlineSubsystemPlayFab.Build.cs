@@ -44,6 +44,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
         IPlayFabOSSPlatformConfigurator PlatformConfigurator = GetConfiguratorForPlatform(Platform);
 
         PublicDefinitions.Add("OSS_PLAYFAB_IS_PC=" + (PlatformConfigurator.IsPCPlatform(Target) ? "1" : "0"));
+        PrivateIncludePaths.Add(ModuleDirectory);
 
         PlatformConfigurator.AddModuleDependencies(this);
         PlatformConfigurator.SetPlatformDefinitions(this);
