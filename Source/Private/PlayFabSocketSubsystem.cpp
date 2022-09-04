@@ -22,7 +22,7 @@ FName CreatePlayFabSocketSubsystem()
 	if (SocketSubsystem->Init(Error))
 	{
 		FSocketSubsystemModule& SSS = FModuleManager::LoadModuleChecked<FSocketSubsystemModule>("Sockets");
-		SSS.RegisterSocketSubsystem(SubsystemName, SocketSubsystem, true);
+		SSS.RegisterSocketSubsystem(SubsystemName, SocketSubsystem, false);
 		return SubsystemName;
 	}
 	else
