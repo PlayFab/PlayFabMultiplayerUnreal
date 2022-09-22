@@ -5,9 +5,14 @@
 #pragma once
 
 THIRD_PARTY_INCLUDES_START
+#if defined(OSS_PLAYFAB_PLAYSTATION)
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#include <PFMultiplayerPal.h>
+#endif // OSS_PLAYFAB_PLAYSTATION
 #include <PFEntityKey.h>
 #include <PFMultiplayer.h>
 #include <PFMatchmaking.h> 
+#include <PFLobby.h>
 THIRD_PARTY_INCLUDES_END
 
 #include "Runtime/Launch/Resources/Version.h"
@@ -232,6 +237,10 @@ public:
 			return SWITCH_SUBSYSTEM;
 		#elif defined(OSS_PLAYFAB_WIN64)
 			return STEAM_SUBSYSTEM;
+		#elif defined(OSS_PLAYFAB_PS4)
+			return PS4_SUBSYSTEM;
+		#elif defined(OSS_PLAYFAB_PS5)
+			return PS5_SUBSYSTEM;
 		#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 		UE_LOG_ONLINE(Error, TEXT("Unsupported Platform."));
 		return FName();

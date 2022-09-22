@@ -188,7 +188,12 @@ bool FOnlineVoicePlayFab::RegisterLocalTalker(TSharedPtr<FPlayFabUser> LocalPlay
 #if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_WIN64)
 	AudioDeviceSelectionType = PartyAudioDeviceSelectionType::SystemDefault;
 	AudioDeviceSelectionContext = nullptr;
-#endif // OSS_PLAYFAB_SWITCH || OSS_PLAYFAB_WIN64
+#elif defined(OSS_PLAYFAB_PLAYSTATION)
+	if (!GetPlatformAudioDevice(AudioDeviceSelectionContext, PlatformUserId))
+	{
+		return false;
+	}
+#endif // OSS_PLAYFAB_PLAYSTATION
 
 	// Use platform default settings for user for audio in and out devices
 	Err = NewChatControl->SetAudioInput(

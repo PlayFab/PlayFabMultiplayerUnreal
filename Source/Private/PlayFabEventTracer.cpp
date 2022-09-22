@@ -105,6 +105,7 @@ void PlayFabEventTracer::DoWork()
 							nullptr);
 }
 
+#if !defined(OSS_PLAYFAB_PLAYSTATION)
 FString PlayFabEventTracer::GetPlatformSDKVersion() const
 {
 	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
@@ -119,6 +120,7 @@ FString PlayFabEventTracer::GetPlatformSDKVersion() const
 	return "Unsupported Platform";
 	#endif
 }
+#endif
 
 void PlayFabEventTracer::SetCommonTelemetryProperties(TSharedPtr<FJsonObject> Payload)
 {

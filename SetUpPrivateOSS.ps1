@@ -5,10 +5,33 @@
 
 # Prerequesites: download NuGet.exe and add its path to the PATH environment variable. Have git installed.
 
-Write-Host "Downloading Party and Multiplayer NuGet packages..."
+param (
+	[Parameter(Mandatory=$true)]
+	[validateset("Switch", "PlayStation")]
+	[string]$Platform
+)
 
-$localPath = ".\Platforms\Switch"
-nuget.exe restore $localPath -ConfigFile $localPath\nuget.config -PackagesDirectory $localPath
+if ($Platform -like "Switch")
+{
+	Write-Host "Downloading Party and Multiplayer NuGet packages..."
+	$localPath = ".\Platforms\Switch"
+	nuget.exe restore $localPath -ConfigFile $localPath\nuget.config -PackagesDirectory $localPath
 
-Write-Host "Updating git submodules for private platforms..."
-git submodule update --recursive --init
+	Write-Host "Updating git submodules for private platforms..."
+	git submodule update --recursive --init Source/PlatformSpecific/Switch
+}
+
+if ($Platform -like "PlayStation")
+{
+	Write-Host "Downloading Party and Multiplayer NuGet packages..."
+	$localPath = ".\Platforms\PS4"
+	nuget.exe restore $localPath -ConfigFile $localPath\nuget.config -PackagesDirectory $localPath
+	$localPath = ".\Platforms\PS5"
+	nuget.exe restore $localPath -ConfigFile $localPath\nuget.config -PackagesDirectory $localPath
+
+	Write-Host "Updating git submodules for private platforms..."
+	git submodule update --recursive --init Source/PlatformSpecific/PlayStation
+
+	Write-Host "Patching PlayStation platforms patch..."
+	git apply --quiet Source/PlatformSpecific/PlayStation/playstation.patch
+}

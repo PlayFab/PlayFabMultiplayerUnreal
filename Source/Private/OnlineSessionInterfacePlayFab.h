@@ -16,9 +16,10 @@
 #endif
 
 THIRD_PARTY_INCLUDES_START
-#ifdef OSS_PLAYFAB_SWITCH
+#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_PLAYSTATION)
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_SWITCH
+#endif // OSS_PLAYFAB_SWITCH || OSS_PLAYFAB_PLAYSTATION
 #include <PFEntityKey.h>
 #include <PFMultiplayer.h>
 #include <PFLobby.h>
@@ -234,6 +235,21 @@ private:
 
 	TMap<FString, ECrossNetworkType> VoiceChatPlatforms;
 	void GenerateCrossNetworkVoiceChatPlatformPermissions();
+	#if defined(OSS_PLAYFAB_PLAYSTATION)
+	FString ConnectionString;
+
+	FDelegateHandle OnNativeCreateSessionCompleteDelegateHandle;
+	FOnCreateSessionCompleteDelegate OnNativeCreateSessionCompleteDelegate;
+	void OnNativeCreateSessionComplete(FName SessionName, bool bWasSuccessful);
+
+	FDelegateHandle OnNativeJoinSessionCompleteDelegateHandle;
+	FOnJoinSessionCompleteDelegate OnNativeJoinSessionCompleteDelegate;
+	void OnNativeJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+
+	FDelegateHandle OnNativeSessionUserInviteAcceptedDelegateHandle;
+	FOnSessionUserInviteAcceptedDelegate OnNativeSessionUserInviteAcceptedDelegate;
+	void OnNativeSessionUserInviteAccepted(const bool bWasSuccessful, const int32 ControllerId, FUniqueNetIdPtr UserId, const FOnlineSessionSearchResult& InviteResult);
+	#endif // OSS_PLAYFAB_PLAYSTATION
 };
 
 typedef TSharedPtr<FOnlineSessionPlayFab, ESPMode::ThreadSafe> FOnlineSessionPlayFabPtr;

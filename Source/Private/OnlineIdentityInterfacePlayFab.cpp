@@ -260,7 +260,7 @@ void FOnlineIdentityPlayFab::Tick(float DeltaTime)
 				User->GetUserAttribute(USER_ATTR_ID, PlatformUserIdStr);
 				UsersToAuth.Add(PlatformUserIdStr);
 			}
-#ifdef OSS_PLAYFAB_WIN64
+#if defined(OSS_PLAYFAB_WIN64) || defined(OSS_PLAYFAB_PLAYSTATION)
 			AutoLogin(0);
 #endif
 			bAuthAllUsers = false;
@@ -484,6 +484,8 @@ void FOnlineIdentityPlayFab::FinishRequest(bool bPlatformDataSuccess, const FStr
 			const FString LoginApi = "LoginWithNintendoServiceAccount";
 #elif defined(OSS_PLAYFAB_WIN64)
 			const FString LoginApi = "LoginWithSteam";
+#elif defined(OSS_PLAYFAB_PLAYSTATION)
+			const FString LoginApi = "LoginWithPSN";
 #else
 			const FString LoginApi = "LoginWithXbox";
 #endif // OSS_PLAYFAB_SWITCH

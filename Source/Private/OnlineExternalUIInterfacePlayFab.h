@@ -66,11 +66,15 @@ public:
 #if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	void HandleShowLoginUIComplete(bool bSuccess, FGDKUserHandle GDKUser, FOnLoginUIClosedDelegate Delegate);
 #endif
+#if !defined(OSS_PLAYFAB_PLAYSTATION)
 	void HandleReadFriendsComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr);
+#endif // !OSS_PLAYFAB_PLAYSTATION
 	void HandleShowSendGameInvitesUIComplete(bool bIsSuccess);
+#if !defined(OSS_PLAYFAB_PLAYSTATION)
 	void HandleShowAchievementsUIComplete(bool bIsSuccess);
 	void HandleShowStoreUIComplete(bool wasPurchaseMade);
 	void HandleShowProfileUIComplete(bool bSuccess, const FOnProfileUIClosedDelegate Delegate);
+#endif // !OSS_PLAYFAB_PLAYSTATION
 
 	void Tick(float DeltaTime);
 

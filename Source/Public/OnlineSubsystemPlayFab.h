@@ -11,14 +11,19 @@
 #include "OnlineVoiceInterfacePlayFab.h"
 #include "OnlineCognitiveServicesInterfacePlayFab.h"
 #include "OnlineSubsystemPlayFabDefines.h"
+#ifdef OSS_PLAYFAB_PLAYSTATION
+#include "OnlineAsyncTaskPlayFab.h"
+#endif // OSS_PLAYFAB_PLAYSTATION
 #include "Misc/ConfigCacheIni.h"
 #include "..\PlatformSpecific\PlatformDefines.h"
 #include "..\Private\PlayFabEventTracer.h"
 
 THIRD_PARTY_INCLUDES_START
-#ifdef OSS_PLAYFAB_SWITCH
+#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_PLAYSTATION)
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#include <PartyPal.h>
 #include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_SWITCH
+#endif // OSS_PLAYFAB_SWITCH || OSS_PLAYFAB_PLAYSTATION
 #include <Party.h>
 #include <PFEntityKey.h>
 #include <PFMultiplayer.h>
@@ -83,6 +88,11 @@ PACKAGE_SCOPE:
 			SubsystemName = FName(*NativePlatformServiceName);
 		}
 	}
+
+#ifdef OSS_PLAYFAB_PLAYSTATION
+	FOnlineAsyncTaskManagerPlayFab* GetAsyncTaskManager() { return OnlineAsyncTaskThreadRunnable; }
+	FRunnableThread* OnlineAsyncTaskThread;
+#endif // OSS_PLAYFAB_PLAYSTATION
 
 public:
 
@@ -207,6 +217,21 @@ private:
 	TUniquePtr<PlayFabEventTracer> EventTracer;
 
 	PFMultiplayerHandle MultiplayerHandle;
+
+#ifdef OSS_PLAYFAB_PLAYSTATION
+	/** Online async task runnable */
+	FOnlineAsyncTaskManagerPlayFab* OnlineAsyncTaskThreadRunnable;
+#endif // OSS_PLAYFAB_PLAYSTATION
+
+#ifdef OSS_PLAYFAB_PLAYSTATION
+	void* PartyDllHandle;
+	void* MultiplayerDllHandle;
+	bool InitPlayStationNpTitleId();
+	void DeinitPlayStationNpTitleId();
+#if !UE_BUILD_SHIPPING
+	void SetPlayStationNpTitleId();
+#endif // !UE_BUILD_SHIPPING
+#endif // OSS_PLAYFAB_PLAYSTATION
 	
 public:
 

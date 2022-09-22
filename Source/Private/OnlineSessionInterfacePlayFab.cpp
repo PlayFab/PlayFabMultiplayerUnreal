@@ -141,7 +141,15 @@ bool FOnlineSessionPlayFab::CreateSession(int32 HostingPlayerControllerIndex, FN
 	}
 
 	PendingCreateSessionInfo.PlayerControllerIndex = HostingPlayerControllerIndex;
-	PendingCreateSessionInfo.PlayerId = nullptr;
+	auto allUsers = OSSPlayFab->GetIdentityInterface()->GetAllUserAccounts();
+	if (allUsers.Num() > HostingPlayerControllerIndex)
+	{
+		PendingCreateSessionInfo.PlayerId = allUsers[HostingPlayerControllerIndex]->GetUserId()->AsShared();
+	}
+	else
+	{
+		PendingCreateSessionInfo.PlayerId = nullptr;
+	}
 	PendingCreateSessionInfo.SessionName = SessionName;
 	PendingCreateSessionInfo.SessionSettings = NewSessionSettings;
 
@@ -291,6 +299,14 @@ bool FOnlineSessionPlayFab::StartSession(FName SessionName)
 	Session->SessionState = EOnlineSessionState::InProgress;
 
 	TriggerOnStartSessionCompleteDelegates(SessionName, true);
+
+#if defined(OSS_PLAYFAB_PLAYSTATION)
+	OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
+	{
+		NativeSessionInterface->StartSession(NAME_PartySession);
+	}
+#endif // OSS_PLAYFAB_PLAYSTATION
+
 	return true;
 }
 
@@ -326,11 +342,28 @@ bool FOnlineSessionPlayFab::UpdateSession(FName SessionName, FOnlineSessionSetti
 		return false;
 	}
 
+#if defined(OSS_PLAYFAB_PLAYSTATION)
+	OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
+	{
+		FOnlineSessionSettings SessionSettings = UpdatedSessionSettings;
+		SessionSettings.Set(SETTING_CONNECTION_STRING, ConnectionString, EOnlineDataAdvertisementType::ViaOnlineService);
+		NativeSessionInterface->UpdateSession(NAME_PartySession, SessionSettings, bShouldRefreshOnlineData);
+	}
+#endif // OSS_PLAYFAB_PLAYSTATION
+
 	return true;
 }
 
 bool FOnlineSessionPlayFab::EndSession(FName SessionName)
 {
+#if defined(OSS_PLAYFAB_PLAYSTATION)
+	OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
+	{
+		ConnectionString = TEXT("");
+		NativeSessionInterface->EndSession(NAME_PartySession);
+	}
+#endif // OSS_PLAYFAB_PLAYSTATION
+
 	FNamedOnlineSessionPtr Session = GetNamedSessionPtr(SessionName);
 	if (!Session.IsValid())
 	{
@@ -357,6 +390,15 @@ bool FOnlineSessionPlayFab::EndSession(FName SessionName)
 bool FOnlineSessionPlayFab::DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate /*= FOnDestroySessionCompleteDelegate()*/)
 {
 	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSessionPlayFab::DestroySession SessionName:%s"), *SessionName.ToString());
+
+#if defined(OSS_PLAYFAB_PLAYSTATION)
+	OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
+	{
+		ConnectionString = TEXT("");
+		NativeSessionInterface->DestroySession(NAME_PartySession);
+	}
+#endif // OSS_PLAYFAB_PLAYSTATION
+
 	// Leave the PlayFab Party network
 	if (OSSPlayFab)
 	{
@@ -795,6 +837,11 @@ void FOnlineSessionPlayFab::RegisterForUpdates()
 		}
 	}
 	#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+	#if defined(OSS_PLAYFAB_PLAYSTATION)
+	OnNativeCreateSessionCompleteDelegate = FOnCreateSessionCompleteDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnNativeCreateSessionComplete);
+	OnNativeJoinSessionCompleteDelegate = FOnJoinSessionCompleteDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnNativeJoinSessionComplete);
+	OnNativeSessionUserInviteAcceptedDelegate = FOnSessionUserInviteAcceptedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnNativeSessionUserInviteAccepted);
+	#endif // OSS_PLAYFAB_PLAYSTATION
 }
 
 void FOnlineSessionPlayFab::UnregisterForUpdates()
@@ -809,6 +856,12 @@ void FOnlineSessionPlayFab::UnregisterForUpdates()
 	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 	XGameInviteUnregisterForEvent(InviteAcceptedHandler, true /* Wait for pending event callbacks to complete.*/);
 	#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+	#if defined(OSS_PLAYFAB_PLAYSTATION)
+	OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
+	{
+		NativeSessionInterface->ClearOnSessionUserInviteAcceptedDelegates(this);
+	}
+	#endif // OSS_PLAYFAB_PLAYSTATION
 }
 
 void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdatedStateChange& StateChange)
@@ -1470,6 +1523,16 @@ bool FOnlineSessionPlayFab::JoinSession(int32 ControllerIndex, FName SessionName
 	{
 		TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::UnknownError);
 	}
+	#if defined(OSS_PLAYFAB_PLAYSTATION)
+	else
+	{
+		OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
+		{
+			OnNativeJoinSessionCompleteDelegateHandle = NativeSessionInterface->AddOnJoinSessionCompleteDelegate_Handle(OnNativeJoinSessionCompleteDelegate);
+			NativeSessionInterface->JoinSession(ControllerIndex, NAME_PartySession, DesiredSession);
+		}
+	}
+	#endif // OSS_PLAYFAB_PLAYSTATION
 
 	return bSuccess;
 }
@@ -1482,6 +1545,16 @@ bool FOnlineSessionPlayFab::JoinSession(const FUniqueNetId& UserId, FName Sessio
 	{
 		TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::UnknownError);
 	}
+	#if defined(OSS_PLAYFAB_PLAYSTATION)
+	else
+	{
+		OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
+		{
+			OnNativeJoinSessionCompleteDelegateHandle = NativeSessionInterface->AddOnJoinSessionCompleteDelegate_Handle(OnNativeJoinSessionCompleteDelegate);
+			NativeSessionInterface->JoinSession(UserId, NAME_PartySession, DesiredSession);
+		}
+	}
+	#endif // OSS_PLAYFAB_PLAYSTATION
 
 	return bSuccess;
 }
@@ -1914,6 +1987,15 @@ void FOnlineSessionPlayFab::Tick(float DeltaTime)
 		}
 		#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 	}
+	#if defined(OSS_PLAYFAB_PLAYSTATION)
+	if (!OnNativeSessionUserInviteAcceptedDelegateHandle.IsValid())
+	{
+		OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
+		{
+			OnNativeSessionUserInviteAcceptedDelegateHandle = NativeSessionInterface->AddOnSessionUserInviteAcceptedDelegate_Handle(OnNativeSessionUserInviteAcceptedDelegate);
+		}
+	}
+	#endif // OSS_PLAYFAB_PLAYSTATION
 }
 
 FOnlineSessionSearchResult FOnlineSessionPlayFab::CreateSearchResultFromInvite(const PFLobbyInviteReceivedStateChange& StateChange)
@@ -1959,6 +2041,54 @@ void FOnlineSessionPlayFab::OnCreateSessionCompleted(FName SessionName, bool bWa
 			OSSPlayFab->LeavePlayFabPartyNetwork();
 		}
 	}
+	#if defined(OSS_PLAYFAB_PLAYSTATION)
+	else
+	{
+		OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
+		{
+			auto PlatformUserID = PendingCreateSessionInfo.PlayerId->ToString();
+			IOnlineIdentityPtr IdentityPtr = NativeSubsystem->GetIdentityInterface();
+			if (IdentityPtr)
+			{
+				for (const auto& User : IdentityPtr->GetAllUserAccounts())
+				{
+					FString PlatformUserIdStr;
+					User->GetUserAttribute(USER_ATTR_ID, PlatformUserIdStr);
+					if (PlatformUserIdStr.Equals(PlatformUserID))
+					{
+						FNamedOnlineSessionPtr Session = GetNamedSessionPtr(SessionName);
+						if (Session.IsValid())
+						{
+							FOnlineSessionInfoPlayFabPtr PlayFabSessionInfo = StaticCastSharedPtr<FOnlineSessionInfoPlayFab>(Session->SessionInfo);
+							if (PlayFabSessionInfo->IsValid())
+							{
+								ConnectionString = PlayFabSessionInfo->GetConnectionString();
+
+								OnNativeCreateSessionCompleteDelegateHandle = NativeSessionInterface->AddOnCreateSessionCompleteDelegate_Handle(OnNativeCreateSessionCompleteDelegate);
+								FOnlineSessionSettings SessionSettings = PendingCreateSessionInfo.SessionSettings;
+								SessionSettings.Set(SETTING_CONNECTION_STRING, ConnectionString, EOnlineDataAdvertisementType::ViaOnlineService);
+								NativeSessionInterface->CreateSession(*User->GetUserId(), NAME_PartySession, SessionSettings);
+							}
+							else
+							{
+								UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionInfoPlayFab not valid for %s."), *SessionName.ToString());
+							}
+						}
+						else
+						{
+							UE_LOG_ONLINE_SESSION(Warning, TEXT("Failed to get game session"));
+						}
+						break;
+					}
+				}
+			}
+			else
+			{
+				UE_LOG_ONLINE_SESSION(Warning, TEXT("Failed to get GetIdentityInterface"));
+			}
+		}
+	}
+	#endif // OSS_PLAYFAB_PLAYSTATION
 
 	TriggerOnCreateSessionCompleteDelegates(SessionName, bWasSuccessful);
 }
@@ -1982,3 +2112,27 @@ void FOnlineSessionPlayFab::GenerateCrossNetworkVoiceChatPlatformPermissions()
 		VoiceChatPlatforms.Emplace(DisabledPlatform, ECrossNetworkType::DISABLED);
 	}
 }
+
+#if defined(OSS_PLAYFAB_PLAYSTATION)
+void FOnlineSessionPlayFab::OnNativeCreateSessionComplete(FName SessionName, bool bWasSuccessful)
+{
+	OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
+	{
+		NativeSessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(OnNativeCreateSessionCompleteDelegateHandle);
+	}
+}
+
+void FOnlineSessionPlayFab::OnNativeJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
+{
+	OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
+	{
+		NativeSessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(OnNativeJoinSessionCompleteDelegateHandle);
+	}
+}
+
+void FOnlineSessionPlayFab::OnNativeSessionUserInviteAccepted(const bool bWasSuccessful, const int32 ControllerId, FUniqueNetIdPtr UserId, const FOnlineSessionSearchResult& InviteResult)
+{
+	ConnectionString = InviteResult.GetSessionIdStr();
+	TriggerOnSessionUserInviteAcceptedDelegates(bWasSuccessful, ControllerId, UserId, InviteResult);
+}
+#endif // OSS_PLAYFAB_PLAYSTATION

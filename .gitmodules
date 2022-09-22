@@ -1,3 +1,8 @@
 [submodule "Source/PlatformSpecific/Switch"]
 	path = Source/PlatformSpecific/Switch
 	url = https://PlayFabPrivate@dev.azure.com/PlayFabPrivate/Switch/_git/PlayFabMultiplayerUnrealSwitch
+
+[submodule "Source/PlatformSpecific/PlayStation"]
+	path = Source/PlatformSpecific/PlayStation
+	url = https://PlayFabPrivate@dev.azure.com/PlayFabPrivate/PS5/_git/PlayFabMultiplayerUnrealPlayStation
+

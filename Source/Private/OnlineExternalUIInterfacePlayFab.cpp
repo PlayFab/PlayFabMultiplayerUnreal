@@ -70,6 +70,7 @@ bool FOnlineExternalUIPlayFab::ShowFriendsUI(int32 LocalUserNum)
 	return false;
 }
 
+#if !defined(OSS_PLAYFAB_PLAYSTATION)
 bool FOnlineExternalUIPlayFab::ShowInviteUI(int32 LocalUserNum, FName SessionNameParam)
 {
 	const IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
@@ -120,7 +121,9 @@ bool FOnlineExternalUIPlayFab::ShowInviteUI(int32 LocalUserNum, FName SessionNam
 
 	return true;
 }
+#endif
 
+#if !defined(OSS_PLAYFAB_PLAYSTATION)
 void FOnlineExternalUIPlayFab::HandleReadFriendsComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr)
 {
 #if defined(OSS_PLAYFAB_WIN64) || defined(OSS_PLAYFAB_SWITCH)
@@ -196,6 +199,7 @@ void FOnlineExternalUIPlayFab::HandleReadFriendsComplete(int32 LocalUserNum, boo
 	}
 #endif
 }
+#endif // !OSS_PLAYFAB_PLAYSTATION
 
 #if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 void FOnlineExternalUIPlayFab::ProcessShowPlayerPickerResults(TUniquePtr<XAsyncBlock> AsyncBlock)
@@ -290,6 +294,7 @@ bool FOnlineExternalUIPlayFab::ShowAchievementsUI(int32 LocalUserNum)
 	return true;
 }
 
+#if !defined(OSS_PLAYFAB_PLAYSTATION)
 void FOnlineExternalUIPlayFab::HandleShowAchievementsUIComplete(bool bIsSuccess)
 {
 	if (bIsSuccess)
@@ -301,6 +306,7 @@ void FOnlineExternalUIPlayFab::HandleShowAchievementsUIComplete(bool bIsSuccess)
 		UE_LOG_ONLINE_EXTERNALUI(Log, TEXT("ShowAchievementsUI: Achievement task UI failed. Not displaying."));
 	}
 }
+#endif // !OSS_PLAYFAB_PLAYSTATION
 
 bool FOnlineExternalUIPlayFab::ShowLeaderboardUI(const FString& LeaderboardName)
 {
@@ -357,10 +363,12 @@ bool FOnlineExternalUIPlayFab::ShowStoreUI(int32 LocalUserNum, const FShowStoreP
 	return true;
 }
 
+#if !defined(OSS_PLAYFAB_PLAYSTATION)
 void FOnlineExternalUIPlayFab::HandleShowStoreUIComplete(bool wasPurchaseMade)
 {
 	// TODO: investigate if this is needed
 }
+#endif // !OSS_PLAYFAB_PLAYSTATION
 
 bool FOnlineExternalUIPlayFab::ShowSendMessageUI(int32 LocalUserNum, const FShowSendMessageParams& ShowParams, const FOnShowSendMessageUIClosedDelegate& Delegate)
 {
@@ -382,13 +390,14 @@ bool FOnlineExternalUIPlayFab::ShowProfileUI(const FUniqueNetId& Requestor, cons
 	return true;
 }
 
+#if !defined(OSS_PLAYFAB_PLAYSTATION)
 void FOnlineExternalUIPlayFab::HandleShowProfileUIComplete(bool bSuccess, const FOnProfileUIClosedDelegate Delegate)
 {
 	// TODO: investigate if this is needed
 }
+#endif // !OSS_PLAYFAB_PLAYSTATION
 
 void FOnlineExternalUIPlayFab::Tick(float DeltaTime)
 {
 	// TODO: investigate if this is needed
 }
-

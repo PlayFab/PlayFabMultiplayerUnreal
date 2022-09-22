@@ -15,7 +15,7 @@ typedef FUniqueNetIdGDK PLATFORM_UNIQUE_NET_ID;
 typedef FUniqueNetIdGDKRef PLATFORM_UNIQUE_NET_ID_REF;
 #endif
 
-#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_WIN64)
+#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_WIN64) || defined(OSS_PLAYFAB_PLAYSTATION)
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystemPlayFabTypes.h"
 

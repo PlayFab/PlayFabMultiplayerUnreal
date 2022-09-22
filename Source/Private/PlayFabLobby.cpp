@@ -800,6 +800,11 @@ bool FPlayFabLobby::SendInvite(const FUniqueNetId& SenderId, FName SessionName, 
 	const FString RequestPath = TEXT("/Client/GetPlayFabIDsFromNintendoServiceAccountIds");
 	GenerateGetPlayFabIDsFromNsaIDsRequestBody(FriendIdStrings, GetTitlePlayersFromPlatformIDsRequestBody);
 	GetPlayFabDataFromPlatformIDCompleteDelegate.BindRaw(this, &FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted, PendingSendInvite);
+#elif defined(OSS_PLAYFAB_PLAYSTATION)
+	ExtraHeaders.Add(MakeTuple(FString("X-Authorization"), LocalUser->GetSessionTicket()));
+	const FString RequestPath = TEXT("/Client/GetPlayFabIDsFromPSNAccountIDs");
+	GenerateGetPlayFabIDsFromPsnIDsRequestBody(FriendIdStrings, GetTitlePlayersFromPlatformIDsRequestBody);
+	GetPlayFabDataFromPlatformIDCompleteDelegate.BindRaw(this, &FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted, PendingSendInvite);
 #else
 	const FString RequestPath;
 	UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::SendInvite does not support this platform!"));
