@@ -9,9 +9,10 @@
 #include "Interfaces/OnlineSessionInterface.h"
 
 THIRD_PARTY_INCLUDES_START
-#ifdef OSS_PLAYFAB_SWITCH
+#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_PLAYSTATION)
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_SWITCH
+#endif // OSS_PLAYFAB_SWITCH || OSS_PLAYFAB_PLAYSTATION
 #include <PFEntityKey.h>
 #include <PFMultiplayer.h>
 #include <PFLobby.h>

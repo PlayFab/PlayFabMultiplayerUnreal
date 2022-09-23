@@ -12,9 +12,11 @@
 #include "Misc/CoreDelegates.h"
 
 THIRD_PARTY_INCLUDES_START
-#ifdef OSS_PLAYFAB_SWITCH
+#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_PLAYSTATION)
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#include <PartyPal.h>
 #include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_SWITCH
+#endif // OSS_PLAYFAB_SWITCH || OSS_PLAYFAB_PLAYSTATION
 #include <Party.h>
 using namespace Party;
 THIRD_PARTY_INCLUDES_END
@@ -187,6 +189,10 @@ public:
 	void AddTalkerIdMapping(const FString& EntityId, const FString& UserId);
 	void SetTalkerCrossNetworkPermission(ECrossNetworkType VoiceChatType, const FString& RemoteUserId, const FString& PlatformModel);
 	void UpdatePermissionsForAllControls();
+#if defined(OSS_PLAYFAB_PLAYSTATION)
+	void OnQueryBlockedPlayersComplete(const FUniqueNetId &UserId, bool bWasSuccessful, const FString &Error);
+	bool GetPlatformAudioDevice(PartyString& AudioDeviceSelectionContext, std::string& PlatformUserId);
+#endif // OSS_PLAYFAB_PLAYSTATION
 
 protected:
 	virtual IVoiceEnginePtr CreateVoiceEngine() override;

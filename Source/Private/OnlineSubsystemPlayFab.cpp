@@ -70,6 +70,24 @@ bool FOnlineSubsystemPlayFab::Init()
 {
 	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::Init"));
 	
+#ifdef OSS_PLAYFAB_PLAYSTATION
+	OnlineAsyncTaskThreadRunnable = new FOnlineAsyncTaskManagerPlayFab(this);
+	check(OnlineAsyncTaskThreadRunnable);
+	OnlineAsyncTaskThread = FRunnableThread::Create(OnlineAsyncTaskThreadRunnable, *FString::Printf(TEXT("OnlineAsyncTaskThreadPlayFab %s"), *InstanceName.ToString()));
+	check(OnlineAsyncTaskThread);
+	UE_LOG_ONLINE(Verbose, TEXT("Created thread (ID:%d)."), OnlineAsyncTaskThread->GetThreadID());
+#endif // OSS_PLAYFAB_PLAYSTATION
+
+#ifdef OSS_PLAYFAB_PLAYSTATION
+	if (!InitPlayStationNpTitleId())
+	{
+		return false;
+	}
+#if !UE_BUILD_SHIPPING
+	SetPlayStationNpTitleId();
+#endif // !UE_BUILD_SHIPPING
+#endif // OSS_PLAYFAB_PLAYSTATION
+
 	// Register for suspend/resume callbacks
 	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddRaw(this, &FOnlineSubsystemPlayFab::OnAppSuspend);
 	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddRaw(this, &FOnlineSubsystemPlayFab::OnAppResume);
@@ -263,6 +281,20 @@ bool FOnlineSubsystemPlayFab::Shutdown()
 
 	NetworkState = EPlayFabPartyNetworkState::NoNetwork;
 
+#ifdef OSS_PLAYFAB_PLAYSTATION
+	if (OnlineAsyncTaskThread)
+	{
+		delete OnlineAsyncTaskThread;
+		OnlineAsyncTaskThread = nullptr;
+	}
+
+	if (OnlineAsyncTaskThreadRunnable)
+	{
+		delete OnlineAsyncTaskThreadRunnable;
+		OnlineAsyncTaskThreadRunnable = nullptr;
+	}
+#endif // OSS_PLAYFAB_PLAYSTATION
+
 #define DESTRUCT_INTERFACE(Interface) \
 	if (Interface.IsValid()) \
 	{ \
@@ -294,6 +326,9 @@ bool FOnlineSubsystemPlayFab::Shutdown()
 #ifdef OSS_PLAYFAB_SWITCH
 	CleanUpSwitch();
 #endif // OSS_PLAYFAB_SWITCH
+#ifdef OSS_PLAYFAB_PLAYSTATION
+	DeinitPlayStationNpTitleId();
+#endif // OSS_PLAYFAB_PLAYSTATION
 
 	return true;
 }
@@ -379,6 +414,13 @@ bool FOnlineSubsystemPlayFab::Tick(float DeltaTime)
 	{
 		return false;
 	}
+
+#ifdef OSS_PLAYFAB_PLAYSTATION
+	if (OnlineAsyncTaskThreadRunnable)
+	{
+		OnlineAsyncTaskThreadRunnable->GameTick();
+	}
+#endif // OSS_PLAYFAB_PLAYSTATION
 
 	if (IdentityInterface.IsValid())
 	{

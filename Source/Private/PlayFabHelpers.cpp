@@ -95,6 +95,33 @@ GenerateGetPlayFabIDsFromNsaIDsRequestBody(
 	generatedRequestBody = SerializeRequestJson(HttpRequestJson);
 }
 
+#if OSS_PLAYFAB_PLAYSTATION
+void
+GenerateGetPlayFabIDsFromPsnIDsRequestBody(
+	const TArray<FString>& PsnUniqueIDs,
+	FString& generatedRequestBody
+)
+{
+	TSharedPtr<FJsonObject> HttpRequestJson = MakeShareable(new FJsonObject());
+	TArray<TSharedPtr<FJsonValue>> PsnIDsJson;
+	for (const auto& PsnID : PsnUniqueIDs)
+	{
+		PsnIDsJson.Add(MakeShared<FJsonValueString>(PsnID));
+	}
+
+	HttpRequestJson->SetArrayField(TEXT("PSNAccountIDs"), PsnIDsJson);
+	int32 NpIssuerIdValue = 0;
+#if !UE_BUILD_SHIPPING
+	if (!GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("SceNpIssuerId"), NpIssuerIdValue, GGameIni))
+	{
+		UE_LOG_ONLINE(Error, TEXT("GenerateGetPlayFabIDsFromPsnIDsRequestBody: Failed to load SceNpIssuerId from GGameIni"));
+	}
+#endif // !UE_BUILD_SHIPPING
+	HttpRequestJson->SetNumberField(FString(TEXT("IssuerId")), NpIssuerIdValue);
+	generatedRequestBody = SerializeRequestJson(HttpRequestJson);
+}
+#endif // OSS_PLAYFAB_PLAYSTATION
+
 bool
 GenerateUserAttributes(
 	const FString& AttributeName,
@@ -229,6 +256,52 @@ ParseNsaIdToPlayFabIdMappingDataObject(
 	return true;
 }
 
+#if OSS_PLAYFAB_PLAYSTATION
+bool
+ParsePsnIdToPlayFabIdMappingDataObject(
+	const TSharedPtr<FJsonObject>* JsonDataObject,
+	TMap<FString, FString>& EntityIdMapping
+)
+{
+	//{
+	//		"code": 200,
+	//		"status" : "OK",
+	//		"data" : {
+	//		"Data": [
+	//		{
+	//			"PSNAccountId": ???,
+	//			"PlayFabId" : "9876543210987654321"
+	//		}
+	//		]
+	//	}
+	//}
+	const TArray<TSharedPtr<FJsonValue>>* JsonIDPairArrayObject = nullptr;
+	if (!(*JsonDataObject)->TryGetArrayField(TEXT("Data"), JsonIDPairArrayObject))
+	{
+		return false;
+	}
+
+	for (const auto& Value : *JsonIDPairArrayObject)
+	{
+		if (Value.IsValid())
+		{
+			FString PsnId;
+			if (!(Value->AsObject())->TryGetStringField(TEXT("PSNAccountId"), PsnId))
+			{
+				continue;
+			}
+			FString PlayFabId;
+			if (!(Value->AsObject())->TryGetStringField(TEXT("PlayFabId"), PlayFabId))
+			{
+				continue;
+			}
+			EntityIdMapping.Add(PsnId, PlayFabId);
+		}
+	}
+	return true;
+}
+#endif // OSS_PLAYFAB_PLAYSTATION
+
 bool ParsePlayFabIdsFromPlatformIdsResponse(
 	const FHttpResponsePtr HttpResponse,
 	TMap<FString, FString>& EntityIdMapping
@@ -247,6 +320,8 @@ bool ParsePlayFabIdsFromPlatformIdsResponse(
 	return ParseSteamIdToPlayFabIdMappingDataObject(JsonDataObject, EntityIdMapping);
 #elif defined(OSS_PLAYFAB_SWITCH)
 	return ParseNsaIdToPlayFabIdMappingDataObject(JsonDataObject, EntityIdMapping);
+#elif defined(OSS_PLAYFAB_PLAYSTATION)
+	return ParsePsnIdToPlayFabIdMappingDataObject(JsonDataObject, EntityIdMapping);
 #endif
 	return false;
 }

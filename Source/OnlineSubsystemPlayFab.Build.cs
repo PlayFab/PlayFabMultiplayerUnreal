@@ -18,6 +18,10 @@ public class OnlineSubsystemPlayFab : ModuleRules
 
     private void SetupPlatformDefine(UnrealTargetPlatform TargetPlatform)
     {
+        if (TargetPlatform == UnrealTargetPlatform.PS4 || TargetPlatform == UnrealTargetPlatform.PS5)
+        {
+            PublicDefinitions.Add("OSS_PLAYFAB_PLAYSTATION=1");
+        }
         PublicDefinitions.Add(String.Format("OSS_PLAYFAB_{0}=1", TargetPlatform.ToString().ToUpper()));
         System.Console.WriteLine("OnlineSubsystemPlayFab: building for platform {0}", TargetPlatform.ToString().ToUpper());
     }
@@ -128,7 +132,9 @@ public class OnlineSubsystemPlayFab : ModuleRules
         Undefined,
         GDK,
         Windows,
-        Switch
+        Switch,
+        PS4,
+        PS5
     }
 
     private PlayFabOSSSupportedPlatformType DeterminePlatformType()
@@ -154,8 +160,18 @@ public class OnlineSubsystemPlayFab : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
             return PlayFabOSSSupportedPlatformType.Windows;
-        }        
+        }
 
+        if (Target.Platform == UnrealTargetPlatform.PS4)
+        {
+            return PlayFabOSSSupportedPlatformType.PS4;
+        }
+
+        if (Target.Platform == UnrealTargetPlatform.PS5)
+        {
+            return PlayFabOSSSupportedPlatformType.PS5;
+        }
+        
         throw new PlatformNotSupportedException(Target.Platform.ToString() + " is not supported.");
     }
 
@@ -175,10 +191,70 @@ public class OnlineSubsystemPlayFab : ModuleRules
                 {
                     return new WindowsPlatformConfigurator();
                 }
+            case PlayFabOSSSupportedPlatformType.PS4:
+                {
+                    return new PlayStation4PlatformConfigurator();
+                }
+            case PlayFabOSSSupportedPlatformType.PS5:
+                {
+                    return new PlayStation5PlatformConfigurator();
+                }
             default:
                 {
                     throw new PlatformNotSupportedException(Target.Platform.ToString() + " is not supported.");
                 }
+        }
+    }
+
+    private class NuGetPackageLoader
+    {
+        public class NuGetPackageInformation
+        {
+            public string PartyPackagePath = string.Empty;
+            public string MultiplayerPackagePath = string.Empty;
+        }
+
+        // If want specific version to use, can specify the version in the packages.config file.
+        public void ParsingNuGetPackage(ref string PlatformDir, ref NuGetPackageInformation PackageInfo)
+        {
+            string[] Lines = System.IO.File.ReadAllLines(Path.Combine(PlatformDir, "packages.config"));
+            foreach (string Line in Lines)
+            {
+                Int32 BeginOfString = Line.IndexOf("Microsoft.PlayFab", 0);
+                if (BeginOfString > -1)
+                {
+                    Int32 EndOfString = Line.IndexOf("\"", BeginOfString);
+                    string Id = Line.Substring(BeginOfString, EndOfString - BeginOfString);
+
+                    const string versionString = "version=\"";
+                    BeginOfString = Line.IndexOf(versionString, 0);
+                    if (BeginOfString > -1)
+                    {
+                        BeginOfString += versionString.Length;
+                        EndOfString = Line.IndexOf("\"", BeginOfString);
+                        string Version = Line.Substring(BeginOfString, EndOfString - BeginOfString);
+
+                        if (Id.IndexOf("Party", 0) > -1)
+                        {
+                            PackageInfo.PartyPackagePath = Id + "." + Version;
+                        }
+                        else if (Id.IndexOf("Multiplayer", 0) > -1)
+                        {
+                            PackageInfo.MultiplayerPackagePath = Id + "." + Version;
+                        }
+                        else
+                        {
+                            throw new BuildException("Unknown package id in package.config file.");
+                        }
+                    }
+                }
+            }
+            if (PackageInfo.PartyPackagePath.Length == 0 && PackageInfo.MultiplayerPackagePath.Length == 0)
+            {
+                throw new BuildException("Can't find Party and Multiplayer package infomation in package.config file.");
+            }
+            System.Console.WriteLine("OnlineSubsystemPlayFab: Party={0}", PackageInfo.PartyPackagePath);
+            System.Console.WriteLine("OnlineSubsystemPlayFab: Multiplayer={0}", PackageInfo.MultiplayerPackagePath);
         }
     }
 
@@ -370,6 +446,87 @@ public class OnlineSubsystemPlayFab : ModuleRules
             ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/PartyWin.pdb", Path.Combine(PlayFabPartyRedistPath, "PartyWin.pdb"), StagedFileType.DebugNonUFS);
             ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/PlayFabMultiplayerWin.dll", Path.Combine(PlayFabPartyRedistPath, "PlayFabMultiplayerWin.dll"), StagedFileType.SystemNonUFS);
             ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/PlayFabMultiplayerWin.pdb", Path.Combine(PlayFabPartyRedistPath, "PlayFabMultiplayerWin.pdb"), StagedFileType.DebugNonUFS);
+        }
+    }
+
+    private class PlayStationPlatformConfigurator : IPlayFabOSSPlatformConfigurator
+    {
+        protected string PlatformDir;
+        protected NuGetPackageLoader NuGetLoader;
+        protected NuGetPackageLoader.NuGetPackageInformation NugetPackageInfo;
+
+        public virtual bool IsPCPlatform(ReadOnlyTargetRules Target)
+        {
+            return false;
+        }
+
+        public virtual void AddModuleDependencies(ModuleRules ThisModule)
+        {
+            //No common playstation module dependencies.
+        }
+
+        public virtual void SetPlatformDefinitions(ModuleRules ThisModule)
+        {
+            ThisModule.bAllowConfidentialPlatformDefines = true;
+        }
+
+        public virtual void ConfigurePlayFabDependencies(ReadOnlyTargetRules Target, ModuleRules ThisModule)
+        {
+            //No common playstation platform definitions.
+        }
+    }
+
+    private class PlayStation4PlatformConfigurator : PlayStationPlatformConfigurator
+    {
+        public PlayStation4PlatformConfigurator()
+        {
+            NugetPackageInfo = new NuGetPackageLoader.NuGetPackageInformation();
+            NuGetLoader = new NuGetPackageLoader();
+            PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "PS4");
+            NuGetLoader.ParsingNuGetPackage(ref PlatformDir, ref NugetPackageInfo);
+        }
+
+        public override void AddModuleDependencies(ModuleRules ThisModule)
+        {
+            ThisModule.PublicDependencyModuleNames.Add("OnlineSubsystemPS4");
+        }
+
+        public override void SetPlatformDefinitions(ModuleRules ThisModule)
+        {
+            base.SetPlatformDefinitions(ThisModule);
+
+            //No PlayStation4 specific platform definitions.
+        }
+
+        public override void ConfigurePlayFabDependencies(ReadOnlyTargetRules Target, ModuleRules ThisModule)
+        {
+        }
+    }
+
+    private class PlayStation5PlatformConfigurator : PlayStationPlatformConfigurator
+    {
+        public PlayStation5PlatformConfigurator()
+        {
+            NugetPackageInfo = new NuGetPackageLoader.NuGetPackageInformation();
+            NuGetLoader = new NuGetPackageLoader();
+            PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "PS5");
+            NuGetLoader.ParsingNuGetPackage(ref PlatformDir, ref NugetPackageInfo);
+        }
+
+        public override void AddModuleDependencies(ModuleRules ThisModule)
+        {
+            ThisModule.PublicDependencyModuleNames.Add("OnlineSubsystemPS5");
+        }
+
+        public override void SetPlatformDefinitions(ModuleRules ThisModule)
+        {
+            base.SetPlatformDefinitions(ThisModule);
+
+            //No PlayStation5 specific platform definitions.
+        }
+
+        public override void ConfigurePlayFabDependencies(ReadOnlyTargetRules Target, ModuleRules ThisModule)
+        {
         }
     }
 }
