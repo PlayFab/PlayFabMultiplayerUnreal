@@ -23,6 +23,10 @@ The quickstart guide for OnlineSubsystemPlayFab can be found at:
 
 [PlayFab Online Subsystem](https://docs.microsoft.com/gaming/playfab/features/multiplayer/networking/party-unreal-engine-oss-quickstart)
 
+## Requirements
+
+* Git client with Large File Storage (LFS) support is required to work with this repo
+
 ## Version
 
 |OSS version
