@@ -866,23 +866,6 @@ void FPlayFabLobby::DoWork()
 				HandleJoinLobbyCompleted(static_cast<const PFLobbyJoinLobbyCompletedStateChange&>(StateChange));
 				break;
 			}
-			case PFLobbyStateChangeType::JoinArrangedLobbyCompleted:
-			{
-				HandleJoinArrangedLobbyCompleted(static_cast<const PFLobbyJoinArrangedLobbyCompletedStateChange&>(StateChange));
-				break;
-			}
-			case PFLobbyStateChangeType::PostUpdateCompleted:
-			{
-				const auto& UpdateCompleted = static_cast<const PFLobbyPostUpdateCompletedStateChange&>(StateChange);
-				FName* SessionName = LobbySessionMap.Find(UpdateCompleted.lobby);
-				TriggerOnUpdateLobbyCompletedDelegates(*SessionName, SUCCEEDED(UpdateCompleted.result));
-				break;
-			}
-			case PFLobbyStateChangeType::Updated:
-			{
-				HandleLobbyUpdate(static_cast<const PFLobbyUpdatedStateChange&>(StateChange));
-				break;
-			}
 			case PFLobbyStateChangeType::MemberAdded:
 			{
 				HandleOnMemberAdded(static_cast<const PFLobbyMemberAddedStateChange&>(StateChange));
@@ -898,9 +881,41 @@ void FPlayFabLobby::DoWork()
 				HandleOnMemberRemoved(static_cast<const PFLobbyMemberRemovedStateChange&>(StateChange));
 				break;
 			}
+			case PFLobbyStateChangeType::ForceRemoveMemberCompleted:
+			{
+				HandleForceRemoveMember(static_cast<const PFLobbyForceRemoveMemberCompletedStateChange&>(StateChange));
+				break;
+			}
 			case PFLobbyStateChangeType::LeaveLobbyCompleted:
 			{
 				HandleLeaveLobbyCompleted(static_cast<const PFLobbyLeaveLobbyCompletedStateChange&>(StateChange));
+				break;
+			}
+			case PFLobbyStateChangeType::Updated:
+			{
+				HandleLobbyUpdate(static_cast<const PFLobbyUpdatedStateChange&>(StateChange));
+				break;
+			}
+			case PFLobbyStateChangeType::PostUpdateCompleted:
+			{
+				const auto& UpdateCompleted = static_cast<const PFLobbyPostUpdateCompletedStateChange&>(StateChange);
+				FName* SessionName = LobbySessionMap.Find(UpdateCompleted.lobby);
+				TriggerOnUpdateLobbyCompletedDelegates(*SessionName, SUCCEEDED(UpdateCompleted.result));
+				break;
+			}
+			case PFLobbyStateChangeType::Disconnecting:
+			{
+				HandleLobbyDisconnecting(static_cast<const PFLobbyDisconnectingStateChange&>(StateChange));
+				break;
+			}
+			case PFLobbyStateChangeType::Disconnected:
+			{
+				HandleLobbyDisconnected(static_cast<const PFLobbyDisconnectedStateChange&>(StateChange));
+				break;
+			}
+			case PFLobbyStateChangeType::JoinArrangedLobbyCompleted:
+			{
+				HandleJoinArrangedLobbyCompleted(static_cast<const PFLobbyJoinArrangedLobbyCompletedStateChange&>(StateChange));
 				break;
 			}
 			case PFLobbyStateChangeType::FindLobbiesCompleted:
@@ -908,9 +923,9 @@ void FPlayFabLobby::DoWork()
 				HandleFindLobbiesCompleted(static_cast<const PFLobbyFindLobbiesCompletedStateChange&>(StateChange));
 				break;
 			}
-			case PFLobbyStateChangeType::SendInviteCompleted:
+			case PFLobbyStateChangeType::InviteReceived:
 			{
-				HandleSendInviteCompleted(static_cast<const PFLobbySendInviteCompletedStateChange&>(StateChange));
+				HandleInvitationReceived(static_cast<const PFLobbyInviteReceivedStateChange&>(StateChange));
 				break;
 			}
 			case PFLobbyStateChangeType::InviteListenerStatusChanged:
@@ -918,14 +933,9 @@ void FPlayFabLobby::DoWork()
 				HandleInviteListenerStatusChanged(static_cast<const PFLobbyInviteListenerStatusChangedStateChange&>(StateChange));
 				break;
 			}
-			case PFLobbyStateChangeType::InviteReceived:
+			case PFLobbyStateChangeType::SendInviteCompleted:
 			{
-				HandleInvitationReceived(static_cast<const PFLobbyInviteReceivedStateChange&>(StateChange));
-				break;
-			}
-			case PFLobbyStateChangeType::Disconnected:
-			{
-				HandleLobbyDisconnected(static_cast<const PFLobbyDisconnectedStateChange&>(StateChange));
+				HandleSendInviteCompleted(static_cast<const PFLobbySendInviteCompletedStateChange&>(StateChange));
 				break;
 			}
 			default:
@@ -1173,6 +1183,11 @@ void FPlayFabLobby::HandleOnMemberRemoved(const PFLobbyMemberRemovedStateChange&
 	TriggerOnLobbyMemberRemovedDelegates(*SessionName, StateChange);
 }
 
+void FPlayFabLobby::HandleForceRemoveMember(const PFLobbyForceRemoveMemberCompletedStateChange& StateChange)
+{
+	UE_LOG_ONLINE(Verbose, TEXT("Received ForceRemoveMemberCompleted(%u) event"), StateChange.stateChangeType);
+}
+
 void FPlayFabLobby::HandleLeaveLobbyCompleted(const PFLobbyLeaveLobbyCompletedStateChange& StateChange)
 {
 	UE_LOG_ONLINE(Verbose, TEXT("HandleLeaveLobbyCompleted: lobby: 0x%p"), StateChange.lobby);
@@ -1279,6 +1294,31 @@ void FPlayFabLobby::HandleLobbyDisconnected(const PFLobbyDisconnectedStateChange
 	{
 		TriggerOnLobbyDisconnectedDelegates(FName());
 	}
+}
+
+void FPlayFabLobby::HandleLobbyDisconnecting(const PFLobbyDisconnectingStateChange& StateChange)
+{
+	FString DisconnectingReason;
+	switch (StateChange.reason)
+		{
+			case PFLobbyDisconnectingReason::NoLocalMembers:
+			{
+				DisconnectingReason = "NoLocalMembers";
+				break;
+			}
+			case PFLobbyDisconnectingReason::LobbyDeleted:
+			{
+				DisconnectingReason = "LobbyDeleted";
+				break;
+			}
+			case PFLobbyDisconnectingReason::ConnectionInterruption:
+			{
+				DisconnectingReason = "ConnectionInterruption";
+				break;
+			}
+		}
+
+	UE_LOG_ONLINE(Verbose, TEXT("Received PFLobbyDisconnectingStateChange(%u) due to: %s"), StateChange.stateChangeType, *DisconnectingReason);
 }
 
 bool FPlayFabLobby::GetLobbyFromSession(const FName SessionName, PFLobbyHandle& LobbyHandle)

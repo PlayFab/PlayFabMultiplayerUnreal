@@ -89,6 +89,8 @@ public:
 	void HandleInviteListenerStatusChanged(const PFLobbyInviteListenerStatusChangedStateChange& StateChange);
 	void HandleInvitationReceived(const PFLobbyInviteReceivedStateChange& StateChange);
 	void HandleLobbyDisconnected(const PFLobbyDisconnectedStateChange& StateChange);
+	void HandleLobbyDisconnecting(const PFLobbyDisconnectingStateChange& StateChange);
+	void HandleForceRemoveMember(const PFLobbyForceRemoveMemberCompletedStateChange& StateChange);
 
 PACKAGE_SCOPE:
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnLobbyCreatedAndJoinCompleted, bool, FName);

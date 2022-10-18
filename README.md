@@ -38,16 +38,16 @@ The quickstart guide for OnlineSubsystemPlayFab can be found at:
 |Unreal Engine version|4.27|
 |-|-|
 Multiplayer SDK|v1.1.5+
-Platforms|GDK (June 2021), Win64+Steam, Nintendo Switch, Sony PlayStation4/PlayStation5
+Platforms|GDK (June 2021), Win64+Steam, Nintendo Switch, Sony PS4™/PS5™
 
 |Unreal Engine version|5.0|
 |-|-|
 Multiplayer SDK|v1.1.5+
-Platforms|GDK (October 2021, Update 5), Win64+Steam
+Platforms|GDK (October 2021, Update 5), Win64+Steam, Nintendo Switch, Sony PS4™/PS5™
 
 ## Important Note
 
-The PlayFab Online Subsystem (PF OSS) v2 is currently generally available (GA) for GDK and Win64+Steam and Nintendo Switch.
+The PlayFab Online Subsystem (PF OSS) v2 is currently generally available (GA) for GDK and Win64+Steam, Nintendo Switch, and Sony PS4™/PS5™.
 
 For platform certification and shipping to retail users, games must use the generally available (GA) release of the SDKs and engine plugins that will become available in the coming months.
 
@@ -55,4 +55,8 @@ For games shipping to Xbox console and PC Game Pass program before September 202
 
 ## Known Limitations and Issues in the Current Preview Build
 
-- [General] Currently cross-play is only supported between Xbox consoles, PC Game Pass, Steam, and Switch.  Cross-play support between other platforms is coming soon.
+- [General] Currently cross-play is only supported between Xbox consoles, PC Game Pass, Steam, Switch, and Sony PS4™/PS5™.  Cross-play support between other platforms is coming soon.
+
+"PlayStation" is a registered trademark or trademark of Sony Interactive Entertainment Inc.
+"PS4" is a registered trademark or trademark of Sony Interactive Entertainment Inc.
+"PS5" is a registered trademark or trademark of Sony Interactive Entertainment Inc.
