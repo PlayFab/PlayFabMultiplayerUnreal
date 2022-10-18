@@ -33,5 +33,5 @@ if ($Platform -like "PlayStation")
 	git submodule update --recursive --init Source/PlatformSpecific/PlayStation
 
 	Write-Host "Patching PlayStation platforms patch..."
-	git apply --quiet Source/PlatformSpecific/PlayStation/playstation.patch
+	git apply --reject --whitespace=fix Source/PlatformSpecific/PlayStation/playstation.patch
 }

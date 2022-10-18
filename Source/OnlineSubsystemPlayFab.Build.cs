@@ -352,18 +352,13 @@ public class OnlineSubsystemPlayFab : ModuleRules
             }        
 
             // Find the MLP and Party library names under the PlatformDir.
-            string[] PlatformDirectories = System.IO.Directory.GetDirectories(PlatformDir);
-            string MultiplayerDirectory = PlatformDirectories.Where(d => d.Contains("PlayFab.Multiplayer")).FirstOrDefault();
-            string PartyDirectory = PlatformDirectories.Where(d => d.Contains("PlayFab.PlayFabParty")).FirstOrDefault();
-            
-            if (String.IsNullOrWhiteSpace(MultiplayerDirectory) || String.IsNullOrWhiteSpace(PartyDirectory))
-            {
-                throw new BuildException("PlayFab Party precompiled dependencies were not found.");
-            }
+            NuGetPackageLoader NuGetLoader = new NuGetPackageLoader();
+            NuGetPackageLoader.NuGetPackageInformation NugetPackageInfo = new NuGetPackageLoader.NuGetPackageInformation();
+            NuGetLoader.ParsingNuGetPackage(ref PlatformDir, ref NugetPackageInfo);
 
             // Load Party binaries.
-            string PartyIncludePath = Path.Combine(PartyDirectory, "build", "native", "include");
-            string PartyLibraryPath = Path.Combine(PartyDirectory, "build", "native", "lib", "NX64", "release");
+            string PartyIncludePath = Path.Combine(PlatformDir, NugetPackageInfo.PartyPackagePath, "build", "native", "include");
+            string PartyLibraryPath = Path.Combine(PlatformDir, NugetPackageInfo.PartyPackagePath, "build", "native", "lib", "NX64", "release");
 
             if (!Directory.Exists(PartyIncludePath) ||
                 !Directory.Exists(PartyLibraryPath))
@@ -377,8 +372,8 @@ public class OnlineSubsystemPlayFab : ModuleRules
             ThisModule.RuntimeDependencies.Add("$(TargetOutputDir)/Party.nrr", Path.Combine(PartyLibraryPath, "Party.nrr"), StagedFileType.DebugNonUFS);
 
             // Load Multiplayer binaries
-            string MultiplayerIncludePath = Path.Combine(MultiplayerDirectory, "build", "native", "include");
-            string MultiplayerLibraryPath = Path.Combine(MultiplayerDirectory, "build", "native", "lib", "NX64", "release");
+            string MultiplayerIncludePath = Path.Combine(PlatformDir, NugetPackageInfo.MultiplayerPackagePath, "build", "native", "include");
+            string MultiplayerLibraryPath = Path.Combine(PlatformDir, NugetPackageInfo.MultiplayerPackagePath, "build", "native", "lib", "NX64", "release");
 
             if (!Directory.Exists(MultiplayerIncludePath) ||
                 !Directory.Exists(MultiplayerLibraryPath))
