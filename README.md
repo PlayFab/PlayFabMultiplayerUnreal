@@ -57,6 +57,6 @@ For games shipping to Xbox console and PC Game Pass program before September 202
 
 - [General] Currently cross-play is only supported between Xbox consoles, PC Game Pass, Steam, Switch, and Sony PS4™/PS5™.  Cross-play support between other platforms is coming soon.
 
-"PlayStation" is a registered trademark or trademark of Sony Interactive Entertainment Inc.
-"PS4" is a registered trademark or trademark of Sony Interactive Entertainment Inc.
+"PlayStation" is a registered trademark or trademark of Sony Interactive Entertainment Inc.<br />
+"PS4" is a registered trademark or trademark of Sony Interactive Entertainment Inc.<br />
 "PS5" is a registered trademark or trademark of Sony Interactive Entertainment Inc.
