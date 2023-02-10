@@ -82,6 +82,22 @@ enum class PFMatchmakingStateChangeType : uint32_t
 };
 
 /// <summary>
+/// The protocol type used for connecting to a PlayFab Multiplayer Server port.
+/// </summary>
+enum class PFMultiplayerProtocolType : uint32_t
+{
+    /// <summary>
+    /// Transmission Control Protocol
+    /// </summary>
+    Tcp = 0,
+
+    /// <summary>
+    /// User Datagram Protocol
+    /// </summary>
+    Udp = 1,
+};
+
+/// <summary>
 /// A generic, base structure representation of an event or change in state.
 /// </summary>
 /// <remarks>
@@ -198,6 +214,58 @@ struct PFMatchmakingMatchMember
 };
 
 /// <summary>
+/// A port used by a Playfab Multiplayer Server.
+/// </summary>
+struct PFMultiplayerPort
+{
+    /// <summary>
+    /// The name of the port as specified in the PlayFab Game Manager server settings.
+    /// </summary>
+    _Null_terminated_ const char * name;
+
+    /// <summary>
+    /// The number for the port.
+    /// </summary>
+    uint32_t num;
+
+    /// <summary>
+    /// The protocol for the port.
+    /// </summary>
+    PFMultiplayerProtocolType protocol;
+};
+
+/// <summary>
+/// Details about a Playfab Multiplayer Server.
+/// </summary>
+struct PFMultiplayerServerDetails
+{
+    /// <summary>
+    /// The fully qualified domain name of the virtual machine that is hosting this multiplayer server.
+    /// </summary>
+    _Null_terminated_ const char * fqdn;
+
+    /// <summary>
+    /// The IPv4 address of the virtual machine that is hosting this multiplayer server.
+    /// </summary>
+    _Null_terminated_ const char * ipv4Address;
+
+    /// <summary>
+    /// The ports the multiplayer server uses.
+    /// </summary>
+    const PFMultiplayerPort * ports;
+
+    /// <summary>
+    /// The number of ports the multiplayer server uses.
+    /// </summary>
+    uint32_t portCount;
+
+    /// <summary>
+    /// The server's region.
+    /// </summary>
+    _Null_terminated_ const char * region;
+};
+
+/// <summary>
 /// The resulting match information found by a completed ticket.
 /// </summary>
 struct PFMatchmakingMatchDetails
@@ -235,6 +303,15 @@ struct PFMatchmakingMatchDetails
     /// lobby associated with this match result. The lobby is not created until a user attempts to join it.
     /// </remarks>
     _Null_terminated_ const char * lobbyArrangementString;
+
+    /// <summary>
+    /// The details of the server associated with this match.
+    /// </summary>
+    /// <remarks>
+    /// This field will be populated if the matchmaking queue associated with the ticket has enabled PlayFab Multiplayer
+    /// Server allocation.
+    /// </remarks>
+    _Maybenull_ const PFMultiplayerServerDetails * serverDetails;
 };
 
 #pragma pack(pop)

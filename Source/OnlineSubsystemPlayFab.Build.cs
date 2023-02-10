@@ -268,6 +268,9 @@ public class OnlineSubsystemPlayFab : ModuleRules
 
     private class GDKPlatformConfigurator : IPlayFabOSSPlatformConfigurator
     {
+        private static int MajorVersionUsingCoreModule = 5;
+        private static int MinorVersionUsingCoreModule = 1;
+
         public bool IsPCPlatform(ReadOnlyTargetRules Target)
         {
             return Target.Platform == UnrealTargetPlatform.Parse("WinGDK");
@@ -275,7 +278,17 @@ public class OnlineSubsystemPlayFab : ModuleRules
 
         public void AddModuleDependencies(ModuleRules ThisModule)
         {
-            ThisModule.PublicDependencyModuleNames.Add("GDKCore");
+            ReadOnlyBuildVersion BuildVersion = ThisModule.Target.Version;
+            // Perforce merged GDKCore/ to Core/ on UE5.1
+            if ((BuildVersion.MajorVersion > MajorVersionUsingCoreModule) || ((BuildVersion.MajorVersion == MajorVersionUsingCoreModule) && (BuildVersion.MinorVersion >= MinorVersionUsingCoreModule)))
+            {
+                ThisModule.PublicDependencyModuleNames.Add("Core");
+            }
+            else
+            {
+                ThisModule.PublicDependencyModuleNames.Add("GDKCore");
+            }
+
             ThisModule.PublicDependencyModuleNames.Add("OnlineSubsystemGDK");
         }
 
