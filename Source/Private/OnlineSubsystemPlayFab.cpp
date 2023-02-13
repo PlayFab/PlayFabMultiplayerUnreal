@@ -104,10 +104,10 @@ bool FOnlineSubsystemPlayFab::Init()
 	GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("MaxUsersPerDeviceCount"), MaxUsersPerDeviceCount, GEngineIni);
 	ParseDirectPeerConnectivityOptions();
 
-	TSharedPtr<IPlugin> SocketsPlugin = IPluginManager::Get().FindPlugin(TEXT("PlayFab"));
+	TSharedPtr<IPlugin> SocketsPlugin = IPluginManager::Get().FindPlugin(TEXT("PlayFabParty"));
 	if (!SocketsPlugin.IsValid() || (SocketsPlugin.IsValid() && !SocketsPlugin->IsEnabled()))
 	{
-		UE_LOG_ONLINE(Log, TEXT("Initializing PlayFabPartSocketSubsystem"));
+		UE_LOG_ONLINE(Log, TEXT("Initializing PlayFabPartySocketSubsystem"));
 		CreatePlayFabSocketSubsystem();
 	}
 

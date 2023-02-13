@@ -65,6 +65,15 @@ constexpr char PFLobbyMemberCountSearchKey[] = "lobby/memberCount";
 /// </remarks>
 constexpr char PFLobbyAmMemberSearchKey[] = "lobby/amMember";
 
+/// <summary>
+/// A special, pre-defined search key which can be used in the <see cref="PFLobbySearchConfiguration" /> filtering
+/// string to search for lobbies that you own.
+/// </summary>
+/// <remarks>
+/// Example: "lobby/amOwner eq true"
+/// </remarks>
+constexpr char PFLobbyAmOwnerSearchKey[] = "lobby/amOwner";
+
 #pragma pack(push, 8)
 
 /// <summary>
@@ -268,6 +277,12 @@ enum class PFLobbyDisconnectingReason : uint32_t
 /// <summary>
 /// The available policies the lobby service can use to migrate lobby ownership between members.
 /// </summary>
+/// <remarks>
+/// Some migration policies trigger based on the lobby owner's connection status. A member is considered disconnected
+/// when their <see cref="PFLobbyMemberConnectionStatus" /> value changes from
+/// <c>PFLobbyMemberConnectionStatus::Connected</c> to <c>PFLobbyMemberConnectionStatus::NotConnected</c>.
+/// </remarks>
+/// <seealso cref="PFLobbyMemberConnectionStatus" />
 enum class PFLobbyOwnerMigrationPolicy : uint32_t
 {
     /// <summary>
@@ -350,6 +365,30 @@ enum class PFLobbyMembershipLock : uint32_t
     /// Lobby membership is locked. New members will be prevented from joining.
     /// </summary>
     Locked = 1,
+};
+
+/// <summary>
+/// Values representing the current status of a member's connection status to the notification service.
+/// </summary>
+enum class PFLobbyMemberConnectionStatus : uint32_t
+{
+    /// <summary>
+    /// The lobby member is not connected to the notification service.
+    /// </summary>
+    /// <remarks>
+    /// Lobby members that are not connected to the notification service may miss updates or see delayed updates while
+    /// in this state.
+    /// </remarks>
+    NotConnected = 0,
+
+    /// <summary>
+    /// The lobby member is connected to the notification service.
+    /// </summary>
+    /// <remarks>
+    /// Lobby members that are connected to the notification service will receive real-time updates indicating changes
+    /// to the lobby.
+    /// </remarks>
+    Connected = 1,
 };
 
 /// <summary>
@@ -1682,8 +1721,8 @@ PFLobbyGetMembers(
 /// the title will be provided a <see cref="PFLobbyAddMemberCompletedStateChange" /> with the
 /// <see cref="PFLobbyAddMemberCompletedStateChange::result" /> field set to a failure hresult.
 /// <para>
-/// This method is used to add another local PlayFab entity to a pre-existing lobby object. Because the lobby
-/// object must have already been created either via a call to <see cref="PFMultiplayerCreateAndJoinLobby" /> or
+/// This method is used to add another local PlayFab entity to a pre-existing lobby object. Because the lobby object
+/// must have already been created either via a call to <see cref="PFMultiplayerCreateAndJoinLobby" /> or
 /// <see cref="PFMultiplayerJoinLobby" />, this method is primarily useful for multiple local user scenarios.
 /// </para>
 /// <para>
@@ -2021,6 +2060,49 @@ PFLobbyGetMemberProperty(
     const PFEntityKey * member,
     _Null_terminated_ const char * key,
     _Outptr_result_maybenull_ const char ** value
+    ) noexcept;
+
+/// <summary>
+/// Determines a member's connection status to the notification service.
+/// </summary>
+/// <remarks>
+/// When joining a lobby, the library establishes a WebSocket connection to the PlayFab PubSub notification service.
+/// This connection is used to provide real-time updates to the library about the lobby. This method can be used to
+/// determine a member's connection status, which is useful for diagnosing a member's ability to receive updates about
+/// the lobby.
+/// <para>
+/// A local member which is still in the process of asychronously joining the lobby, via a call to any of
+/// <see cref="PFMultiplayerCreateAndJoinLobby()" />, <see cref="PFMultiplayerJoinLobby()" />, or
+/// <see cref="PFLobbyAddMember" />, will see their connection status as
+/// <see cref="PFLobbyMemberConnectionStatus::NotConnected" /> until the connection is established.
+/// </para>
+/// <para>
+/// When a user's connection status changes from <see cref="PFLobbyMemberConnectionStatus::Connected" /> to
+/// <see cref="PFLobbyMemberConnectionStatus::NotConnected" />, they may be experiencing connectivity issues - or their
+/// game may have crashed. The lobby owner can remove such users from the lobby via
+/// <see cref="PFLobbyForceRemoveMember()" />.
+/// </para>
+/// </remarks>
+/// <param name="lobby">
+/// The handle of the lobby.
+/// </param>
+/// <param name="member">
+/// The member whose connection status will be inspected.
+/// </param>
+/// <param name="connectionStatus">
+/// The output connection status of the member.
+/// </param>
+/// <returns>
+/// <c>S_OK</c> if the call succeeded or an error code otherwise. The human-readable form of the error code can be
+/// retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+/// </returns>
+PFMULTIPLAYER_API_ATTRIBUTES
+HRESULT
+PFMULTIPLAYER_API
+PFLobbyGetMemberConnectionStatus(
+    PFLobbyHandle lobby,
+    const PFEntityKey * member,
+    _Out_ PFLobbyMemberConnectionStatus * connectionStatus
     ) noexcept;
 
 /// <summary>

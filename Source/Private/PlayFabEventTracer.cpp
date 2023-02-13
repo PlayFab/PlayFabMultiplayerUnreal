@@ -63,10 +63,11 @@ void PlayFabEventTracer::OnPlayFabMultiplayerManagerInitialize()
 	SetCommonTelemetryProperties(PayloadJson); // Design for when more telemetry events are added
 
 	PayloadJson->SetStringField(TEXT("ClientInstanceId"), FApp::GetSessionId().ToString());
-	PayloadJson->SetStringField(TEXT("PartyVersion"), TEXT("1.7.8"));
+	PayloadJson->SetStringField(TEXT("PartyVersion"), TEXT("1.7.20"));
 	PayloadJson->SetStringField(TEXT("UnrealEngineVersion"), FEngineVersion::Current().ToString());
 
 	PayloadJson->SetStringField(TEXT("PlatformSDKVersion"), GetPlatformSDKVersion());
+	PayloadJson->SetStringField(TEXT("OSSPlayFabVersion"), IPluginManager::Get().FindPlugin("OnlineSubsystemPlayFab")->GetDescriptor().VersionName);
 
 	Event.Payload = PayloadJson;
 	EventsRequest.Events.Add(Event);
