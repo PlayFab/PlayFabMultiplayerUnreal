@@ -31,7 +31,7 @@ The quickstart guide for OnlineSubsystemPlayFab can be found at:
 
 |OSS version
 |-|
-|2.2.6
+|2.2.7
 
 ## Compatibility
 
@@ -48,7 +48,7 @@ Platforms|GDK (October 2021, Update 5), Win64+Steam, Nintendo Switch, Sony PS4�
 |Unreal Engine version|5.1|
 |-|-|
 Multiplayer SDK|v1.1.5+
-Platforms|GDK (June 2022, Update 2), Win64+Steam, Nintendo Switch (coming soon), Sony PS4™/PS5™ (coming soon)
+Platforms|GDK (June 2022, Update 2), Win64+Steam, Nintendo Switch (coming soon), Sony PS4™/PS5™
 
 ## Important Note
 
