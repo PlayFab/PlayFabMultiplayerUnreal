@@ -29,7 +29,8 @@ function Set-NuGetPackageInfo($localPath, $partyFileName, $partyVersion, $mlpFil
 if ($Platform -eq "Switch")
 {
     Write-Host "Select Switch SDK version..."
-    Write-Host "    1: SDK 14.3.0"
+    Write-Host "    1: SDK 14.3.0-shipping"
+    Write-Host "    2: SDK 14.3.0-logging"
     while($True)
     {
         Write-Host -NoNewline "> "
@@ -41,6 +42,14 @@ if ($Platform -eq "Switch")
             $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.Switch-14.3.0-shipping"
             $partyNugetVersion = "1.7.15"
             $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-14.3.0-shipping"
+            $mlpNugetVersion = "1.4.4"
+            break
+        }
+        elseif ($Selection -eq '2')
+        {
+            $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.Switch-14.3.0-logging"
+            $partyNugetVersion = "1.7.15"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-14.3.0-logging"
             $mlpNugetVersion = "1.4.4"
             break
         }

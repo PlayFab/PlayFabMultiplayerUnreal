@@ -52,7 +52,7 @@ Platforms|GDK (October 2021, Update 5), Win64+Steam, Nintendo Switch, Sony PS4�
 |-|-|
 Multiplayer SDK|v1.1.5+ (Recommended v1.4.2)
 Party SDK|v1.7.8+ (Recommended v1.7.20)
-Platforms|GDK (June 2022, Update 2), Win64+Steam, Nintendo Switch (coming soon), Sony PS4™/PS5™
+Platforms|GDK (June 2022, Update 2), Win64+Steam, Nintendo Switch, Sony PS4™/PS5™
 
 ## Important Note
 
