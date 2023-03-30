@@ -64,6 +64,9 @@ if ($Platform -eq "Switch")
 
     Write-Host "Updating git submodules for private platforms..."
     git submodule update --recursive --init Source/PlatformSpecific/Switch
+    cd Source/PlatformSpecific/Switch
+    git checkout a00951e4c6d7fbad2ba1c6f9be4ffe009a023576
+    cd ../../../
 }
 elseif ($Platform -eq "PlayStation")
 {
@@ -142,6 +145,9 @@ elseif ($Platform -eq "PlayStation")
 
     Write-Host "Updating git submodules for private platforms..."
     git submodule update --recursive --init Source/PlatformSpecific/PlayStation
+    cd Source/PlatformSpecific/PlayStation
+    git checkout b4179c61632f63994b6167a2b61be0dcba3b0277
+    cd ../../../
 
     Write-Host "Patching PlayStation platforms patch..."
     git apply --reject --whitespace=fix Source/PlatformSpecific/PlayStation/playstation.patch
