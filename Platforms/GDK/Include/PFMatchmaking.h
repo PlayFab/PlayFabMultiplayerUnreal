@@ -169,7 +169,7 @@ struct PFMatchmakingTicketConfiguration
     uint32_t timeoutInSeconds;
 
     /// <summary>
-    /// The ID of a match queue.
+    /// The name of a match queue.
     /// </summary>
     _Null_terminated_ const char * queueName;
 
@@ -314,6 +314,52 @@ struct PFMatchmakingMatchDetails
     _Maybenull_ const PFMultiplayerServerDetails * serverDetails;
 };
 
+#ifdef PFMULTIPLAYER_INCLUDE_SERVER_APIS
+/// <summary>
+/// Defines the configuration for a server backfill ticket.
+/// </summary>
+/// <remarks>
+/// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFMatchmaking.h.
+/// </remarks>
+struct PFMatchmakingServerBackfillTicketConfiguration
+{
+    /// <summary>
+    /// How long to attempt filling the ticket, in seconds.
+    /// </summary>
+    uint32_t timeoutInSeconds;
+
+    /// <summary>
+    /// The name of a match queue.
+    /// </summary>
+    _Null_terminated_ const char * queueName;
+
+    /// <summary>
+    /// The number of members currently in the match.
+    /// </summary>
+    uint32_t memberCount;
+
+    /// <summary>
+    /// The members currently in the match.
+    /// </summary>
+    _Field_size_(memberCount) const PFMatchmakingMatchMember * members;
+
+    /// <summary>
+    /// The details about the PlayFab Multiplayer Server that the ticket is for.
+    /// </summary>
+    /// <remarks>
+    /// The supplied server details will be provided in the <see cref="PFMatchmakingMatchDetails" /> for any other
+    /// clients that are matched with this ticket. Clients will be able to use this information to the connect to the
+    /// game server.
+    /// <para>
+    /// The server details are optional. If not server details need to be provided to clients on match completion, this
+    /// value can be nullptr. Similarly, any of the fields in the server details don't need to be provided to
+    /// clients can be empty or nullptr.
+    /// </para>
+    /// </remarks>
+    _Maybenull_ const PFMultiplayerServerDetails * serverDetails;
+};
+#endif // PFMULTIPLAYER_INCLUDE_SERVER_APIS
+
 #pragma pack(pop)
 
 /// <summary>
@@ -416,7 +462,7 @@ PFMultiplayerFinishProcessingMatchmakingStateChanges(
 /// <remarks>
 /// The library automatically, and asynchronously, will submit all local users on a ticket to the matchmaking service.
 /// Each time the ticket status changes, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> will be provided.
-/// The ticket status can be quered at any time via <see cref="PFMatchmakingTicketGetStatus()" />. The ticket
+/// The ticket status can be queried at any time via <see cref="PFMatchmakingTicketGetStatus()" />. The ticket
 /// immediately starts in the <c>PFMatchmakingTicketStatus::Creating</c> state.
 /// <para>
 /// When the ticket has completed, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> will be provided. At
@@ -478,7 +524,7 @@ PFMultiplayerCreateMatchmakingTicket(
 /// <remarks>
 /// The library automatically, and asynchronously, will submit all local users to join the ticket on the matchmaking
 /// service. Each time the ticket status changes, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> will be
-/// provided. The ticket status can be quered at any time via <see cref="PFMatchmakingTicketGetStatus()" />. The ticket
+/// provided. The ticket status can be queried at any time via <see cref="PFMatchmakingTicketGetStatus()" />. The ticket
 /// immediately starts in the <c>PFMatchmakingTicketStatus::Joining</c> state.
 /// <para>
 /// When the ticket has completed, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> will be provided. At
@@ -656,6 +702,62 @@ PFMatchmakingTicketGetMatch(
     PFMatchmakingTicketHandle ticket,
     _Outptr_ const PFMatchmakingMatchDetails ** match
     ) noexcept;
+
+#ifdef PFMULTIPLAYER_INCLUDE_SERVER_APIS
+/// <summary>
+/// Creates a server backfill ticket.
+/// </summary>
+/// <remarks>
+/// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFMatchmaking.h.
+/// <para>
+/// The library automatically, and asynchronously, will submit a server backfill ticket to the matchmaking service. Each
+/// time the ticket status changes, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> will be provided. The
+/// ticket status can be queried at any time via <see cref="PFMatchmakingTicketGetStatus()" />. The ticket immediately
+/// starts in the <c>PFMatchmakingTicketStatus::Creating</c> state.
+/// </para>
+/// <para>
+/// When the ticket has completed, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> will be provided. At
+/// that point, a match for the backfill ticket will have been found or the ticket stopped due to failure. On success,
+/// the match that was found can be queried via <see cref="PFMatchmakingTicketGetMatch()" />. The
+/// <c>regionPreferences</c> in <see cref="PFMatchmakingMatchDetails" /> will only contain the region that the server is
+/// located in.
+/// </para>
+/// <para>
+/// This function requires that a previous call to <see cref="PFMultiplayerSetEntityToken()" /> was made to set the
+/// game server entity token.
+/// </para>
+/// </remarks>
+/// <param name="handle">
+/// The handle of the PFMultiplayer API instance.
+/// </param>
+/// <param name="server">
+/// The server entity.
+/// </param>
+/// <param name="configuration">
+/// The backfill ticket configuration.
+/// </param>
+/// <param name="asyncContext">
+/// An optional, app-defined, pointer-sized context value that can be used to associate the completion state change with
+/// this call.
+/// </param>
+/// <param name="ticket">
+/// The resulting ticket object.
+/// </param>
+/// <returns>
+/// <c>S_OK</c> if the call succeeded or an error code otherwise. The human-readable form of the error code can be
+/// retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+/// </returns>
+PFMULTIPLAYER_API_ATTRIBUTES
+HRESULT
+PFMULTIPLAYER_API
+PFMultiplayerCreateServerBackfillTicket(
+    PFMultiplayerHandle handle,
+    const PFEntityKey * server,
+    const PFMatchmakingServerBackfillTicketConfiguration * configuration,
+    _In_opt_ void* asyncContext,
+    _Outptr_ PFMatchmakingTicketHandle* ticket
+) noexcept;
+#endif // PFMULTIPLAYER_INCLUDE_SERVER_APIS
 
 #ifdef __cplusplus
 }

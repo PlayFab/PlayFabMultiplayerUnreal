@@ -25,7 +25,7 @@ typedef struct PFEntityKey
     /// Entity type. See https://docs.microsoft.com/gaming/playfab/features/data/entities/available-built-in-entity-types.
     /// </summary>
     /// <remarks>
-    /// Player entities are typically the <c>title_player_account</c> type. For more information, see See
+    /// Player entities are typically the <c>title_player_account</c> type. For more information, see
     /// https://docs.microsoft.com/gaming/playfab/features/data/entities/available-built-in-entity-types.
     /// </remarks>
     _Null_terminated_ const char* type;
