@@ -42,7 +42,7 @@ constexpr uint32_t PFLobbyMaxLobbyPropertyCount = 30;
 constexpr uint32_t PFLobbyMaxMemberPropertyCount = 30;
 
 /// <summary>
-/// The maximum number of search results that client-entity callers may request when performing a
+/// The maximum number of search results that title_player_account entities may request when performing a
 /// <see cref="PFMultiplayerFindLobbies" /> operation.
 /// </summary>
 constexpr uint32_t PFLobbyClientRequestedSearchResultCountUpperLimit = 50;
@@ -73,6 +73,15 @@ constexpr char PFLobbyAmMemberSearchKey[] = "lobby/amMember";
 /// Example: "lobby/amOwner eq true"
 /// </remarks>
 constexpr char PFLobbyAmOwnerSearchKey[] = "lobby/amOwner";
+
+/// <summary>
+/// A special, pre-defined search key which lets you search for lobbies which match 
+/// certain parameters such as having specific properties 
+/// </summary>
+/// <remarks>
+/// Example: "lobby/membershipLock eq true"
+/// </remarks>
+constexpr char PFLobbyMembershipLockSearchKey[] = "lobby/membershipLock";
 
 #pragma pack(push, 8)
 
@@ -229,6 +238,56 @@ enum class PFLobbyStateChangeType : uint32_t
     /// for more information.
     /// </remarks>
     SendInviteCompleted = 15,
+
+#ifdef PFMULTIPLAYER_INCLUDE_SERVER_APIS
+    /// <summary>
+    /// The operation started by a previous call to <see cref="PFMultiplayerCreateAndClaimServerLobby()" /> completed.
+    /// </summary>
+    /// <remarks>
+    /// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+    /// <para>
+    /// The PFLobbyStateChange object should be cast to a
+    /// <see cref="PFLobbyCreateAndClaimServerLobbyCompletedStateChange" /> object for more information.
+    /// </para>
+    /// </remarks>
+    CreateAndClaimServerLobbyCompleted = 16,
+
+    /// <summary>
+    /// The operation started by a previous call to <see cref="PFMultiplayerClaimServerLobby()" /> completed.
+    /// </summary>
+    /// <remarks>
+    /// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+    /// <para>
+    /// The PFLobbyStateChange object should be cast to a <see cref="PFLobbyClaimServerLobbyCompletedStateChange" />
+    /// object for more information.
+    /// </para>
+    /// </remarks>
+    ClaimServerLobbyCompleted = 17,
+
+    /// <summary>
+    /// The operation started by a previous call to <see cref="PFLobbyServerPostUpdate()" /> completed.
+    /// </summary>
+    /// <remarks>
+    /// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+    /// <para>
+    /// The PFLobbyStateChange object should be cast to a <see cref="PFLobbyServerPostUpdateCompletedStateChange" />
+    /// object for more information.
+    /// </para>
+    /// </remarks>
+    ServerPostUpdateCompleted = 18,
+
+    /// <summary>
+    /// The operation started by a previous call to <see cref="PFLobbyServerDeleteLobby()" /> completed.
+    /// </summary>
+    /// <remarks>
+    /// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+    /// <para>
+    /// The PFLobbyStateChange object should be cast to a <see cref="PFLobbyServerDeleteLobbyCompletedStateChange" />
+    /// object for more information.
+    /// </para>
+    /// </remarks>
+    ServerDeleteLobbyCompleted = 19,
+#endif // PFMULTIPLAYER_INCLUDE_SERVER_APIS
 };
 
 /// <summary>
@@ -443,7 +502,10 @@ struct PFLobbyCreateConfiguration
     /// The owner migration policy for the new lobby.
     /// </summary>
     /// <remarks>
-    /// This value cannot be set to <c>PFLobbyOwnerMigrationPolicy::Server</c>.
+    /// When passed to <see cref="PFMultiplayerCreateAndJoinLobby()" />, this value cannot be
+    /// <c>PFLobbyOwnerMigrationPolicy::Server</c>. When passed to
+    /// <see cref="PFMultiplayerCreateAndClaimServerLobby()" />, this value must be
+    /// <c>PFLobbyOwnerMigrationPolicy::Server</c>.
     /// </remarks>
     PFLobbyOwnerMigrationPolicy ownerMigrationPolicy;
 
@@ -582,8 +644,12 @@ struct PFLobbyJoinConfiguration
 };
 
 /// <summary>
-/// A request to make an update to the shared portion of the lobby on behalf of a member.
+/// A request to make an update to the shared portion of the lobby.
 /// </summary>
+/// <remarks>
+/// Most data in the shared portion of the lobby can only be updated by the owner. Check the documentation for each
+/// field for confirmation.
+/// </remarks>
 struct PFLobbyDataUpdate
 {
     /// <summary>
@@ -594,6 +660,11 @@ struct PFLobbyDataUpdate
     /// ` * The member updating this field is the lobby's current owner
     /// ` * The owner migration policy is <c>PFLobbyOwnerMigrationPolicy::Manual</c> and there is currently no owner
     /// ` * The owner migration policy is <c>PFLobbyOwnerMigrationPolicy::None</c>
+    /// <para>
+    /// If this lobby is client-owned (the current owner is a title_player_account entity), the new owner must also be
+    /// a title_player_account entity. If this lobby is server-owned (the current owner is a game_server entity), the
+    /// new owner must also be a game_server entity.
+    /// </para>
     /// </remarks>
     _Maybenull_ const PFEntityKey * newOwner;
 
@@ -840,6 +911,10 @@ struct PFLobbySearchConfiguration
     /// </summary>
     /// <remarks>
     /// If omitted, the search operation will search all available lobbies.
+    /// <para>
+    /// This value may only be specified when <see cref="PFMultiplayerFindLobbies" /> is called with a
+    /// title_player_account entity.
+    /// </para>
     /// </remarks>
     _Maybenull_ const PFLobbySearchFriendsFilter * friendsFilter;
 
@@ -894,10 +969,12 @@ struct PFLobbySearchConfiguration
     _Maybenull_ _Null_terminated_ const char * sortString;
 
     /// <summary>
-    /// An optional value which, when specified, will limit the number of results provided in the completion response.
+    /// An optional value which, when specified by title_player_account entities, will limit the number of results
+    /// provided in the completion response.
     /// </summary>
     /// <remarks>
-    /// This value may only be specified when <see cref="PFMultiplayerFindLobbies" /> is called with a client-entity.
+    /// This value may only be specified when <see cref="PFMultiplayerFindLobbies" /> is called with a
+    /// title_player_account entity.
     /// <para>
     /// This value can be no higher than <c>PFLobbyClientRequestedSearchResultCountUpperLimit</c>.
     /// </para>
@@ -1400,8 +1477,10 @@ struct PFLobbyFindLobbiesCompletedStateChange : PFLobbyStateChange
     /// The number of results returned by the search operation.
     /// </summary>
     /// <para>
-    /// For client-entity callers, at most <c>PFLobbyClientRequestedSearchResultCountUpperLimit</c> search results will
-    /// ever be returned from a single <see cref="PFMultiplayerFindLobbies" /> operation.
+    /// For title_player_account entity callers, at most <c>PFLobbyClientRequestedSearchResultCountUpperLimit</c> search
+    /// results will ever be returned from a single <see cref="PFMultiplayerFindLobbies" /> operation. For game_server
+    /// entity callers, at most 500 search results will ever be returned from a single
+    /// <see cref="PFMultiplayerFindLobbies" /> operation.
     /// </para>
     uint32_t searchResultCount;
 
@@ -1477,17 +1556,136 @@ struct PFLobbySendInviteCompletedStateChange : PFLobbyStateChange
     void * asyncContext;
 };
 
+#ifdef PFMULTIPLAYER_INCLUDE_SERVER_APIS
+/// <summary>
+/// Information specific to the <em>CreateAndClaimServerLobbyCompleted</em> type of state change.
+/// </summary>
+/// <remarks>
+/// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+/// </remarks>
+struct PFLobbyCreateAndClaimServerLobbyCompletedStateChange : PFLobbyStateChange
+{
+    /// <summary>
+    /// Indicates the result of the CreateAndClaimServerLobby operation.
+    /// </summary>
+    /// <remarks>
+    /// The human-readable form of this result can be retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+    /// </remarks>
+    HRESULT result;
+
+    /// <summary>
+    /// The async context provided to the call associated with this state change.
+    /// </summary>
+    void * asyncContext;
+
+    /// <summary>
+    /// The lobby that was created and joined.
+    /// </summary>
+    _Notnull_ PFLobbyHandle lobby;
+};
+
+/// <summary>
+/// Information specific to the <em>ClaimServerLobbyCompleted</em> type of state change.
+/// </summary>
+/// <remarks>
+/// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+/// </remarks>
+struct PFLobbyClaimServerLobbyCompletedStateChange : PFLobbyStateChange
+{
+    /// <summary>
+    /// Indicates the result of the ClaimServerLobby operation.
+    /// </summary>
+    /// <remarks>
+    /// The human-readable form of this result can be retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+    /// </remarks>
+    HRESULT result;
+
+    /// <summary>
+    /// The async context provided to the call associated with this state change.
+    /// </summary>
+    void * asyncContext;
+
+    /// <summary>
+    /// The lobby ID provided to the call associated with this state change.
+    /// </summary>
+    _Null_terminated_ const char * lobbyId;
+
+    /// <summary>
+    /// The lobby that was created and joined.
+    /// </summary>
+    _Notnull_ PFLobbyHandle lobby;
+};
+
+/// <summary>
+/// Information specific to the <em>ServerPostUpdateCompleted</em> type of state change.
+/// </summary>
+/// <remarks>
+/// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+/// </remarks>
+struct PFLobbyServerPostUpdateCompletedStateChange : PFLobbyStateChange
+{
+    /// <summary>
+    /// Indicates the result of the update operation.
+    /// </summary>
+    /// <remarks>
+    /// The human-readable form of this result can be retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+    /// </remarks>
+    HRESULT result;
+
+    /// <summary>
+    /// The lobby provided to the call associated with this state change.
+    /// </summary>
+    _Notnull_ PFLobbyHandle lobby;
+
+    /// <summary>
+    /// The async context provided to the call associated with this state change.
+    /// </summary>
+    void * asyncContext;
+};
+
+/// <summary>
+/// Information specific to the <em>ServerDeleteLobbyCompleted</em> type of state change.
+/// </summary>
+/// <remarks>
+/// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+/// </remarks>
+struct PFLobbyServerDeleteLobbyCompletedStateChange : PFLobbyStateChange
+{
+    /// <summary>
+    /// The lobby provided to the call associated with this state change.
+    /// </summary>
+    _Notnull_ PFLobbyHandle lobby;
+
+    /// <summary>
+    /// The async context provided to the call associated with this state change.
+    /// </summary>
+    void * asyncContext;
+};
+#endif // PFMULTIPLAYER_INCLUDE_SERVER_APIS
 #pragma pack(pop)
 
 /// <summary>
 /// Gets the ID of the Lobby.
 /// </summary>
 /// <remarks>
-/// If this lobby object was created by calling <see cref="PFMultiplayerCreateAndJoinLobby()" /> or
-/// <see cref="PFMultiplayerJoinLobby()" />, this method will return an error until
-/// <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a successful
-/// <see cref="PFLobbyCreateAndJoinLobbyCompletedStateChange" /> or <see cref="PFLobbyJoinLobbyCompletedStateChange" />
-/// respectively.
+/// If this lobby object was created by calling <see cref="PFMultiplayerCreateAndJoinLobby()" />, this method will
+/// return an error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a successful
+/// <see cref="PFLobbyCreateAndJoinLobbyCompletedStateChange" />.
+/// <para>
+/// If this lobby object was created by calling <see cref="PFMultiplayerJoinLobby()" />, this method will
+/// return an error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a successful
+/// <see cref="PFLobbyJoinLobbyCompletedStateChange" />.
+/// </para>
+/// <para>
+/// If this lobby object was created by calling <see cref="PFMultiplayerCreateAndClaimServerLobby()" />, this method
+/// will return an error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a successful
+/// <see cref="PFLobbyCreateAndClaimServerLobbyCompletedStateChange" />.
+/// </para>
+/// <para>
+/// If this lobby object was created by calling <see cref="PFMultiplayerClaimServerLobby()" />, this method will return
+/// an error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a successful
+/// <see cref="PFLobbyClaimServerLobbyCompletedStateChange" />.
+/// </para>
 /// </remarks>
 /// <param name="lobby">
 /// The handle of the lobby.
@@ -1516,6 +1714,14 @@ PFLobbyGetLobbyId(
 /// <see cref="PFLobbyUpdatedStateChange" /> with <see cref="PFLobbyUpdatedStateChange::maxMembersUpdated" /> set to
 /// true. If joining the lobby succeeds, this field is guaranteed to be populated by the time
 /// PFMultiplayerStartProcessingLobbyStateChanges() provides a <see cref="PFLobbyJoinLobbyCompletedStateChange" />.
+/// <para>
+/// If this lobby object was created by calling <see cref="PFMultiplayerClaimServerLobby()" />, this method will return
+/// an error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a
+/// <see cref="PFLobbyUpdatedStateChange" /> with <see cref="PFLobbyUpdatedStateChange::maxMembersUpdated" /> set to
+/// true. If claiming the lobby succeeds, this field is guaranteed to be populated by the time
+/// PFMultiplayerStartProcessingLobbyStateChanges() provides a
+/// <see cref="PFLobbyClaimServerLobbyCompletedStateChange" />.
+/// </para>
 /// </remarks>
 /// <param name="lobby">
 /// The handle of the lobby.
@@ -1544,6 +1750,14 @@ PFLobbyGetMaxMemberCount(
 /// <see cref="PFLobbyUpdatedStateChange" /> with <see cref="PFLobbyUpdatedStateChange::ownerUpdated" /> set to true. If
 /// joining the lobby succeeds, this field is guaranteed to be populated by the time
 /// PFMultiplayerStartProcessingLobbyStateChanges() provides a <see cref="PFLobbyJoinLobbyCompletedStateChange" />.
+/// <para>
+/// If this lobby object was created by calling <see cref="PFMultiplayerClaimServerLobby()" />, this method will return
+/// an error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a
+/// <see cref="PFLobbyUpdatedStateChange" /> with <see cref="PFLobbyUpdatedStateChange::ownerUpdated" /> set to true.
+/// If claiming the lobby succeeds, this field is guaranteed to be populated by the time
+/// PFMultiplayerStartProcessingLobbyStateChanges() provides a
+/// <see cref="PFLobbyClaimServerLobbyCompletedStateChange" />.
+/// </para>
 /// </remarks>
 /// <param name="lobby">
 /// The handle of the lobby.
@@ -1605,6 +1819,14 @@ PFLobbyGetOwnerMigrationPolicy(
 /// <see cref="PFLobbyUpdatedStateChange" /> with <see cref="PFLobbyUpdatedStateChange::accessPolicyUpdated" /> set to
 /// true. If joining the lobby succeeds, this field is guaranteed to be populated by the time
 /// PFMultiplayerStartProcessingLobbyStateChanges() provides a <see cref="PFLobbyJoinLobbyCompletedStateChange" />.
+/// <para>
+/// If this lobby object was created by calling <see cref="PFMultiplayerClaimServerLobby()" />, this method will return
+/// an error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a
+/// <see cref="PFLobbyUpdatedStateChange" /> with <see cref="PFLobbyUpdatedStateChange::accessPolicyUpdated" /> set to
+/// true. If claiming the lobby succeeds, this field is guaranteed to be populated by the time
+/// PFMultiplayerStartProcessingLobbyStateChanges() provides a
+/// <see cref="PFLobbyClaimServerLobbyCompletedStateChange" />.
+/// </para>
 /// </remarks>
 /// <param name="lobby">
 /// The handle of the lobby.
@@ -1633,6 +1855,14 @@ PFLobbyGetAccessPolicy(
 /// <see cref="PFLobbyUpdatedStateChange" /> with <see cref="PFLobbyUpdatedStateChange::membershipLockUpdated" /> set to
 /// true. If joining the lobby succeeds, this field is guaranteed to be populated by the time
 /// PFMultiplayerStartProcessingLobbyStateChanges() provides a <see cref="PFLobbyJoinLobbyCompletedStateChange" />.
+/// <para>
+/// If this lobby object was created by calling <see cref="PFMultiplayerClaimServerLobby()" />, this method will return
+/// an error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a
+/// <see cref="PFLobbyUpdatedStateChange" /> with <see cref="PFLobbyUpdatedStateChange::membershipLockUpdated" /> set to
+/// true. If claiming the lobby succeeds, this field is guaranteed to be populated by the time
+/// PFMultiplayerStartProcessingLobbyStateChanges() provides a
+/// <see cref="PFLobbyClaimServerLobbyCompletedStateChange" />.
+/// </para>
 /// </remarks>
 /// <param name="lobby">
 /// The handle of the lobby.
@@ -1658,10 +1888,22 @@ PFLobbyGetMembershipLock(
 /// <remarks>
 /// If this lobby object was created by calling <see cref="PFMultiplayerCreateAndJoinLobby()" />, this method will
 /// return an error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a successful
-/// <see cref="PFLobbyCreateAndJoinLobbyCompletedStateChange" />. If this lobby object was created by calling
-/// <see cref="PFMultiplayerJoinLobby()" />, this method will return an error until
-/// <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a successful
+/// <see cref="PFLobbyCreateAndJoinLobbyCompletedStateChange" />.
+/// <para>
+/// If this lobby object was created by calling <see cref="PFMultiplayerCreateAndClaimServerLobby()" />, this method
+/// will return an error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a successful
+/// <see cref="PFLobbyCreateAndClaimServerLobbyCompletedStateChange" />.
+/// </para>
+/// <para>
+/// If this lobby object was created by calling <see cref="PFMultiplayerClaimServerLobby()" />, this method will return
+/// an error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a successful
+/// <see cref="PFLobbyClaimServerLobbyCompletedStateChange" />.
+/// </para>
+/// <para>
+/// If this lobby object was created by calling <see cref="PFMultiplayerJoinLobby()" />, this method will return an
+/// error until <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> provides a successful
 /// <see cref="PFLobbyJoinLobbyCompletedStateChange" />.
+/// </para>
 /// </remarks>
 /// <param name="lobby">
 /// The handle of the lobby.
@@ -1685,9 +1927,13 @@ PFLobbyGetConnectionString(
 /// Gets the list of PlayFab entities currently joined to the lobby as members.
 /// </summary>
 /// <remarks>
-/// If this lobby object is still in the process of asynchronously being created or joined, via a call to either
-/// <see cref="PFMultiplayerCreateAndJoinLobby()" /> or <see cref="PFMultiplayerJoinLobby()" /> respectively, this
+/// If this lobby object is still in the process of asynchronously being created, joined, or claimed, via a call to
+/// <see cref="PFMultiplayerCreateAndJoinLobby()" />, <see cref="PFMultiplayerJoinLobby()" />,
+/// <see cref="PFMultiplayerCreateAndClaimServerLobby()" />, or <see cref="PFMultiplayerClaimServerLobby()" />, this
 /// method will return no members.
+/// <para>
+/// If this lobby is server-owned, the owning game_server entity will <b>not</b> be returned in this list of members.
+/// </para>
 /// </remarks>
 /// <param name="lobby">
 /// The handle of the lobby.
@@ -1829,6 +2075,9 @@ PFLobbyForceRemoveMember(
 /// local client will disconnect the requested local members from the lobby, but leave them as members. They will remain
 /// as disconnected members until they rejoin.
 /// </para>
+/// <para>
+/// This method cannot be called by a game_server entity.
+/// </para>
 /// </remarks>
 /// <param name="lobby">
 /// The handle of the lobby.
@@ -1861,8 +2110,9 @@ PFLobbyLeave(
 /// Search properties are visible to non-members of the lobby as metadata which can be used to filter and sort lobby
 /// search results.
 /// <para>
-/// If this lobby object is still in the process of asynchronously being created or joined via a call to
-/// <see cref="PFMultiplayerCreateAndJoinLobby()" /> or <see cref="PFMultiplayerJoinLobby()" />, this method will return
+/// If this lobby object is still in the process of asynchronously being created, joined, or claimed via a call to
+/// <see cref="PFMultiplayerCreateAndJoinLobby()" />, <see cref="PFMultiplayerCreateAndClaimServerLobby" />,
+/// <see cref="PFMultiplayerClaimServerLobby()" /> or <see cref="PFMultiplayerJoinLobby()" />, this method will return
 /// no keys.
 /// </para>
 /// </remarks>
@@ -1895,8 +2145,9 @@ PFLobbyGetSearchPropertyKeys(
 /// Search properties are visible to non-members of the lobby as metadata which can be used to filter and sort lobby
 /// search results.
 /// <para>
-/// If this lobby object is still in the process of asynchronously being created or joined via a call to
-/// <see cref="PFMultiplayerCreateAndJoinLobby()" /> or <see cref="PFMultiplayerJoinLobby()" />, this method will return
+/// If this lobby object is still in the process of asynchronously being created, joined, or claimed via a call to
+/// <see cref="PFMultiplayerCreateAndJoinLobby()" />, <see cref="PFMultiplayerCreateAndClaimServerLobby" />,
+/// <see cref="PFMultiplayerClaimServerLobby()" /> or <see cref="PFMultiplayerJoinLobby()" />, this method will return
 /// no properties.
 /// </para>
 /// </remarks>
@@ -1928,8 +2179,9 @@ PFLobbyGetSearchProperty(
 /// <remarks>
 /// Lobby properties are only visible to members of the lobby.
 /// <para>
-/// If this lobby object is still in the process of asynchronously being created or joined via a call to
-/// <see cref="PFMultiplayerCreateAndJoinLobby()" /> or <see cref="PFMultiplayerJoinLobby()" />, this method will return
+/// If this lobby object is still in the process of asynchronously being created, joined, or claimed via a call to
+/// <see cref="PFMultiplayerCreateAndJoinLobby()" />, <see cref="PFMultiplayerCreateAndClaimServerLobby" />,
+/// <see cref="PFMultiplayerClaimServerLobby()" /> or <see cref="PFMultiplayerJoinLobby()" />, this method will return
 /// no keys.
 /// </para>
 /// </remarks>
@@ -1961,8 +2213,9 @@ PFLobbyGetLobbyPropertyKeys(
 /// <remarks>
 /// Lobby properties are only visible to members of the lobby.
 /// <para>
-/// If this lobby object is still in the process of asynchronously being created or joined via a call to
-/// <see cref="PFMultiplayerCreateAndJoinLobby()" /> or <see cref="PFMultiplayerJoinLobby()" />, this method will return
+/// If this lobby object is still in the process of asynchronously being created, joined, or claimed via a call to
+/// <see cref="PFMultiplayerCreateAndJoinLobby()" />, <see cref="PFMultiplayerCreateAndClaimServerLobby" />,
+/// <see cref="PFMultiplayerClaimServerLobby()" /> or <see cref="PFMultiplayerJoinLobby()" />, this method will return
 /// no properties.
 /// </para>
 /// </remarks>
@@ -1992,7 +2245,7 @@ PFLobbyGetLobbyProperty(
 /// Get a list of the specified member's property keys.
 /// </summary>
 /// <remarks>
-/// Per-member properties are only visible to members of the lobby.
+/// Per-member properties are only visible to members of the lobby and the server if this is a server-owned lobby.
 /// <para>
 /// If the member is still in the process of asynchronously joining this lobby either via
 /// <see cref="PFMultiplayerCreateAndJoinLobby()" />, <see cref="PFMultiplayerJoinLobby()" />, or
@@ -2029,7 +2282,7 @@ PFLobbyGetMemberPropertyKeys(
 /// Get the member property's value from its key.
 /// </summary>
 /// <remarks>
-/// Per-member properties are only visible to members of the lobby.
+/// Per-member properties are only visible to members of the lobby or the server if this is a server-owned lobby.
 /// <para>
 /// If the member is still in the process of asynchronously joining this lobby either via
 /// <see cref="PFMultiplayerCreateAndJoinLobby()" />, <see cref="PFMultiplayerJoinLobby()" />, or
@@ -2071,10 +2324,17 @@ PFLobbyGetMemberProperty(
 /// determine a member's connection status, which is useful for diagnosing a member's ability to receive updates about
 /// the lobby.
 /// <para>
-/// A local member which is still in the process of asychronously joining the lobby, via a call to any of
+/// A local member which is still in the process of asynchronously joining the lobby, via a call to any of
 /// <see cref="PFMultiplayerCreateAndJoinLobby()" />, <see cref="PFMultiplayerJoinLobby()" />, or
 /// <see cref="PFLobbyAddMember" />, will see their connection status as
 /// <see cref="PFLobbyMemberConnectionStatus::NotConnected" /> until the connection is established.
+/// </para>
+/// <para>
+/// When a user's connection status changes, a <see cref="PFLobbyMemberUpdateSummary" /> will be provided
+/// to the title with the <c>PFLobbyMemberUpdateSummary::member</c> field set to the user's entity key and the
+/// <c>PFLobbyMemberUpdateSummary::connectionStatusUpdated</c> field set to true. The <c>PFLobbyMemberUpdateSummary</c>
+/// will be provided to the title as a <c>memberUpdates</c> entry on a <see cref="PFLobbyUpdatedStateChange" /> struct
+/// via <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" />.
 /// </para>
 /// <para>
 /// When a user's connection status changes from <see cref="PFLobbyMemberConnectionStatus::Connected" /> to
@@ -2106,7 +2366,7 @@ PFLobbyGetMemberConnectionStatus(
     ) noexcept;
 
 /// <summary>
-/// Post an update to the lobby.
+/// Post an update to the lobby as a player.
 /// </summary>
 /// <remarks>
 /// This is an asynchronous operation. Upon successful completion, the title will be provided a
@@ -2142,8 +2402,8 @@ PFLobbyGetMemberConnectionStatus(
 /// is not provided, <paramref name="memberUpdate" /> must be provided.
 /// </param>
 /// <param name="memberUpdate">
-/// An optional update to apply to the portion of the lobby owned by <paramref name="localUser" />. If this is not
-/// provided, <paramref name="lobbyUpdate" /> must be provided.
+/// An optional update to apply to the portion of the lobby owned by <paramref name="localUser" />. If this parameter is
+/// not provided, <paramref name="lobbyUpdate" /> must be provided.
 /// </param>
 /// <param name="asyncContext">
 /// An optional, app-defined, pointer-sized context value that can be used to associate the completion state change with
@@ -2153,6 +2413,7 @@ PFLobbyGetMemberConnectionStatus(
 /// <c>S_OK</c> if the call succeeded or an error code otherwise. The human-readable form of the error code can be
 /// retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
 /// </returns>
+/// <seealso cref="PFLobbyServerPostUpdate" />
 PFMULTIPLAYER_API_ATTRIBUTES
 HRESULT
 PFMULTIPLAYER_API
@@ -2650,6 +2911,180 @@ PFMultiplayerGetLobbyInviteListenerStatus(
     const PFEntityKey * listeningEntity,
     _Out_ PFLobbyInviteListenerStatus * status
     ) noexcept;
+
+#ifdef PFMULTIPLAYER_INCLUDE_SERVER_APIS
+/// <summary>
+/// Create a new lobby as a game_server entity.
+/// </summary>
+/// <remarks>
+/// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+/// <para>
+/// This is an asynchronous operation. Upon successful completion, the title will be provided a
+/// <see cref="PFLobbyCreateAndClaimServerLobbyCompletedStateChange" /> with the
+/// <see cref="PFLobbyCreateAndClaimServerLobbyCompletedStateChange::result" /> field set to <c>S_OK</c>. Upon a failed
+/// completion, the title will be provided a <see cref="PFLobbyCreateAndClaimServerLobbyCompletedStateChange" /> with
+/// the <see cref="PFLobbyCreateAndClaimServerLobbyCompletedStateChange::result" /> field set to a failure.
+/// </para>
+/// </remarks>
+/// <param name="handle">
+/// The handle of the PFMultiplayer API instance.
+/// </param>
+/// <param name="server">
+/// The PlayFab Entity Key of the game server creating the lobby. It's entity type must be "game_server".
+/// </param>
+/// <param name="createConfiguration">
+/// The initial configuration data used when creating the lobby.
+/// </param>
+/// <param name="asyncContext">
+/// An optional, app-defined, pointer-sized context value that can be used to associate the completion state change with
+/// this call.
+/// </param>
+/// <param name="lobby">
+/// The optional, output lobby object which can be used to queue operations for immediate execution of this operation
+/// completes.
+/// </param>
+/// <returns>
+/// <c>S_OK</c> if the call succeeded or an error code otherwise. The human-readable form of the error code can be
+/// retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+/// </returns>
+PFMULTIPLAYER_API_ATTRIBUTES
+HRESULT
+PFMULTIPLAYER_API
+PFMultiplayerCreateAndClaimServerLobby(
+    PFMultiplayerHandle handle,
+    const PFEntityKey * server,
+    const PFLobbyCreateConfiguration * createConfiguration,
+    _In_opt_ void * asyncContext,
+    _Outptr_opt_ PFLobbyHandle * lobby
+    ) noexcept;
+
+/// <summary>
+/// Claim ownership of a pre-existing server lobby.
+/// </summary>
+/// <remarks>
+/// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+/// <para>
+/// This is an asynchronous operation. Upon successful completion, the title will be provided a
+/// <see cref="PFLobbyClaimServerLobbyCompletedStateChange" /> with the
+/// <see cref="PFLobbyClaimServerLobbyCompletedStateChange::result" /> field set to <c>S_OK</c>. Upon a failed
+/// completion, the title will be provided a <see cref="PFLobbyClaimServerLobbyCompletedStateChange" /> with the
+/// <see cref="PFLobbyClaimServerLobbyCompletedStateChange::result" /> field set to a failure.
+/// </para>
+/// <para>
+/// This operation is primarily intended to support game_server entities taking ownership of server-owned lobbies who's
+/// owners have disconnected or will disconnect. Typically, this is interesting for game_server entities who want to
+/// migrate ownership to another game_server entity or game_server entities who need to recover ownership of their own
+/// servers after some fatal failure which causes them to lose access to the lobby handle such as a crash.
+/// </para>
+/// <para>
+/// A game server may not claim ownership of a lobby which another another game_server entity is currently connected to.
+/// </para>
+/// </remarks>
+/// <param name="handle">
+/// The handle of the PFMultiplayer API instance.
+/// </param>
+/// <param name="server">
+/// The PlayFab Entity Key of the game server claiming the lobby. It's entity type must be "game_server".
+/// </param>
+/// <param name="lobbyId">
+/// The ID of the Lobby to claim.
+/// </param>
+/// <param name="asyncContext">
+/// An optional, app-defined, pointer-sized context value that can be used to associate the completion state change with
+/// this call.
+/// </param>
+/// <param name="lobby">
+/// The optional, output lobby object which can be used to queue operations for immediate execution of this operation
+/// completes.
+/// </param>
+/// <returns>
+/// <c>S_OK</c> if the call succeeded or an error code otherwise. The human-readable form of the error code can be
+/// retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+/// </returns>
+PFMULTIPLAYER_API_ATTRIBUTES
+HRESULT
+PFMULTIPLAYER_API
+PFMultiplayerClaimServerLobby(
+    PFMultiplayerHandle handle,
+    const PFEntityKey * server,
+    _Null_terminated_ const char * lobbyId,
+    _In_opt_ void * asyncContext,
+    _Outptr_opt_ PFLobbyHandle * lobby
+    ) noexcept;
+
+/// <summary>
+/// Post an update to the lobby as the server-owner.
+/// </summary>
+/// <remarks>
+/// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+/// <para>
+/// This is an asynchronous operation. Upon successful completion, the title will be provided a
+/// <see cref="PFLobbyServerPostUpdateCompletedStateChange" /> with the
+/// <see cref="PFLobbyServerPostUpdateCompletedStateChange::result" /> field set to <c>S_OK</c>. Upon a failed
+/// completion, the title will be provided a <see cref="PFLobbyServerPostUpdateCompletedStateChange" /> with the
+/// <see cref="PFLobbyServerPostUpdateCompletedStateChange::result" /> field set to a failure. If applying the update
+/// would change the state of the lobby, the title will be provided a <see cref="PFLobbyUpdatedStateChange" /> sometime
+/// afterwards.
+/// </para>
+/// <para>
+/// This operation completing successfully only indicates that the Lobby service has accepted the update. The title's
+/// local view of the lobby state will not reflect this update until a <see cref="PFLobbyUpdatedStateChange" /> is
+/// provided to the title with the updated state.
+/// </para>
+/// </remarks>
+/// <param name="lobby">
+/// The handle of the lobby.
+/// </param>
+/// <param name="lobbyUpdate">
+/// An update to apply to the shared portion of the lobby on behalf of the server owner.
+/// </param>
+/// <param name="asyncContext">
+/// An optional, app-defined, pointer-sized context value that can be used to associate the completion state change with
+/// this call.
+/// </param>
+/// <returns>
+/// <c>S_OK</c> if the call succeeded or an error code otherwise. The human-readable form of the error code can be
+/// retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+/// </returns>
+/// <seealso cref="PFLobbyPostUpdate" />
+PFMULTIPLAYER_API_ATTRIBUTES
+HRESULT
+PFMULTIPLAYER_API
+PFLobbyServerPostUpdate(
+    PFLobbyHandle lobby,
+    const PFLobbyDataUpdate * lobbyUpdate,
+    _In_opt_ void * asyncContext
+    ) noexcept;
+
+/// <summary>
+/// Delete a lobby on behalf of the game_server entity that owns the lobby.
+/// </summary>
+/// <remarks>
+/// To use this feature, you must define PFMULTIPLAYER_INCLUDE_SERVER_APIS before including PFLobby.h.
+/// <para>
+/// This method queues an asynchronous operation to delete the lobby on behalf of the game_server entity. On completion,
+/// a <see cref="PFLobbyServerDeleteLobbyCompletedStateChange" /> will be provided indicating that the operation has
+/// completed.
+/// </para>
+/// <para>
+/// This method does not guarantee the delete will succeed. The operation may fail due to networking or service errors.
+/// If the delete attempt fails but is retriable, the library will continue to retry the delete operation. Once the
+/// operation can no longer be retried, the operation will complete and a
+/// <see cref="PFLobbyServerDeleteLobbyCompletedStateChange" /> will be provided.
+/// </para>
+/// </remarks>
+/// <returns>
+/// <c>S_OK</c> if the call succeeded or an error code otherwise. The human-readable form of the error code can be
+/// retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+/// </returns>
+PFMULTIPLAYER_API_ATTRIBUTES
+HRESULT
+PFMULTIPLAYER_API
+PFLobbyServerDeleteLobby(
+    PFLobbyHandle lobby,
+    _In_opt_ void * asyncContext
+    ) noexcept;
+#endif // PFMULTIPLAYER_INCLUDE_SERVER_APIS
 
 #ifdef __cplusplus
 }

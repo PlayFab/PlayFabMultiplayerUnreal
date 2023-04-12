@@ -17,6 +17,8 @@ extern "C"
 #define PFMULTIPLAYER_API_ATTRIBUTES __declspec(dllexport)
 #elif defined(NORMA)
 #define PFMULTIPLAYER_API_ATTRIBUTES __attribute__((visibility("default")))
+#elif defined(__linux__)
+#define PFMULTIPLAYER_API_ATTRIBUTES __attribute__((visibility("default")))
 #else
 #define PFMULTIPLAYER_API_ATTRIBUTES
 #endif
