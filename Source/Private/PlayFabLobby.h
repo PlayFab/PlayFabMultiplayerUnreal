@@ -7,6 +7,8 @@
 #include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemPlayFabPackage.h"
 #include "Interfaces/OnlineSessionInterface.h"
+#include "Interfaces/IHttpRequest.h"
+#include "OnlineSubsystemPlayFabTypes.h"
 
 THIRD_PARTY_INCLUDES_START
 #if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_PLAYSTATION)

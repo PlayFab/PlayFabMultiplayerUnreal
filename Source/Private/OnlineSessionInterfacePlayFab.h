@@ -10,6 +10,7 @@
 #include "OnlineSubsystemPlayFabTypes.h"
 #include "PlayFabLobby.h"
 #include "MatchmakingInterfacePlayFab.h"
+#include "OnlineVoiceInterfacePlayFab.h"
 
 #if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 #include "OnlineSubsystemGDKTypes.h"

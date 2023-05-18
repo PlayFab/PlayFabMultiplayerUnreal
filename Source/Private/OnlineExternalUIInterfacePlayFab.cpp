@@ -34,6 +34,8 @@ THIRD_PARTY_INCLUDES_START
 #include <xsapi-c/multiplayer_activity_c.h>
 THIRD_PARTY_INCLUDES_END
 #include "Windows/HideWindowsPlatformTypes.h"
+#include "GDKTaskQueueHelpers.h"
+#include "GDKUserManager.h"
 #endif
 
 const int32 PEOPLE_PICKER_MAX_SIZE = 100;

@@ -3,6 +3,7 @@
 //--------------------------------------------------------------------------------------
 
 #include "OnlineSubsystemPlayFab.h"
+#include "OnlineExternalUIInterfacePlayFab.h"
 #include "OnlineIdentityInterfacePlayFab.h"
 #include "PlayFabSocketSubsystem.h"
 #include "Interfaces/IPluginManager.h"
@@ -21,7 +22,6 @@ THIRD_PARTY_INCLUDES_START
 #ifdef OSS_PLAYFAB_SWITCH
 #include <PFMultiplayerPal.h>
 #endif // OSS_PLAYFAB_SWITCH
-#include <PartyImpl.h>
 #include <PartyTypes.h>
 #include <PFLobby.h>
 THIRD_PARTY_INCLUDES_END

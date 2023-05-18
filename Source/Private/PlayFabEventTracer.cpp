@@ -12,6 +12,9 @@
 #include "Misc/DateTime.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/NetworkVersion.h"
+#include "Interfaces/IPluginManager.h"
+#include "OnlineIdentityInterfacePlayFab.h"
+#include "OnlineSubsystemPlayFab.h"
 
 #if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
 #include "grdk.h"

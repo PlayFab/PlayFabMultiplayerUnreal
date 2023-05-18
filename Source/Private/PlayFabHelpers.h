@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Interfaces/IHttpRequest.h"
+#include "Dom/JsonObject.h"
 namespace API
 {
 	// The name of the token parameter expected by the PlayFab login API.
@@ -47,7 +49,7 @@ GenerateGetPlayFabIDsFromNsaIDsRequestBody(
 	FString& generatedRequestBody
 );
 
-#if OSS_PLAYFAB_PLAYSTATION
+#if defined(OSS_PLAYFAB_PLAYSTATION)
 void
 GenerateGetPlayFabIDsFromPsnIDsRequestBody(
 	const TArray<FString>& PsnUniqueIDs,

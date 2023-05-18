@@ -17,6 +17,11 @@ THIRD_PARTY_INCLUDES_END
 
 #include "Runtime/Launch/Resources/Version.h"
 
+#include "OnlineSubsystem.h"
+#include "OnlineSessionSettings.h"
+
+class FPlayFabUser;
+
 /**
  * PlayFab Lobby wrapper
  */

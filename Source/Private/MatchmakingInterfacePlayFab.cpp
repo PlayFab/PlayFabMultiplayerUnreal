@@ -4,6 +4,7 @@
 
 #include "MatchmakingInterfacePlayFab.h"
 #include "OnlineSubsystemPlayFab.h"
+#include "OnlineSubsystemPlayFabPrivate.h"
 #include "OnlineSessionInterfacePlayFab.h"
 #include "OnlineIdentityInterfacePlayFab.h"
 #include "PlayFabHelpers.h"

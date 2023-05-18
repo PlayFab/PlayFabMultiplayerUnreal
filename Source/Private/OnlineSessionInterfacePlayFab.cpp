@@ -1561,7 +1561,8 @@ bool FOnlineSessionPlayFab::JoinSession(const FUniqueNetId& UserId, FName Sessio
 
 void FOnlineSessionPlayFab::OnJoinLobbyCompleted(FName InSessionName, EOnJoinSessionCompleteResult::Type Result)
 {
-	ClearOnJoinSessionCompleteDelegate_Handle(OnJoinLobbyCompleteDelegateHandle);
+	if (OSSPlayFab)
+		OSSPlayFab->GetPlayFabLobbyInterface()->ClearOnJoinLobbyCompletedDelegate_Handle(OnJoinLobbyCompleteDelegateHandle);
 
 	JoinSessionCompleteSessionName = InSessionName;
 

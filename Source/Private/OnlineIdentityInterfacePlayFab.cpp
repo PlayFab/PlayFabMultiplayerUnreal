@@ -4,6 +4,8 @@
 
 #include "OnlineIdentityInterfacePlayFab.h"
 #include "OnlineSubsystemPlayFab.h"
+#include "PlayFabHelpers.h"
+#include "PlayFabLobby.h"
 
 #include "Serialization/JsonWriter.h"
 #include "Serialization/JsonReader.h"

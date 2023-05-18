@@ -1,6 +1,10 @@
 #include "PlayFabHelpers.h"
 
 #include "GenericPlatform/GenericPlatformMisc.h"
+#include "HttpModule.h"
+#include "Interfaces/IHttpResponse.h"
+#include "OnlineSubsystem.h"
+#include "Serialization/JsonSerializer.h"
 
 bool
 MakePlayFabRestRequest(
@@ -95,7 +99,7 @@ GenerateGetPlayFabIDsFromNsaIDsRequestBody(
 	generatedRequestBody = SerializeRequestJson(HttpRequestJson);
 }
 
-#if OSS_PLAYFAB_PLAYSTATION
+#if defined(OSS_PLAYFAB_PLAYSTATION)
 void
 GenerateGetPlayFabIDsFromPsnIDsRequestBody(
 	const TArray<FString>& PsnUniqueIDs,
@@ -256,7 +260,7 @@ ParseNsaIdToPlayFabIdMappingDataObject(
 	return true;
 }
 
-#if OSS_PLAYFAB_PLAYSTATION
+#if defined(OSS_PLAYFAB_PLAYSTATION)
 bool
 ParsePsnIdToPlayFabIdMappingDataObject(
 	const TSharedPtr<FJsonObject>* JsonDataObject,
