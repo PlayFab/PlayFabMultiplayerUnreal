@@ -5,6 +5,7 @@
 #include "PlayFabLobby.h"
 #include "PlayFabUtils.h"
 #include "OnlineSubsystemPlayFab.h"
+#include "Online/OnlineSessionNames.h"
 
 static struct FSearchKeyMappingTable
 {
