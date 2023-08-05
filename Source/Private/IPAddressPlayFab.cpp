@@ -132,8 +132,11 @@ TSharedRef<FInternetAddr> FInternetAddrPlayFab::Clone() const
 
 uint32 FInternetAddrPlayFab::GetConstTypeHash() const
 {
-	//return ::GetTypeHash(Id.UniqueNetId);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	return GetTypeHashHelper(ToString(true));
+#else
+	return ::GetTypeHash(ToString(true));
+#endif
 }
 
 bool FInternetAddrPlayFab::operator!=(const FInternetAddrPlayFab& Other) const
