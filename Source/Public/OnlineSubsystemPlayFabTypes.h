@@ -323,7 +323,8 @@ public:
 
 	friend FORCEINLINE uint32 GetTypeHash(const FUniqueNetIdPlayFab& Id)
 	{
-		return ::GetTypeHash(Id.UniqueNetId);
+		//return ::GetTypeHash(Id.UniqueNetId);
+		return GetTypeHashHelper(Id.UniqueNetId);
 	}
 
 	friend FArchive& operator<<(FArchive& Ar, FUniqueNetIdPlayFab& UserId)
