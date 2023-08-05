@@ -1040,7 +1040,9 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 	}
 	#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
 
+	/* Deprecated delegate was removed
 	TriggerOnSessionCustomDataChangedDelegates(SessionName, ExistingNamedSession->SessionSettings);
+	*/
 }
 
 void FOnlineSessionPlayFab::OnLobbyMemberAdded(FName SessionName, const PFLobbyMemberAddedStateChange& StateChange)
