@@ -1,4 +1,4 @@
-#if OSS_PLAYFAB_WIN64
+#if defined(OSS_PLAYFAB_WIN64)
 #include "OnlineSubsystem.h"
 #include "OnlineIdentityInterfacePlayFab.h"
 
@@ -48,4 +48,4 @@ bool FOnlineIdentityPlayFab::ApplyPlatformHTTPRequestData(const FString& Platfor
     FOnlineIdentityPlayFab::OnPopulatePlatformRequestDataCompleted(headersApplied, PlatformUserID, TMap<FString, FString>(), RequestBodyJson);
     return headersApplied;
 }
-#endif
+#endif // OSS_PLAYFAB_WIN64

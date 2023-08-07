@@ -25,4 +25,4 @@ void FOnlineSubsystemPlayFab::TryInitializePlayFabParty()
 	InitializePlayFabParty();
 }
 
-#endif
+#endif // OSS_PLAYFAB_WIN64

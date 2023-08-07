@@ -7,6 +7,7 @@
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemPlayFabPackage.h"
 #include "OnlineSubsystemPlayFabDefines.h"
+#include "OnlineSubsystemPlayFabTypes.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Misc/DateTime.h"
@@ -15,18 +16,7 @@
 #include <vector>
 #include <string>
 
-THIRD_PARTY_INCLUDES_START
-#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_PLAYSTATION)
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#include <PartyPal.h>
-#include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_SWITCH || OSS_PLAYFAB_PLAYSTATION
-#include <Party.h>
-#include <PFEntityKey.h>
-#include <PFMultiplayer.h>
-#include <PFLobby.h>
 using namespace Party;
-THIRD_PARTY_INCLUDES_END
 
 struct UserAuthRequestData
 {
@@ -170,6 +160,7 @@ public:
 	}
 
 	bool IsUserLocal(const PFEntityKey& UserEntityKey);
+	const TArray<PFEntityKey> GetLocalUserEntityKeys() const;
 	const FString& GetLocalUserXToken() const { return LocalUserXToken; }
 
 protected:
@@ -181,7 +172,7 @@ protected:
 
 private:
 	TArray<TSharedPtr<FPlayFabUser>> LocalPlayFabUsers;
-	TArray<FString> UsersToAuth;
+	TSet<FString> UsersToAuth;
 	TMap<FString, UserAuthRequestData> UserAuthRequestsInFlight;
 	bool bRegisterAuthDelegates = true;
 	bool bAuthAllUsers = true;

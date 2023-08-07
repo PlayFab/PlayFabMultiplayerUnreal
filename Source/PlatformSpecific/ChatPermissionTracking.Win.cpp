@@ -12,10 +12,6 @@ PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
 #include "OnlineSessionInterfacePlayFab.h"
 #include "OnlineSubsystemPlayFab.h"
 
-THIRD_PARTY_INCLUDES_START
-#include <PartyImpl.h>
-#include <PartyTypes.h>
-THIRD_PARTY_INCLUDES_END
 
 using namespace Party;
 
@@ -161,11 +157,4 @@ void FOnlineVoicePlayFab::TickTalkerPermissionTracking()
 	}
 }
 
-void FOnlineVoicePlayFab::CleanUpPartyXblManager()
-{
-}
-
-void FOnlineVoicePlayFab::InitPartyXblManager()
-{
-}
-#endif
+#endif // OSS_PLAYFAB_WIN64

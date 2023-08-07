@@ -12,25 +12,13 @@
 #include "OnlineCognitiveServicesInterfacePlayFab.h"
 #include "OnlineSubsystemPlayFabDefines.h"
 #ifdef OSS_PLAYFAB_PLAYSTATION
-#include "OnlineAsyncTaskPlayFab.h"
+#include "..\Private\OnlineAsyncTaskPlayFab.h"
 #endif // OSS_PLAYFAB_PLAYSTATION
 #include "Misc/ConfigCacheIni.h"
 #include "..\PlatformSpecific\PlatformDefines.h"
 #include "..\Private\PlayFabEventTracer.h"
 
-THIRD_PARTY_INCLUDES_START
-#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_PLAYSTATION)
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#include <PartyPal.h>
-#include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_SWITCH || OSS_PLAYFAB_PLAYSTATION
-#include <Party.h>
-#include <PFEntityKey.h>
-#include <PFMultiplayer.h>
-#include <PFLobby.h>
-THIRD_PARTY_INCLUDES_END
-
-using namespace Party;
+#include "PlayFabSDKIncludes.h"
 
 #define OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(INTERFACE_TYPE, INTERFACE_NAME)\
 INTERFACE_TYPE FOnlineSubsystemPlayFab::INTERFACE_NAME() const\
@@ -65,6 +53,12 @@ enum class EPlayFabPartyNetworkState
 	JoiningNetwork_Client,
 	NetworkReady,
 	LeavingNetwork
+};
+
+struct FNetIdPair
+{
+	FUniqueNetIdPtr NativeNetId;
+	FUniqueNetIdPtr PlayFabNetId;
 };
 
  //OnlineSubsystemPlayFab - Implementation of the online subsystem for PLAYFAB services
@@ -134,6 +128,8 @@ public:
 
 	/** Helpers to get typed Interface shared pointers */
 	FOnlineSessionPlayFabPtr GetSessionInterfacePlayFab() const { return SessionInterface; }
+	FOnlineIdentityPlayFabPtr GetIdentityInterfacePlayFab() const { return IdentityInterface; }
+	FOnlineVoicePlayFabPtr GetVoiceInterfacePlayFab() const { return VoiceInterface; }
 
 	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const override;
 	virtual bool Init() override;
@@ -155,6 +151,8 @@ public:
 	bool CreateAndConnectToPlayFabPartyNetwork();
 	bool ConnectToPlayFabPartyNetwork(const FString& NetworkId, const FString& NetworkDescriptorStr);
 	void LeavePlayFabPartyNetwork();
+
+	IOnlineSubsystem* NativeOSS = nullptr;
 
 	bool bNetworkInitialized = false;
 	bool bPartyInitialized = false;
@@ -283,9 +281,9 @@ public:
 	
 	PartyEndpoint* GetPartyEndpoint(uint32 EndpointId);
 
-	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
-	const FString GetSandBox() const;
-	#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+	FUniqueNetIdPtr GetNativeNetId(const FUniqueNetIdRef& NetId);
+	FUniqueNetIdPtr GetPlayFabNetId(const FUniqueNetIdRef& NetId);
+	FNetIdPair GetNetIdPair(const FUniqueNetIdRef& NetId);
 };
 
 namespace FNetworkProtocolTypes
@@ -296,6 +294,7 @@ namespace FNetworkProtocolTypes
 typedef TSharedPtr<FOnlineSubsystemPlayFab, ESPMode::ThreadSafe> FOnlineSubsystemPlayFabPtr;
 
 FString GetPartyErrorMessage(PartyError InError);
+void LogMultiplayerErrorWithMessage(const FString& FuncName, HRESULT Hr);
 FString GetMultiplayerErrorMessage(HRESULT hr);
 FString PartyStateChangeResultToReasonString(PartyStateChangeResult result);
 FString GetPartyStateChangeTypeString(PartyStateChangeType Type);

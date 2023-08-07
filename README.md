@@ -1,12 +1,12 @@
 ---
 title: PlayFab Online Subsystem (OSS) Quickstart
-description: Guidance on how to use PlayFab Multiplayer in your Unreal Engine 4 Project.
+description: Guidance on how to use PlayFab Multiplayer in your Unreal Engine 4 and Unreal Engine 5 Project.
 author: Pushpadant Kacha
 ms.author: pkacha
 ms.date: 04/4/2022
 ms.topic: article
 ms.prod: playfab
-keywords: playfab, multiplayer, networking, unreal, unreal engine, unreal engine 4, middleware
+keywords: playfab, multiplayer, networking, unreal, unreal engine, unreal engine 4, unreal engine 5, ue4, ue5, middleware
 ---
 
 # PlayFab Multiplayer Unreal Online Subsystem (OSS)
@@ -21,7 +21,7 @@ These features include cross-platform Voice over Internet Protocol (VOIP), cross
 
 The quickstart guide for OnlineSubsystemPlayFab can be found at:
 
-[PlayFab Online Subsystem](https://docs.microsoft.com/gaming/playfab/features/multiplayer/networking/party-unreal-engine-oss-quickstart)
+[PlayFab Online Subsystem Quickstart](https://docs.microsoft.com/gaming/playfab/features/multiplayer/networking/party-unreal-engine-oss-quickstart)
 
 ## Requirements
 
@@ -31,29 +31,19 @@ The quickstart guide for OnlineSubsystemPlayFab can be found at:
 
 |OSS Version|Release Note|
 |-|-|
-Latest Version |2.2.9|
+Latest Version |2.3.0|
 Deprecated Version |2.2.6 and 2.27 may potentially crash the game. **Please upgrade to the latest version to ensure the bug fix is included.**|
 
 ## Compatibility
 
-|Unreal Engine version|4.27|
+|Unreal Engine version|5.2|
 |-|-|
-Multiplayer SDK|v1.1.5+
-Party SDK|v1.7.8+
-Platforms|GDK (June 2021), Win64+Steam, Nintendo Switch, Sony PS4™/PS5™
+[PlayFab Multiplayer SDK](https://learn.microsoft.com/en-us/gaming/playfab/features/multiplayer/lobby/lobby-matchmaking-sdks/lobby-matchmaking-sdks) | v1.1.5+ (Recommended v1.6.2 for GDK, Win64+Steam, Nintendo Switch, and Sony PS4™/PS5™)
+[PlayFab Party SDK](https://learn.microsoft.com/en-us/gaming/playfab/features/multiplayer/networking/party-sdks) | v1.7.8+ (Recommended v1.8.0 for GDK and Win64+Steam, v1.8.5 for Nintendo Switch, and Sony PS4™/PS5™)
+Platforms|GDK, Win64+Steam, Nintendo Switch, Sony PS4™/PS5™ (See which version of your platform is supported at [here](https://learn.microsoft.com/en-us/gaming/playfab/features/multiplayer/networking/party-unreal-engine-oss-overview#which-versions-of-the-microsoft-game-development-kit-gdk-are-supported))
 
-|Unreal Engine version|5.0|
-|-|-|
-Multiplayer SDK|v1.1.5+
-Party SDK|v1.7.8+
-Platforms|GDK (October 2021, Update 5), Win64+Steam, Nintendo Switch, Sony PS4™/PS5™
-
-|Unreal Engine version|5.1|
-|-|-|
-Multiplayer SDK|v1.1.5+ (Recommended v1.5.0)
-Party SDK|v1.7.8+ (Recommended v1.7.22)
-Platforms|GDK (June 2022, Update 2), Win64+Steam, Nintendo Switch, Sony PS4™/PS5™
-
+For users on previous versions of Unreal Engine (UE4.27+, 5.0, and 5.1) who wish to use PlayFab Online Subsystem, please view [PlayFab Online Subsystem Overview](https://learn.microsoft.com/en-us/gaming/playfab/features/multiplayer/networking/party-unreal-engine-oss-overview#which-versions-of-unreal-engine-are-supported) for more details.
+If you have any questions, please feel free to open a [Github issue](https://github.com/PlayFab/PlayFabMultiplayerUnreal/issues/new) or open a [support ticket](https://playfab.com/contact/).
 ## Important Note
 
 The PlayFab Online Subsystem (PF OSS) v2 is currently generally available (GA) for GDK and Win64+Steam, Nintendo Switch, and Sony PS4™/PS5™.

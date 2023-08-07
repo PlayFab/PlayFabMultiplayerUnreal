@@ -8,15 +8,8 @@
 #include "UObject/ObjectMacros.h"
 #include "IpNetDriver.h"
 #include "OnlineSubsystemPlayFabPackage.h"
-#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_PLAYSTATION)
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#include <PartyPal.h>
-#include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_SWITCH || OSS_PLAYFAB_PLAYSTATION
-#include <Party.h>
+#include "OnlineSubsystemPlayFabTypes.h"
 #include "PlayFabNetDriver.generated.h"
-
-using namespace Party;
 
 class FNetworkNotify;
 

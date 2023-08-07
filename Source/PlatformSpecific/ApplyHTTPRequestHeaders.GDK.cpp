@@ -6,7 +6,7 @@
 #include "HAL/Platform.h"
 PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
 
-#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+#if defined(OSS_PLAYFAB_GDK)
 #include "GDKUserManager.h"
 #include "GDKTaskQueueHelpers.h"
 
@@ -29,7 +29,14 @@ void FOnlineIdentityPlayFab::OnPopulatePlatformRequestDataCompleted(bool bWasSuc
 		FOnlineIdentityPlayFabPtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityPlayFab>(OSSPlayFab->GetIdentityInterface());
 		if (IdentityInterface.IsValid())
 		{
-			RequestBodyJson->TryGetStringField(TEXT("XboxToken"), IdentityInterface->LocalUserXToken);
+			if (RequestBodyJson.IsValid())
+			{
+				RequestBodyJson->TryGetStringField(TEXT("XboxToken"), IdentityInterface->LocalUserXToken);
+			}
+			else
+			{
+				UE_LOG_ONLINE(Warning, TEXT("FOnlineIdentityPlayFab::OnPopulatePlatformRequestDataCompleted: RequestBodyJson is null"));
+			}
 			IdentityInterface->FinishRequest(bWasSuccessful, PlatformUserID, PlatformHeaders, RequestBodyJson);
 		}
 		else
@@ -125,4 +132,4 @@ bool FOnlineIdentityPlayFab::ApplyPlatformHTTPRequestData(const FString& Platfor
 
 	return Result == S_OK;
 }
-#endif
+#endif // OSS_PLAYFAB_GDK

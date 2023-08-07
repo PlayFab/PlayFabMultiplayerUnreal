@@ -6,20 +6,13 @@
 #include "HAL/Platform.h"
 PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
 
-#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+#if defined(OSS_PLAYFAB_GDK)
 #include "PlatformDefines.h"
 
 #include "OnlineVoiceInterfacePlayFab.h"
 #include "OnlineSessionInterfacePlayFab.h"
-#include "OnlineSubsystemPlayFab.h"
 
-#include <PartyImpl.h>
-#include <PartyTypes.h>
-#include "PartyXboxLive.h"
-#include "PartyXboxLiveImpl.h"
 #include <GDKUserManager.h>
-
-using namespace Party;
 
 namespace
 {
@@ -277,6 +270,8 @@ void FOnlineVoicePlayFab::StopTrackingPermissionForTalker(const FString& UserId)
 		{
 			UE_LOG_ONLINE(Error, TEXT("PartyXblManager::Cleanup() failed: %hs"), GetXblErrorMessage(err));
 		}
+
+		bPartyXblManagerInitialized = false;
 	}
 }
 
@@ -554,22 +549,4 @@ void FOnlineVoicePlayFab::CleanUpPartyXblManager()
 	}
 }
 
-void FOnlineVoicePlayFab::InitPartyXblManager()
-{
-	UE_LOG_ONLINE(Verbose, TEXT("FOnlineVoicePlayFab::InitPartyXblManager"));
-
-	if (bPartyXblManagerInitialized == false)
-	{
-		FString TitleID;
-		GConfig->GetString(TEXT("OnlineSubsystemPlayFab"), TEXT("PlayFabTitleID"), TitleID, GEngineIni);
-
-		PartyError err = PartyXblManager::GetSingleton().Initialize(TCHAR_TO_UTF8(*TitleID));
-		if (PARTY_FAILED(err))
-		{
-			UE_LOG_ONLINE(Error, TEXT("Party XboxLive Initialize failed: %hs"), GetXblErrorMessage(err));
-		}
-
-		bPartyXblManagerInitialized = true;
-	}
-}
-#endif
+#endif // OSS_PLAYFAB_GDK

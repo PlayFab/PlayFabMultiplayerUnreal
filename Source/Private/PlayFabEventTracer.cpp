@@ -4,16 +4,18 @@
 
 #include "PlayFabEventTracer.h"
 #include "PlayFabHelpers.h"
+#include "OnlineSubsystemPlayFab.h"
 
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "GenericPlatform/GenericPlatformProcess.h"
 #include "GenericPlatform/GenericPlatformProperties.h"
+#include "Interfaces/IPluginManager.h"
 #include "Misc/App.h"
 #include "Misc/DateTime.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/NetworkVersion.h"
 
-#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+#if defined(OSS_PLAYFAB_GDK)
 #include "grdk.h"
 #endif
 
@@ -109,7 +111,7 @@ void PlayFabEventTracer::DoWork()
 #if !defined(OSS_PLAYFAB_PLAYSTATION)
 FString PlayFabEventTracer::GetPlatformSDKVersion() const
 {
-	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+	#if defined(OSS_PLAYFAB_GDK)
 	return FString::FromInt(_GRDK_EDITION);
 	#elif defined(OSS_PLAYFAB_WIN64)
 	//TODO: use STEAM_SDK_VER

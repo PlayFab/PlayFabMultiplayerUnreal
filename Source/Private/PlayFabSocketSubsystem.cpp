@@ -215,8 +215,6 @@ const TCHAR* FPlayFabSocketSubsystem::GetSocketAPIName() const
 
 FPlayFabSocket* FPlayFabSocketSubsystem::GetSocket()
 {
-	UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::GetSocket"));
-
 	FPlayFabSocket* FoundSocket = nullptr;
 	for (FPlayFabSocket* Socket : ActiveSockets)
 	{
@@ -229,7 +227,7 @@ FPlayFabSocket* FPlayFabSocketSubsystem::GetSocket()
 
 	if (FoundSocket == nullptr)
 	{
-		UE_LOG(LogSockets, Warning, TEXT("FPlayFabSocketSubsystem::GetSocketByEntityId: Cannot get Socket, returning null"));
+		UE_LOG(LogSockets, Warning, TEXT("FPlayFabSocketSubsystem::GetSocket: Cannot get Socket, returning null"));
 	}
 
 	return FoundSocket;
