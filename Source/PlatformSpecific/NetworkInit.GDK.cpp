@@ -6,7 +6,7 @@
 #include "HAL/Platform.h"
 PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
 
-#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+#if defined(OSS_PLAYFAB_GDK)
 #include "PlatformDefines.h"
 
 #include "OnlineSubsystemPlayFab.h"
@@ -31,7 +31,7 @@ void FOnlineSubsystemPlayFab::RegisterNetworkInitCallbacks()
 			// if the new value is different than the old value
 			if (ConnectivityHint->networkInitialized != OSS->bNetworkInitialized)
 			{
-				UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab: ConnectivityHint.networkInitialized changed: %s"), ConnectivityHint->networkInitialized ? TEXT("true") : TEXT("false"));
+				UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab: ConnectivityHint.networkInitialized changed to: %s"), ConnectivityHint->networkInitialized ? TEXT("true") : TEXT("false"));
 
 				OSS->bNetworkInitialized = ConnectivityHint->networkInitialized;
 
@@ -77,4 +77,5 @@ void FOnlineSubsystemPlayFab::TryInitializePlayFabParty()
 		}
 	}
 }
-#endif
+
+#endif // OSS_PLAYFAB_GDK

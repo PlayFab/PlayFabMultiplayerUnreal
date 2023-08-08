@@ -37,15 +37,15 @@ void FOnlineVoicePlayFab::OnAppSuspend()
 
 	LocalTalkers.Empty();
 	RemoteTalkers.Empty();
-	
+
+#if defined(OSS_PLAYFAB_GDK)
 	CleanUpPartyXblManager();
+#endif
 }
 
 void FOnlineVoicePlayFab::OnAppResume()
 {
 	UE_LOG_ONLINE_VOICE(Verbose, TEXT("FOnlineVoicePlayFab::OnAppResume"));
-
-	InitPartyXblManager();
 }
 
 const FLocalTalkerPlayFab* FOnlineVoicePlayFab::GetLocalTalker(const int32 LocalUserNum) const
@@ -261,8 +261,8 @@ void FOnlineVoicePlayFab::RegisterLocalTalkers()
 			FOnlineIdentityPlayFab* PlayFabIdentityInt = static_cast<FOnlineIdentityPlayFab*>(IdentityIntPtr.Get());
 			if (PlayFabIdentityInt)
 			{
-				const TArray<TSharedPtr<FPlayFabUser>>& ArrUsers = PlayFabIdentityInt->GetAllPartyLocalUsers();
-				for (TSharedPtr<FPlayFabUser> User : ArrUsers)
+				const TArray<TSharedPtr<FPlayFabUser>>& PartyLocalUsers = PlayFabIdentityInt->GetAllPartyLocalUsers();
+				for (TSharedPtr<FPlayFabUser> User : PartyLocalUsers)
 				{
 					RegisterLocalTalker(User);
 				}

@@ -1022,6 +1022,24 @@ PartyError PartyLocalChatControl::GetIncomingTextMuted(
         muted);
 }
 
+PartyError PartyLocalChatControl::SetVoiceAudioOptions(
+    PartyVoiceAudioOptions options
+    ) party_no_throw
+{
+    return PartyChatControlSetVoiceAudioOptions(
+        reinterpret_cast<PARTY_CHAT_CONTROL_HANDLE>(this),
+        static_cast<PARTY_VOICE_AUDIO_OPTIONS>(options));
+}
+
+PartyError PartyLocalChatControl::GetVoiceAudioOptions(
+    _Out_ PartyVoiceAudioOptions* options
+    ) const party_no_throw
+{
+    return PartyChatControlGetVoiceAudioOptions(
+        reinterpret_cast<PARTY_CHAT_CONTROL_HANDLE>(this),
+        reinterpret_cast<PARTY_VOICE_AUDIO_OPTIONS*>(options));
+}
+
 PartyError PartyLocalChatControl::GetLocalChatIndicator(
     _Out_ PartyLocalChatControlChatIndicator * chatIndicator
     ) const party_no_throw
@@ -1863,6 +1881,7 @@ PARTY_C_ASSERT(PARTY_TEXT_CHAT_FILTER_LEVEL_MATURE == static_cast<uint32_t>(Part
 PARTY_C_ASSERT(PARTY_OPTION_LOCAL_UDP_SOCKET_BIND_ADDRESS == static_cast<uint32_t>(PartyOption::LocalUdpSocketBindAddress));
 PARTY_C_ASSERT(PARTY_OPTION_LOCAL_DEVICE_DIRECT_PEER_CONNECTIVITY_OPTIONS_MASK == static_cast<uint32_t>(PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask));
 PARTY_C_ASSERT(PARTY_OPTION_TEXT_CHAT_FILTER_LEVEL == static_cast<uint32_t>(PartyOption::TextChatFilterLevel));
+PARTY_C_ASSERT(PARTY_OPTION_LOCAL_DEVICE_MAX_DIRECT_PEER_CONNECTIONS == static_cast<uint32_t>(PartyOption::LocalDeviceMaxDirectPeerConnections));
 
 PARTY_C_ASSERT(PARTY_THREAD_ID_AUDIO == static_cast<uint32_t>(PartyThreadId::Audio));
 PARTY_C_ASSERT(PARTY_THREAD_ID_NETWORKING == static_cast<uint32_t>(PartyThreadId::Networking));
@@ -1996,6 +2015,9 @@ PARTY_C_ASSERT(PARTY_SYNTHESIZE_TEXT_TO_SPEECH_TYPE_VOICE_CHAT == static_cast<ui
 
 PARTY_C_ASSERT(PARTY_AUDIO_SAMPLE_TYPE_INTEGER == static_cast<uint32_t>(PartyAudioSampleType::Integer));
 PARTY_C_ASSERT(PARTY_AUDIO_SAMPLE_TYPE_FLOAT == static_cast<uint32_t>(PartyAudioSampleType::Float));
+
+PARTY_C_ASSERT(PARTY_VOICE_AUDIO_OPTIONS_NONE == static_cast<uint32_t>(PartyVoiceAudioOptions::None));
+PARTY_C_ASSERT(PARTY_VOICE_AUDIO_OPTIONS_NOISE_SUPPRESSION == static_cast<uint32_t>(PartyVoiceAudioOptions::NoiseSuppression));
 
 PARTY_C_ASSERT(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_OPTIONS_NONE == static_cast<uint32_t>(PartyLocalUdpSocketBindAddressOptions::None));
 PARTY_C_ASSERT(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_OPTIONS_EXCLUDE_GAME_CORE_PREFERRED_UDP_MULTIPLAYER_PORT == static_cast<uint32_t>(PartyLocalUdpSocketBindAddressOptions::ExcludeGameCorePreferredUdpMultiplayerPort));

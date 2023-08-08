@@ -4,20 +4,14 @@
 
 #pragma once
 
+#include "Interfaces/OnlineSessionInterface.h"
+#include "Interfaces/IHttpRequest.h"
 #include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemPlayFabPackage.h"
-#include "Interfaces/OnlineSessionInterface.h"
+#include "OnlineSubsystemPlayFabTypes.h"
+#include "OnlineSubsystemPlayFabPrivate.h"
 
-THIRD_PARTY_INCLUDES_START
-#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_PLAYSTATION)
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_SWITCH || OSS_PLAYFAB_PLAYSTATION
-#include <PFEntityKey.h>
-#include <PFMultiplayer.h>
-#include <PFLobby.h>
-THIRD_PARTY_INCLUDES_END
-
+class FPlayFabUser;
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLobbyCreatedAndJoinCompleted, bool, FName);
 typedef FOnLobbyCreatedAndJoinCompleted::FDelegate FOnLobbyCreatedAndJoinCompletedDelegate;
 
@@ -60,19 +54,19 @@ public:
 	virtual ~FPlayFabLobby() = default;
 
 	bool CreatePlayFabLobby(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings);
-	bool CreateLobbyWithUser(TSharedPtr<const FPlayFabUser> InPlayFabUser, FName SessionName, const FOnlineSessionSettings& NewSessionSettings);
+	bool CreateLobbyWithUser(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings);
 	bool JoinLobby(const FUniqueNetId& UserId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession);
-	bool JoinLobbyWithUser(TSharedPtr<const FPlayFabUser> InPlayFabUser, FName SessionName, const FOnlineSessionSettings& SessionSettings);
+	bool JoinLobbyWithUser(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& SessionSettings);
 	bool JoinArrangedLobby(FName SessionName, const FOnlineMatchmakingTicketInfoPtr MatchTicket);
 	bool UpdateLobby(FName SessionName, const FOnlineSessionSettings& SessionSettings);
 	bool AddLocalPlayer(const FUniqueNetId& PlayerId, FName SessionName, const FOnRegisterLocalPlayerCompleteDelegate& Delegate);
 	bool LeaveLobby(const FUniqueNetId& PlayerId, FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate, const FOnUnregisterLocalPlayerCompleteDelegate& UnregisterLocalPlayerCompleteDelegate, bool bDestroyingSession);
 	bool FindLobbies(const FUniqueNetId& UserId, TSharedPtr<FOnlineSessionSearch> SearchSettings);
 	bool FindFriendLobbies(const FUniqueNetId& UserId);
+	TPair<FString, EOnlineKeyValuePairDataType::Type>* FindSearchKey(FString& SearchKey);
 
-	bool SendInvite(const FUniqueNetId& SenderId, FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& FriendUniqueIds);
-	void RegisterInvitationListener(const PFEntityKey& ListenerEntity);
-	void UnregisterInvitationListener(const PFEntityKey& ListenerEntity);
+	void RegisterForInvites_PlayFabMultiplayer(const PFEntityKey& ListenerEntity);
+	void UnregisterForInvites_PlayFabMultiplayer(const PFEntityKey& ListenerEntity);
 
 	void DoWork();
 
@@ -101,8 +95,7 @@ PACKAGE_SCOPE:
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnLobbyMemberAdded, FName, const PFLobbyMemberAddedStateChange&);
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnLobbyMemberRemoved, FName, const PFLobbyMemberRemovedStateChange&);
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnLeaveLobbyCompleted, FName, bool);
-	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnFindLobbiesCompleted,int32, bool, TSharedPtr<FOnlineSessionSearch>);
-	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnInvitationReceived, const PFLobbyInviteReceivedStateChange&);
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnFindLobbiesCompleted, int32, bool, TSharedPtr<FOnlineSessionSearch>);
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnLobbyDisconnected, FName);
 
 	/** Current search object */
@@ -143,6 +136,16 @@ private:
 	FRemoveLocalPlayerData RemoveLocalPlayerData;
 
 	TMap<FString, TPair<FString, EOnlineKeyValuePairDataType::Type>> SearchKeyMappingTable;
+	
+	struct FUpdateLobbyCompletionState
+	{
+		int LobbyPostUpdateCount;
+		bool MergedCompletionResult;
+	};
+
+	TMap<int, FUpdateLobbyCompletionState> UpdateLobbyOperations;
+
+	std::atomic<int> NextUpdateLobbyOperationId {0};
 
 public:
 	void OnGetPlayFabIDsFromPlatformIDsCompleted(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FPendingSendInviteData PendingSendInvite);

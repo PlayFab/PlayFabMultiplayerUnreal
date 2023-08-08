@@ -1,8 +1,8 @@
 {
 	"FileVersion" : 3,
     "FriendlyName": "Online Subsystem PlayFab Party & Multiplayer",
-	"Version": 2.29,
-	"VersionName": "2.2.9",
+	"Version": 2.30,
+	"VersionName": "2.3.0",
 	"Description": "Support for the PlayFab Party and Multiplayer platform",
 	"Category": "Networking",
 	"CreatedBy": "Microsoft Corporation",
@@ -10,7 +10,7 @@
 	"EnabledByDefault": false,
 
 	"SupportedTargetPlatforms": [
-		"XboxOneGDK",
+		"XB1",
 		"WinGDK",
 		"XSX",
 		"Win64",
@@ -25,7 +25,7 @@
             "Type": "Runtime",
             "LoadingPhase" : "Default",
             "WhitelistPlatforms": [
-				"XboxOneGDK",
+				"XB1",
 				"WinGDK",
 				"XSX",
 				"Win64",
@@ -53,41 +53,37 @@
 		},
 		{
 			"Name": "OnlineSubsystemGDK",
-			"Enabled": false,
-			"WhitelistPlatforms" :
-			[
+			"Enabled": true,
+			"WhitelistPlatforms": [
 				"XSX",
-                "WinGDK",
-                "XboxOneGDK"
+				"WinGDK",
+				"XB1"
 			]
 		},
 		{
 			"Name": "OnlineSubsystemSwitch",
-			"Enabled": false,
-			"WhitelistPlatforms" :
-			[
+			"Enabled": true,
+			"WhitelistPlatforms": [
 				"Switch"
 			]
 		},
 		{
 			"Name": "OnlineSubsystemPS4",
-			"Enabled": false,
-			"WhitelistPlatforms" :
-			[
+			"Enabled": true,
+			"WhitelistPlatforms": [
 				"PS4"
 			]
 		},
 		{
 			"Name": "OnlineSubsystemPS5",
-			"Enabled": false,
-			"WhitelistPlatforms" :
-			[
+			"Enabled": true,
+			"WhitelistPlatforms": [
 				"PS5"
 			]
 		},
 		{
 			"Name": "OnlineSubsystemSony",
-			"Enabled": false,
+			"Enabled": true,
 			"WhitelistPlatforms" :
 			[
 				"PS4",

@@ -1,15 +1,23 @@
 #pragma once
+#include "CoreMinimal.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Dom/JsonObject.h"
+#include "HttpModule.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonWriter.h"
+#include "Interfaces/IHttpResponse.h"
+#include "OnlineSubsystemUtils.h"
 
 namespace API
 {
 	// The name of the token parameter expected by the PlayFab login API.
-#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+#if defined(OSS_PLAYFAB_GDK)
 	const FString AuthTokenLabel("XboxToken");
 #elif defined(OSS_PLAYFAB_SWITCH)
 	const FString AuthTokenLabel("IdentityToken");
 #elif defined(OSS_PLAYFAB_WIN64)
 	const FString AuthTokenLabel("SteamTicket");
-#endif // defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+#endif
 	const FString Url = "https://playfabapi.com/";
 	const FString PostVerb = "POST";
 }
@@ -47,7 +55,7 @@ GenerateGetPlayFabIDsFromNsaIDsRequestBody(
 	FString& generatedRequestBody
 );
 
-#if OSS_PLAYFAB_PLAYSTATION
+#if defined(OSS_PLAYFAB_PLAYSTATION)
 void
 GenerateGetPlayFabIDsFromPsnIDsRequestBody(
 	const TArray<FString>& PsnUniqueIDs,

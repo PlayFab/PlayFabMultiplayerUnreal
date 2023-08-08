@@ -11,19 +11,9 @@
 #include "PlayFabLobby.h"
 #include "MatchmakingInterfacePlayFab.h"
 
-#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
+#if defined(OSS_PLAYFAB_GDK)
 #include "OnlineSubsystemGDKTypes.h"
 #endif
-
-THIRD_PARTY_INCLUDES_START
-#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_PLAYSTATION)
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_SWITCH || OSS_PLAYFAB_PLAYSTATION
-#include <PFEntityKey.h>
-#include <PFMultiplayer.h>
-#include <PFLobby.h>
-THIRD_PARTY_INCLUDES_END
 
 using FNamedOnlineSessionRef = TSharedRef<FNamedOnlineSession, ESPMode::ThreadSafe>;
 using FNamedOnlineSessionPtr = TSharedPtr<FNamedOnlineSession, ESPMode::ThreadSafe>;
@@ -31,6 +21,7 @@ using FNamedOnlineSessionPtr = TSharedPtr<FNamedOnlineSession, ESPMode::ThreadSa
 class FInternetAddr;
 class FOnlineSettings;
 class FUniqueNetIdPlayFab;
+enum class ECrossNetworkType : int;
 
 struct FPendingCreateSessionInfo
 {
@@ -47,6 +38,26 @@ struct FPendingJoinSessionInfo
 	FName SessionName;
 	FOnlineSessionSearchResult SessionSearchResult;
 };
+
+struct FPendingInviteData
+{
+	FPendingInviteData() = default;
+	FPendingInviteData(const int32 ControllerIndex,
+		const FOnlineSessionSearchResult& SearchResult)
+		: bControllerIndex(ControllerIndex),
+		bSearchResult(SearchResult)
+	{}
+
+	int32 bControllerIndex;
+	FOnlineSessionSearchResult bSearchResult;
+	bool bHasActiveInvite = false;
+};
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPlayFabMultiplayerInviteReceived, const PFEntityKey /*ListingEntityKey*/, const PFEntityKey /*InvitingEntityKey*/, const FString /*ConnectionString*/);
+typedef FOnPlayFabMultiplayerInviteReceived::FDelegate FOnPlayFabMultiplayerInviteReceivedDelegate;
+
+DECLARE_MULTICAST_DELEGATE(FOnSessionsRemoved);
+typedef FOnSessionsRemoved::FDelegate FOnSessionsRemovedDelegate;
 
 class FOnlineSessionPlayFab : public IOnlineSession
 {
@@ -111,16 +122,13 @@ public:
 	void RegisterForUpdates();
 	void UnregisterForUpdates();
 
-	FDelegateHandle OnLobbyUpdateDelegateHandle, OnLobbyMemberAddedDelegateHandle, OnLobbyMemberRemovedDelegateHandle, OnInvitationReceivedDelegateHandle, OnLobbyDisconnectedDelegateHandle;
+	FDelegateHandle OnLobbyUpdateDelegateHandle, OnLobbyMemberAddedDelegateHandle, OnLobbyMemberRemovedDelegateHandle, OnLobbyDisconnectedDelegateHandle;
 	void OnLobbyUpdate(FName SessionName, const PFLobbyUpdatedStateChange& StateChange);
 	void OnLobbyMemberAdded(FName SessionName, const PFLobbyMemberAddedStateChange& StateChange);
 	void OnLobbyMemberRemoved(FName SessionName, const PFLobbyMemberRemovedStateChange& StateChange);
-	void OnInvitationReceived(const PFLobbyInviteReceivedStateChange& StateChange);
 	void OnLobbyDisconnected(FName SessionName);
 	bool SetHostOnSession(FName SessionName, const PFEntityKey& HostEntityKey);
-
-	void SetMultiplayerActivity(const FName SessionName, PFLobbyHandle lobby) const;
-	void DeleteMultiplayerActivity(const FName SessionName) const;
+	void OnAppResume(FOnSessionsRemovedDelegate& CompletionDelegate);
 
 PACKAGE_SCOPE:
 	/** Critical sections for thread safe operation of session lists */
@@ -163,6 +171,12 @@ protected:
 	int32 RetryJoinLobbySession_Count = 0;
 	int32 RetryJoinLobbySession_MaxCount = 15;
 
+	FName NativeSessionName = NAME_GameSession;
+#if defined(OSS_PLAYFAB_PLAYSTATION)
+	void UpdateNativeSessionName();
+	const FUniqueNetIdPtr CreateNativeNetIdPtr();
+#endif
+
 	void OnOperationComplete_TryJoinNetwork(bool bJoinLobbyOperation, int32& RetryOperationSession_Count);
 
 	void OnCreatePartyEndpoint_Matchmaking(bool bSuccess, uint16 EndpointID, bool bIsHosting);
@@ -171,7 +185,7 @@ protected:
 public:
 	void Tick(float DeltaTime);
 
-	void OnCreateSessionCompleted(FName SessionName, bool bWasSuccessful);	
+	void OnCreateSessionCompleted(FName SessionName, bool bWasSuccessful);
 
 	void OnLobbyCreatedAndJoinCompleted(bool bSuccess, FName SessionName);
 	FOnLobbyCreatedAndJoinCompletedDelegate OnLobbyCreatedAndJoinCompletedDelegateHandle;
@@ -195,9 +209,7 @@ public:
 	void OnFindFriendLobbiesCompleted(int32 LocalUserNum, bool bSuccess, TSharedPtr<FOnlineSessionSearch> SearchResults);
 	FDelegateHandle OnFindFriendLobbiesCompletedHandle;
 
-	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
-	FGDKContextHandle GetGDKContextSample(const FName SessionName) const;
-	#endif
+	const FName GetNativeSessionName() const;
 
 private:
 	bool InternalCreateSession(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings);
@@ -206,50 +218,73 @@ private:
 	FString GetPlatformIdFromEntityId(const FString& EntityId);
 	FOnlineSessionSearchResult CreateSearchResultFromInvite(const PFLobbyInviteReceivedStateChange& StateChange);
 
-	#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
-	void RecordRecentlyMetPlayer(const PFEntityKey& MemberAddedEntity, const FName SessionName, const char* PlatformIdValue) const;
+#if defined(OSS_PLAYFAB_GDK)
 	XTaskQueueRegistrationToken InviteAcceptedHandler = { 0 };
-	void SaveInviteFromActivation(void* Context, const char* InviteUri);
-	void SaveInviteSession(const int32 ControllerIndex,
-						   const FOnlineSessionSearchResult & SearchResult);
-	void TickPendingGDKInvites();
-	
-	struct FPendingGDKInviteData
-	{
-		FPendingGDKInviteData() = default;
-		FPendingGDKInviteData(const int32 ControllerIndex,
-							  const FOnlineSessionSearchResult& SearchResult)
-		: bControllerIndex(ControllerIndex),
-		  bSearchResult(SearchResult)
-		{}
+#endif
+#if defined(OSS_PLAYFAB_WIN64)
+	TSharedPtr<FOnlineSessionSearch> CachedSearchSettings;
+#endif
 
-		int32 bControllerIndex;
-		FOnlineSessionSearchResult bSearchResult;
-		bool bHasActiveInvite = false;
-	};
-
-	FPendingGDKInviteData PendingGDKInviteData;
-	#endif
+	FPendingInviteData PendingInviteData;
 
 	TMap<FString, FString> EntityPlatformIdMapping;
 
 	TMap<FString, ECrossNetworkType> VoiceChatPlatforms;
 	void GenerateCrossNetworkVoiceChatPlatformPermissions();
-	#if defined(OSS_PLAYFAB_PLAYSTATION)
+	bool IsHostSetting(const FName& Name);
+
+	bool bUsesNativeSession = false;
 	FString ConnectionString;
 
 	FDelegateHandle OnNativeCreateSessionCompleteDelegateHandle;
-	FOnCreateSessionCompleteDelegate OnNativeCreateSessionCompleteDelegate;
-	void OnNativeCreateSessionComplete(FName SessionName, bool bWasSuccessful);
-
+	FDelegateHandle OnNativeUpdateSessionCompleteDelegateHandle;
 	FDelegateHandle OnNativeJoinSessionCompleteDelegateHandle;
-	FOnJoinSessionCompleteDelegate OnNativeJoinSessionCompleteDelegate;
-	void OnNativeJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+	FDelegateHandle OnNativeFindSessionsCompleteDelegateHandle;
 
 	FDelegateHandle OnNativeSessionUserInviteAcceptedDelegateHandle;
 	FOnSessionUserInviteAcceptedDelegate OnNativeSessionUserInviteAcceptedDelegate;
 	void OnNativeSessionUserInviteAccepted(const bool bWasSuccessful, const int32 ControllerId, FUniqueNetIdPtr UserId, const FOnlineSessionSearchResult& InviteResult);
-	#endif // OSS_PLAYFAB_PLAYSTATION
+
+	FOnSessionsRemovedDelegate OnSessionsRemovedDelegate;
+	FOnSessionsRemovedDelegate OnAppResumeDelegate;
+
+private:
+	//Invites
+#if defined(OSS_PLAYFAB_GDK)
+	void RegisterForInvites();
+	void UnregisterForInvites();
+#endif
+	bool SendInvite(const FUniqueNetId& SenderId, FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& RemoteUserNetIds);
+	void SaveInviteFromEvent(void* Context, const FString& ActivationUri);
+
+#if defined(OSS_PLAYFAB_GDK)
+public:
+	//Activity
+	void SetMultiplayerActivityForSession(const FNamedOnlineSessionPtr& ExistingNamedSession);
+	void SetMultiplayerActivity(PFLobbyHandle LobbyHandle, const PFEntityKey& EntityKey, const FOnlineSessionSettings& OnlineSessionSettings) const;
+	void SetMultiplayerActivity(PFLobbyHandle LobbyHandle, const TArray<PFEntityKey>& EntityKeys, const FOnlineSessionSettings& OnlineSessionSettings) const;
+	void DeleteMultiplayerActivity(PFLobbyHandle LobbyHandle, const PFEntityKey& EntityKey, const FOnlineSessionSettings& OnlineSessionSettings) const;
+	void DeleteMultiplayerActivity(PFLobbyHandle LobbyHandle, const TArray<PFEntityKey>& EntityKeys, const FOnlineSessionSettings& OnlineSessionSettings) const;
+	void RecordRecentlyMetPlayer(PFLobbyHandle LobbyHandle, const PFEntityKey& EntityKey, const PFEntityKey& RecentPlayerEntityKey, const FString& RecentPlayerPlatformIdStr) const;
+	void RecordRecentlyMetPlayer(PFLobbyHandle LobbyHandle, const TArray<PFEntityKey>& EntityKeys, const PFEntityKey& RecentPlayerEntityKey, const FString& RecentPlayerPlatformIdStr) const;
+
+private:
+	void TickPendingInvites();
+#endif
+
+private:
+	//Helpers
+	bool GetLobbyHandleBySessionName(const FName SessionName, PFLobbyHandle& LobbyHandle);
+	FNamedOnlineSession* GetNamedSessionByLobbyHandle(const PFLobbyHandle& LobbyHandle);
+	bool ValidateSessionForInvite(const FName SessionName);
+
+public:
+	//PlayFab Invites
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnPlayFabMultiplayerInviteReceived, const PFEntityKey /*ListingEntityKey*/, const PFEntityKey /*InvitingEntityKey*/, const FString /*ConnectionString*/);
+
+	bool SendSessionInviteToFriend_PlayFabMultiplayer(const PFEntityKey& LocalUserEntityKey, FName SessionName, const PFEntityKey& FriendEntityKey);
+	bool SendSessionInviteToFriends_PlayFabMultiplayer(const PFEntityKey& LocalUserEntityKey, FName SessionName, const TArray<PFEntityKey>& RemoteUserEntityKeys);
+	void OnInvitationReceived_PlayFabMultiplayer(const PFEntityKey& ListeningEntityKey, const PFEntityKey& InvitingEntityKey, const FString& InConnectionString);
 };
 
 typedef TSharedPtr<FOnlineSessionPlayFab, ESPMode::ThreadSafe> FOnlineSessionPlayFabPtr;

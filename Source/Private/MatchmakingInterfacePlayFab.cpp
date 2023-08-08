@@ -9,10 +9,6 @@
 #include "PlayFabHelpers.h"
 #include "PlayFabUtils.h"
 
-#ifdef OSS_PLAYFAB_SWITCH
-#include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_SWITCH
-
 FMatchmakingInterfacePlayFab::FMatchmakingInterfacePlayFab(FOnlineSubsystemPlayFab* InOSSPlayFab) :
 	OSSPlayFab(InOSSPlayFab)
 {

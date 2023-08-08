@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #ifndef __cplusplus
 #error "This header requires C++"
@@ -104,7 +104,7 @@ typedef class PartyLocalUser * const * PartyLocalUserArray;
 constexpr uint32_t c_maxNetworkConfigurationMaxDeviceCount = 32;
 
 /// <summary>
-/// The maximum number of direct peer connections that individual devices attempt to establish.
+/// The default maximum number of direct peer connections that individual devices attempt to establish.
 /// </summary>
 /// <remarks>
 /// When successfully authenticating an initial local user into a network with a
@@ -118,6 +118,11 @@ constexpr uint32_t c_maxNetworkConfigurationMaxDeviceCount = 32;
 /// <para>
 /// You can determine whether the local device actually established a direct peer-to-peer connection to a specific
 /// remote device in a network by calling <see cref="PartyNetwork::GetDeviceConnectionType()" />.
+/// </para>
+/// <para>
+/// To override this value, call <see cref="PartyManager::SetOption" /> passing null for the object parameter,
+/// <see cref="PartyOption::LocalDeviceMaxDirectPeerConnections" /> value for the option parameter, and an optional
+/// pointer to a uint32_t variable for the value.
 /// </para>
 /// </remarks>
 /// <seealso cref="PartyDirectPeerConnectivityOptions" />
@@ -241,7 +246,7 @@ constexpr int8_t c_maxSendMessageQueuingPriority = 5;
 #pragma pack(push, 8)
 
 /// <summary>
-/// The types of state changes that can occur.
+/// The types of state changes that can occur in the Party library.
 /// </summary>
 enum class PartyStateChangeType : uint32_t
 {
@@ -782,7 +787,7 @@ enum class PartyStateChangeType : uint32_t
 };
 
 /// <summary>
-/// Results for operations that generate state changes.
+/// Results for Party library operations that generate state changes.
 /// </summary>
 enum class PartyStateChangeResult
 {
@@ -1071,6 +1076,35 @@ enum class PartyOption : uint32_t
     /// </para>
     /// </remarks>
     TextChatFilterLevel = 2,
+
+    /// <summary>
+    /// An option for configuring the max number of direct peer connections this device attempts to establish to other
+    /// devices.
+    /// </summary>
+    /// <remarks>
+    /// When successfully authenticating an initial local user into a network with a
+    /// <see cref="PartyNetworkConfiguration::directPeerConnectivityOptions" /> field set to a value other than
+    /// <see cref="PartyDirectPeerConnectivityOptions::None" />, devices may attempt direct peer connectivity to each
+    /// other. To avoid excessive resource consumption, the Party library will internally prevent any given device from
+    /// attempting to establish more direct peer connections than this maximum across all networks in which it's
+    /// currently participating. This doesn't affect the device's ability to participate in large or multiple networks
+    /// with additional remote devices, it simply defines the number of opportunities for endpoint messages and chat
+    /// data between the devices to be transmitted using those direct connections instead of via transparent cloud relay
+    /// servers.
+    /// <para>
+    /// You can determine whether the local device actually established a direct peer-to-peer connection to a specific
+    /// remote device in a network by calling <see cref="PartyNetwork::GetDeviceConnectionType()" />.
+    /// </para>
+    /// <para>
+    /// To override this value, call <see cref="PartyManager::SetOption" /> passing null for the object parameter,
+    /// <see cref="PartyOption::LocalDeviceMaxDirectPeerConnections" /> value for the option parameter, and an optional
+    /// pointer to a uint32_t variable for the value.
+    /// </para>
+    /// <para>
+    /// The new value will take effect for all networks joined after the value is changed.
+    /// </para>
+    /// </remarks>
+    LocalDeviceMaxDirectPeerConnections = 3,
 };
 
 /// <summary>
@@ -2108,7 +2142,7 @@ enum class PartyAudioDeviceSelectionType
     /// </summary>
     /// <remarks>
     /// If this selection type is used for <see cref="PartyLocalChatControl::SetAudioInput()" /> or
-    /// <see cref="PartyLocalChatControl::SetAudioOutput()" /> then the audioDeviceSelectionContext should be nullptr.
+    /// <see cref="PartyLocalChatControl::SetAudioOutput()" />, then the audioDeviceSelectionContext should be nullptr.
     /// </remarks>
     SystemDefault = 1,
 
@@ -2117,7 +2151,7 @@ enum class PartyAudioDeviceSelectionType
     /// </summary>
     /// <remarks>
     /// If this selection type is used for <see cref="PartyLocalChatControl::SetAudioInput()" /> or
-    /// <see cref="PartyLocalChatControl::SetAudioOutput()" /> then the audioDeviceSelectionContext must be a platform
+    /// <see cref="PartyLocalChatControl::SetAudioOutput()" />, then the audioDeviceSelectionContext must be a platform
     /// specific user context.
     /// </remarks>
     PlatformUserDefault = 2,
@@ -2127,12 +2161,12 @@ enum class PartyAudioDeviceSelectionType
     /// </summary>
     /// <remarks>
     /// If this selection type is used for <see cref="PartyLocalChatControl::SetAudioInput()" /> or
-    /// <see cref="PartyLocalChatControl::SetAudioOutput()" /> then the audioDeviceSelectionContext must be the
+    /// <see cref="PartyLocalChatControl::SetAudioOutput()" />, then the audioDeviceSelectionContext must be the
     /// identifier of the audio device to use.
     /// <para>
-    /// Note that on iOS, Android and macOS, setting a manual input device is an illegal operation. Using this with
-    /// <see cref="PartyLocalChatControl::SetAudioInput()" /> on Android, iOS, and macOS will result in an error indicating that
-    /// the device selection type is not supported.
+    /// On Android, iOS, and macOS, setting a manual input device is an illegal operation. Using manual device selection
+    /// with <see cref="PartyLocalChatControl::SetAudioInput()" /> on Android, iOS, and macOS will result in an error
+    /// indicating that the device selection type is not supported.
     /// </para>
     /// </remarks>
     Manual = 3,
@@ -2608,6 +2642,35 @@ enum class PartyAudioSampleType
     /// IEEE floating-point PCM format.
     /// </summary>
     Float = 1,
+};
+
+/// <summary>
+/// Voice audio options.
+/// </summary>
+/// <seealso cref="PartyLocalChatControl::SetVoiceAudioOptions" />
+/// <seealso cref="PartyLocalChatControl::GetVoiceAudioOptions" />
+enum class PartyVoiceAudioOptions : uint32_t
+{
+    /// <summary>
+    /// No voice audio options are selected.
+    /// </summary>
+    None = 0x0,
+
+    /// <summary>
+    /// Enable noise suppression on audio captured from a local chat control.
+    /// </summary>
+    /// <remarks>
+    /// This option is only supported on iOS and Android. Using this option on any other platform will fail.
+    /// <para>
+    /// Enabling noise suppression eliminates noise captured from the local chat control
+    /// to be transmitted to remote chat controls.
+    /// </para>
+    /// <para>
+    /// Using this option requires packaging inside your application the model file named
+    /// PartyDeepNoiseSuppressionModel.fpie that is shipped with PlayFab Party.
+    /// </para>
+    /// </remarks>
+    NoiseSuppression = 0x1,
 };
 
 /// <summary>
@@ -3429,7 +3492,7 @@ struct PartyAudioManipulationSinkStreamConfiguration
 };
 
 /// <summary>
-/// A generic, base structure representation of an event or change in state.
+/// A generic, base structure representation of an event or change in state in the Party library.
 /// </summary>
 /// <remarks>
 /// PartyStateChange structures are reported by <see cref="PartyManager::StartProcessingStateChanges()" /> for the title
@@ -7917,7 +7980,7 @@ class PartyAudioManipulationSourceStream
 {
 public:
     /// <summary>
-    /// Retrieves the stream configuration.
+    /// Retrieves the source stream configuration.
     /// </summary>
     /// <remarks>
     /// The stream configuration matches the configuration provided to the call to
@@ -8031,7 +8094,8 @@ public:
         ) party_no_throw;
 
     /// <summary>
-    /// Retrieves the app's private, custom pointer-sized context value previously associated with this stream object.
+    /// Retrieves the app's private, custom pointer-sized context value previously associated with this source stream
+    /// object.
     /// </summary>
     /// <remarks>
     /// If no custom context has been set yet, the value pointed to by <paramref name="customContext" /> is set to
@@ -8050,7 +8114,7 @@ public:
         ) const party_no_throw;
 
     /// <summary>
-    /// Configures an optional, custom pointer-sized context value with this stream object.
+    /// Configures an optional, custom pointer-sized context value with this source stream object.
     /// </summary>
     /// <remarks>
     /// The custom context is typically used as a "shortcut" that simplifies accessing local, title-specific memory
@@ -8089,7 +8153,7 @@ class PartyAudioManipulationSinkStream
 {
 public:
     /// <summary>
-    /// Retrieves the stream configuration.
+    /// Retrieves the sink stream configuration.
     /// </summary>
     /// <remarks>
     /// The stream configuration matches the configuration provided to the configuration method used to create this
@@ -8163,7 +8227,8 @@ public:
         ) party_no_throw;
 
     /// <summary>
-    /// Retrieves the app's private, custom pointer-sized context value previously associated with this stream object.
+    /// Retrieves the app's private, custom pointer-sized context value previously associated with this sink stream
+    /// object.
     /// </summary>
     /// <remarks>
     /// If no custom context has been set yet, the value pointed to by <paramref name="customContext" /> is set to
@@ -8182,7 +8247,7 @@ public:
         ) const party_no_throw;
 
     /// <summary>
-    /// Configures an optional, custom pointer-sized context value with this stream object.
+    /// Configures an optional, custom pointer-sized context value with this sink stream object.
     /// </summary>
     /// <remarks>
     /// The custom context is typically used as a "shortcut" that simplifies accessing local, title-specific memory
@@ -8415,10 +8480,10 @@ public:
     /// </para>
     /// <h>Platform support and supported formats</h>
     /// <para>
-    /// This function is only supported on Windows and Xbox. Calls on other platforms will fail.
+    /// This function is only supported on Windows, Xbox, and PlayStation® 5. Calls on other platforms will fail.
     /// </para>
     /// <para>
-    /// The following format options are supported.
+    /// The following format options are supported for Windows and Xbox.
     /// </para>
     /// <para>
     /// `` | Format option | Supported value for local chat controls | Supported value for remote chat controls |
@@ -8429,6 +8494,10 @@ public:
     /// ` | Bits per sample | 32 | 16 |
     /// ` | Sample type | <c>PartyAudioSampleType::Float</c> | <c>PartyAudioSampleType::Integer</c> |
     /// ` | Interleaved | false | false |
+    /// </para>
+    /// <para>
+    /// For a list of supported format options for PlayStation® 5, please refer to the README-RealTimeAudioManipulation.md
+    /// document distributed with the Party library package.
     /// </para>
     /// </remarks>
     /// <param name="configuration">
@@ -8679,7 +8748,7 @@ public:
     /// is specified, the Party library will attempt to use the default communication device associated with
     /// <paramref name="audioDeviceSelectionContext" />. If <see cref="PartyAudioDeviceSelectionType::Manual" /> is
     /// specified, the Party library will attempt to use the communication device whose device identifier matches. Note
-    /// that this is not supported on iOS, Android, or macOS. <paramref name="audioDeviceSelectionContext" />.
+    /// that <c>PartyAudioDeviceSelectionType::Manual</c> is not supported on Android, iOS, or macOS.
     /// </param>
     /// <param name="audioDeviceSelectionContext">
     /// When using <see cref="PartyAudioDeviceSelectionType::None" /> or
@@ -9345,6 +9414,43 @@ public:
         ) const party_no_throw;
 
     /// <summary>
+    /// Configures the voice audio options for this chat control.
+    /// </summary>
+    /// <param name="options">
+    /// The voice audio options.
+    /// </param>
+    /// <remarks>
+    /// This function is only supported on Android and iOS. Calls on other platforms will fail.
+    /// <para>
+    /// By default, a chat control is created with <see cref="PartyVoiceAudioOptions::None" /> audio options.
+    /// </para>
+    /// </remarks>
+    /// <returns>
+    /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
+    /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
+    /// </returns>
+    PartyError SetVoiceAudioOptions(
+        PartyVoiceAudioOptions options
+        ) party_no_throw;
+
+    /// <summary>
+    /// Provides the voice audio options associated with this chat control.
+    /// </summary>
+    /// <param name="options">
+    /// The voice audio options.
+    /// </param>
+    /// <remarks>
+    /// This function is only supported on Android and iOS. Calls on other platforms will fail.
+    /// </remarks>
+    /// <returns>
+    /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
+    /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
+    /// </returns>
+    PartyError GetVoiceAudioOptions(
+        _Out_ PartyVoiceAudioOptions* options
+        ) const party_no_throw;
+
+    /// <summary>
     /// Provides a chat indicator specifying the audio state of the local chat control.
     /// </summary>
     /// <remarks>
@@ -9479,10 +9585,10 @@ public:
     /// </para>
     /// <h>Platform support and supported formats</h>
     /// <para>
-    /// This function is only supported on Windows and Xbox. Calls on other platforms will fail.
+    /// This function is only supported on Windows, Xbox, and PlayStation® 5. Calls on other platforms will fail.
     /// </para>
     /// <para>
-    /// The following format options are supported.
+    /// The following format options are supported for Windows and Xbox.
     /// </para>
     /// <para>
     /// `` | Format option | Supported value |
@@ -9493,6 +9599,10 @@ public:
     /// ` | Bits per sample | 32 |
     /// ` | Sample type | <c>PartyAudioSampleType::Float</c> |
     /// ` | Interleaved | false |
+    /// </para>
+    /// <para>
+    /// For a list of supported format options for PlayStation® 5, please refer to the README-RealTimeAudioManipulation.md
+    /// document distributed with the Party library package.
     /// </para>
     /// </remarks>
     /// <param name="configuration">
@@ -9551,10 +9661,10 @@ public:
     /// </para>
     /// <h>Platform support and supported formats</h>
     /// <para>
-    /// This function is only supported on Windows and Xbox. Calls on other platforms will fail.
+    /// This function is only supported on Windows, Xbox, and PlayStation® 5. Calls on other platforms will fail.
     /// </para>
     /// <para>
-    /// The following format options are supported.
+    /// The following format options are supported for Windows and Xbox.
     /// </para>
     /// <para>
     /// `` | Format option | Supported value(s) |
@@ -9566,6 +9676,10 @@ public:
     ///         <c>PartyAudioSampleType::Integer</c>, 16 or 32. |
     /// ` | Sample type | <c>PartyAudioSampleType::Float</c> or <c>PartyAudioSampleType::Integer</c> |
     /// ` | Interleaved | true or false |
+    /// </para>
+    /// <para>
+    /// For a list of supported format options for PlayStation® 5, please refer to the README-RealTimeAudioManipulation.md
+    /// document distributed with the Party library package.
     /// </para>
     /// </remarks>
     /// <param name="configuration">
@@ -9804,7 +9918,7 @@ public:
         ) party_no_throw;
 
     /// <summary>
-    /// Get the human-readable form of an error.
+    /// Get the human-readable form of an error generated by the Party library.
     /// </summary>
     /// <remarks>
     /// These error messages are not localized and are only intended for developers, i.e. these error messages are not

@@ -9,6 +9,7 @@
 #include "SocketSubsystem.h"
 #include "IpConnection.h"
 #include "PlayFabNetDriver.h"
+#include "OnlineExternalUIInterfacePlayFab.h"
 
 #include "EngineLogs.h"
 #include "CoreGlobals.h"
@@ -16,15 +17,6 @@
 #include "PlayFabLobby.h"
 #include "MatchmakingInterfacePlayFab.h"
 #include "Engine/Engine.h"
-
-THIRD_PARTY_INCLUDES_START
-#ifdef OSS_PLAYFAB_SWITCH
-#include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_SWITCH
-#include <PartyImpl.h>
-#include <PartyTypes.h>
-#include <PFLobby.h>
-THIRD_PARTY_INCLUDES_END
 
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineFriendsPtr, GetFriendsInterface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlinePartyPtr, GetPartyInterface);
@@ -70,6 +62,9 @@ bool FOnlineSubsystemPlayFab::Init()
 {
 	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::Init"));
 	
+	NativeOSS = IOnlineSubsystem::GetByPlatform();
+	check(NativeOSS);
+
 #ifdef OSS_PLAYFAB_PLAYSTATION
 	OnlineAsyncTaskThreadRunnable = new FOnlineAsyncTaskManagerPlayFab(this);
 	check(OnlineAsyncTaskThreadRunnable);
@@ -387,14 +382,25 @@ void FOnlineSubsystemPlayFab::OnAppSuspend()
 	{
 		VoiceInterface->OnAppSuspend();
 	}
-	
-	CleanUpPlayFab();
+
+	if (bPartyInitialized)
+	{
+		bPartyInitialized = false;
+
+		NetworkState = EPlayFabPartyNetworkState::NoNetwork;
+		Network = nullptr;
+
+		// This cleans up everything allocated in PartyManager.Initialize() and
+		// should only be used when done with networking
+		PartyManager::GetSingleton().Cleanup();
+	}
 }
 
 void FOnlineSubsystemPlayFab::OnAppResume()
 {
 	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::OnAppResume"));
 
+#if !defined(OSS_PLAYFAB_GDK)
 	TryInitializePlayFabParty();
 
 	if (IdentityInterface.IsValid())
@@ -406,6 +412,41 @@ void FOnlineSubsystemPlayFab::OnAppResume()
 	{
 		VoiceInterface->OnAppResume();
 	}
+#else // OSS_PLAYFAB_GDK
+	if (SessionInterface.IsValid())
+	{
+		FOnSessionsRemovedDelegate OnSessionsRemovedDelegate;
+		OnSessionsRemovedDelegate.BindLambda([this]() {
+			UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::OnAppResume: Received OnLobbyDisconnected"));
+			if (bMultiplayerInitialized)
+			{
+				bMultiplayerInitialized = false;
+				HRESULT Hr = PFMultiplayerUninitialize(MultiplayerHandle);
+				if (FAILED(Hr))
+				{
+					UE_LOG_ONLINE(Error, TEXT("FOnlineSubsystemPlayFab::OnAppResume: PFMultiplayerUninitialize failed:[0x%08x], %s"), Hr, *GetMultiplayerErrorMessage(Hr));
+				}
+				MultiplayerHandle = nullptr;
+			}
+
+			TryInitializePlayFabParty();
+
+			InitializeMultiplayer();
+
+			if (IdentityInterface.IsValid())
+			{
+				IdentityInterface->OnAppResume();
+			}
+
+			if (VoiceInterface.IsValid())
+			{
+				VoiceInterface->OnAppResume();
+			}
+		});
+
+		SessionInterface->OnAppResume(OnSessionsRemovedDelegate);
+	}
+#endif //!OSS_PLAYFAB_GDK
 }
 
 bool FOnlineSubsystemPlayFab::Tick(float DeltaTime)
@@ -438,11 +479,6 @@ bool FOnlineSubsystemPlayFab::Tick(float DeltaTime)
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->Tick(DeltaTime);
-	}
-
-	if (ExternalUIInterface.IsValid())
-	{
-		ExternalUIInterface->Tick(DeltaTime);
 	}
 
 	return true;
@@ -851,6 +887,12 @@ FString GetPartyErrorMessage(PartyError InError)
 	}
 
 	return ANSI_TO_TCHAR(ErrorString);
+}
+
+void LogMultiplayerErrorWithMessage(const FString& FuncName, HRESULT Hr)
+{
+	const char* ErrorString = PFMultiplayerGetErrorMessage(Hr);
+	UE_LOG_ONLINE(Warning, TEXT("%s() failed: Error code [0x%08x] - Error message: %s"), *FuncName, Hr, ANSI_TO_TCHAR(ErrorString));
 }
 
 FString GetMultiplayerErrorMessage(HRESULT InHresult)
@@ -1426,16 +1468,47 @@ PartyEndpoint* FOnlineSubsystemPlayFab::GetPartyEndpoint(uint32 EndpointId)
 	return nullptr;
 }
 
-#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
-const FString FOnlineSubsystemPlayFab::GetSandBox() const
+FUniqueNetIdPtr FOnlineSubsystemPlayFab::GetNativeNetId(const FUniqueNetIdRef& NetId)
 {
-	char SandboxId[XSystemXboxLiveSandboxIdMaxBytes] = { 0 };
-	HRESULT hResult = XSystemGetXboxLiveSandboxId(UE_ARRAY_COUNT(SandboxId), SandboxId, nullptr);
-	if (SUCCEEDED(hResult))
+	if (IdentityInterface.IsValid() == false)
 	{
-		return UTF8_TO_TCHAR(SandboxId);
+		UE_LOG_ONLINE(Warning, TEXT("FOnlineSubsystemPlayFab::GetNativeNetId: IdentityInterface was null"));
+		return nullptr;
 	}
-	UE_LOG_ONLINE(Error, TEXT("FOnlineSubsystemPlayFab::GetSandBox: failed: %x"), hResult);
-	return TEXT("");
+
+	if (NetId->IsValid() == false)
+	{
+		UE_LOG_ONLINE(Warning, TEXT("FOnlineSubsystemPlayFab::GetNativeNetId: NetId was invalid"));
+		return nullptr;
+	}
+
+	if (NetId->GetType() == PLAYFAB_SUBSYSTEM)
+	{
+		return IdentityInterface->CreateUniquePlayerId(NetId->ToString());
+	}
+	else
+	{
+		return NetId;
+	}
 }
-#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
+
+FUniqueNetIdPtr FOnlineSubsystemPlayFab::GetPlayFabNetId(const FUniqueNetIdRef& NetId)
+{
+	if (NetId->IsValid() == false)
+	{
+		UE_LOG_ONLINE(Warning, TEXT("FOnlineSubsystemPlayFab::GetPlayFabNetId: NetId was invalid"));
+		return nullptr;
+	}
+
+	return FUniqueNetIdPlayFab::Create(NetId->ToString());
+}
+
+FNetIdPair FOnlineSubsystemPlayFab::GetNetIdPair(const FUniqueNetIdRef& NetId)
+{
+	FNetIdPair NetIdPair;
+
+	NetIdPair.NativeNetId = GetNativeNetId(NetId);
+	NetIdPair.PlayFabNetId = GetPlayFabNetId(NetId);
+
+	return NetIdPair;
+}

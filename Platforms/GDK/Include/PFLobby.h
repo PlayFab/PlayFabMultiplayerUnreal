@@ -48,7 +48,7 @@ constexpr uint32_t PFLobbyMaxMemberPropertyCount = 30;
 constexpr uint32_t PFLobbyClientRequestedSearchResultCountUpperLimit = 50;
 
 /// <summary>
-/// A special, pre-defined search key which can be used in the <see cref="PFLobbySearchConfiguration" /> filtering and
+/// A special, predefined search key that can be used in the <see cref="PFLobbySearchConfiguration" /> filtering and
 /// sorting strings to search for lobbies based on the current number of members in the lobby.
 /// </summary>
 /// <remarks>
@@ -57,7 +57,7 @@ constexpr uint32_t PFLobbyClientRequestedSearchResultCountUpperLimit = 50;
 constexpr char PFLobbyMemberCountSearchKey[] = "lobby/memberCount";
 
 /// <summary>
-/// A special, pre-defined search key which can be used in the <see cref="PFLobbySearchConfiguration" /> filtering
+/// A special, predefined search key that can be used in the <see cref="PFLobbySearchConfiguration" /> filtering
 /// string to search for lobbies that you are currently a member of.
 /// </summary>
 /// <remarks>
@@ -66,7 +66,7 @@ constexpr char PFLobbyMemberCountSearchKey[] = "lobby/memberCount";
 constexpr char PFLobbyAmMemberSearchKey[] = "lobby/amMember";
 
 /// <summary>
-/// A special, pre-defined search key which can be used in the <see cref="PFLobbySearchConfiguration" /> filtering
+/// A special, predefined search key that can be used in the <see cref="PFLobbySearchConfiguration" /> filtering
 /// string to search for lobbies that you own.
 /// </summary>
 /// <remarks>
@@ -75,18 +75,18 @@ constexpr char PFLobbyAmMemberSearchKey[] = "lobby/amMember";
 constexpr char PFLobbyAmOwnerSearchKey[] = "lobby/amOwner";
 
 /// <summary>
-/// A special, pre-defined search key which lets you search for lobbies which match 
-/// certain parameters such as having specific properties 
+/// A special, predefined search key that can be used in the <see cref="PFLobbySearchConfiguration" /> filtering
+/// string to search for lobbies with a specific lock state.
 /// </summary>
 /// <remarks>
-/// Example: "lobby/membershipLock eq true"
+/// Example: "lobby/membershipLock eq 'Unlocked'"
 /// </remarks>
 constexpr char PFLobbyMembershipLockSearchKey[] = "lobby/membershipLock";
 
 #pragma pack(push, 8)
 
 /// <summary>
-/// The types of state changes that can occur.
+/// The types of state changes that can occur in the Lobby library.
 /// </summary>
 enum class PFLobbyStateChangeType : uint32_t
 {
@@ -929,8 +929,8 @@ struct PFLobbySearchConfiguration
     /// </para>
     /// <para>
     /// The left-hand side of each OData logical expression should be either a search property key (e.g. string_key1,
-    /// number_key3, etc) or one of the pre-defined search keys (<c>PFLobbyMemberCountSearchKey</c> or
-    /// <c>PFLobbyAmMemberSearchKey</c>).
+    /// number_key3, etc) or one of the predefined search keys (<c>PFLobbyMemberCountSearchKey</c>,
+    /// <c>PFLobbyAmMemberSearchKey</c>, or <c>PFLobbyMembershipLockSearchKey</c>)
     /// </para>
     /// <para>
     /// The left-hand side of each OData logical expression should be a search property key.
@@ -939,7 +939,8 @@ struct PFLobbySearchConfiguration
     /// This string cannot exceed 500 characters.
     /// </para>
     /// <para>
-    /// Example: "string_key1 eq 'CaptureTheFlag' and number_key10 gt 50 and lobby/memberCount lt 5"
+    /// Example: "lobby/membershipLock eq 'Unlocked' and string_key1 eq 'CaptureTheFlag' and number_key10 gt 50 and
+    /// lobby/memberCount lt 5"
     /// </para>
     /// </remarks>
     _Maybenull_ _Null_terminated_ const char * filterString;
@@ -1069,10 +1070,15 @@ struct PFLobbySearchResult
     /// </para>
     /// </remarks>
     _Field_size_(friendCount) const PFEntityKey * friends;
+
+    /// <summary>
+    /// The current lock state of the found lobby.
+    /// </summary>
+    PFLobbyMembershipLock membershipLock;
 };
 
 /// <summary>
-/// A generic, base structure representation of an event or change in state.
+/// A generic, base structure representation of an event or change in state in the Lobby library.
 /// </summary>
 /// <remarks>
 /// PFLobbyStateChange structures are reported by <see cref="PFMultiplayerStartProcessingLobbyStateChanges()" /> for the
@@ -2773,8 +2779,6 @@ PFMultiplayerJoinArrangedLobby(
 /// <see cref="PFLobbyFindLobbiesCompletedStateChange::result" /> field set to <c>S_OK</c>. Upon a failed completion,
 /// the title will be provided a <see cref="PFLobbyFindLobbiesCompletedStateChange" /> with the
 /// <see cref="PFLobbyFindLobbiesCompletedStateChange::result" /> field set to a failure.
-/// <para>
-/// </para>
 /// </remarks>
 /// <param name="handle">
 /// The handle of the PFMultiplayer API instance.

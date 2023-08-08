@@ -58,7 +58,7 @@ enum class PFMatchmakingTicketStatus : uint32_t
 };
 
 /// <summary>
-/// The types of state changes that can occur.
+/// The types of state changes that can occur in the Matchmaking library.
 /// </summary>
 enum class PFMatchmakingStateChangeType : uint32_t
 {
@@ -98,7 +98,7 @@ enum class PFMultiplayerProtocolType : uint32_t
 };
 
 /// <summary>
-/// A generic, base structure representation of an event or change in state.
+/// A generic, base structure representation of an event or change in state in the Matchmaking library.
 /// </summary>
 /// <remarks>
 /// PFMatchmakingStateChange structures are reported by
@@ -656,9 +656,12 @@ PFMatchmakingTicketCancel(
 /// Provides the ticket ID.
 /// </summary>
 /// <remarks>
-/// The ticket ID will be an empty string if the ticket is in the <c>PFMatchmakingTicketStatus::Creating</c> state or if
-/// the ticket is in the <c>PFMatchmakingTicketStatus::Failed</c> state due to failure to submit a ticket to the
-/// matchmaking service. The ticket state can be retrieved via <see cref="PFMatchmakingTicketGetStatus" />.
+/// The ticket ID will be an empty string if it has not yet been set. This can occur under one of the following
+/// conditions:
+/// ` * The ticket is in the <c>PFMatchmakingTicketStatus::Creating</c> state
+/// ` * The ticket is in the <c>PFMatchmakingTicketStatus::Failed</c> state due to failure to submit a ticket to the
+///     matchmaking service
+/// ` * The ticket was canceled before it could be submitted to the matchmaking service
 /// </remarks>
 /// <param name="ticket">
 /// The handle of the matchmaking ticket.

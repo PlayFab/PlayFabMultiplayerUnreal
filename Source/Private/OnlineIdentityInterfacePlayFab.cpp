@@ -4,6 +4,8 @@
 
 #include "OnlineIdentityInterfacePlayFab.h"
 #include "OnlineSubsystemPlayFab.h"
+#include "PlayFabLobby.h"
+#include "PlayFabHelpers.h"
 
 #include "Serialization/JsonWriter.h"
 #include "Serialization/JsonReader.h"
@@ -353,14 +355,14 @@ void FOnlineIdentityPlayFab::OnLoginStatusChanged(int32 LocalUserNum, ELoginStat
 	{
 		if (NewId.IsValid())
 		{
+			FString PlatformUserIdStr = NewId.ToString();
 			if (NewStatus == ELoginStatus::LoggedIn)
 			{
-				UsersToAuth.Add(NewId.ToString());
+				UsersToAuth.Add(PlatformUserIdStr);
 			}
 			else if (NewStatus == ELoginStatus::NotLoggedIn)
 			{
 				// Clean up the PlayFab local user
-				FString PlatformUserIdStr = NewId.ToString();
 				RemoveLocalUser(PlatformUserIdStr);
 			}
 		}
@@ -454,6 +456,11 @@ void FOnlineIdentityPlayFab::FinishRequest(bool bPlatformDataSuccess, const FStr
 {
 	if (bPlatformDataSuccess)
 	{
+		if (!RequestBodyJson.IsValid())
+		{
+			UE_LOG_ONLINE(Error, TEXT("FOnlineIdentityPlayFab::FinishRequest: RequestBodyJson is null"));
+			return;
+		}
 		// PlayFab auth request
 		FHttpRequestPtr httpRequest = FHttpModule::Get().CreateRequest();
 
@@ -470,7 +477,6 @@ void FOnlineIdentityPlayFab::FinishRequest(bool bPlatformDataSuccess, const FStr
 			{
 				RequestInFlight->m_HTTPRequest->SetHeader(kvPair.Key, kvPair.Value);
 			}
-
 			// Build up the rest of the request body
 			RequestBodyJson->SetBoolField(TEXT("CreateAccount"), true);
 			RequestBodyJson->SetStringField(TEXT("TitleId"), TitleIdStr);
@@ -642,7 +648,7 @@ void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, c
 	LocalPlayFabUsers.Add(NewLocalUser);
 
 	// Listening to invite is best effort
-	OSSPlayFab->GetPlayFabLobbyInterface()->RegisterInvitationListener(EntityKey);
+	OSSPlayFab->GetPlayFabLobbyInterface()->RegisterForInvites_PlayFabMultiplayer(EntityKey);
 }
 
 void FOnlineIdentityPlayFab::RemoveLocalUser(const FString& PlatformUserIdStr)
@@ -670,7 +676,7 @@ void FOnlineIdentityPlayFab::RemoveLocalUser(const FString& PlatformUserIdStr)
 				}
 
 				// Stop Listening to invite is best effort
-				OSSPlayFab->GetPlayFabLobbyInterface()->UnregisterInvitationListener(LocalUser->GetEntityKey());
+				OSSPlayFab->GetPlayFabLobbyInterface()->UnregisterForInvites_PlayFabMultiplayer(LocalUser->GetEntityKey());
 
 				break;
 			}
@@ -725,6 +731,21 @@ bool FOnlineIdentityPlayFab::IsUserLocal(const PFEntityKey& UserEntityKey)
 		}
 	}
 	return false;
+}
+
+const TArray<PFEntityKey> FOnlineIdentityPlayFab::GetLocalUserEntityKeys() const
+{
+	TArray<PFEntityKey> EntityKeys;
+
+	for (TSharedPtr<FPlayFabUser> LocalUser : LocalPlayFabUsers)
+	{
+		if (LocalUser.IsValid())
+		{
+			EntityKeys.Emplace(LocalUser->GetEntityKey());
+		}
+	}
+
+	return EntityKeys;
 }
 
 FDelegateHandle FOnlineIdentityPlayFab::AddOnLoginChangedDelegate_Handle(const FOnLoginChangedDelegate& Delegate)

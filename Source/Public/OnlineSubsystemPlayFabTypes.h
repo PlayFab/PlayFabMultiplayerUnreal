@@ -4,176 +4,66 @@
 
 #pragma once
 
-THIRD_PARTY_INCLUDES_START
-#if defined(OSS_PLAYFAB_PLAYSTATION)
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#include <PFMultiplayerPal.h>
-#endif // OSS_PLAYFAB_PLAYSTATION
-#include <PFEntityKey.h>
-#include <PFMultiplayer.h>
-#include <PFMatchmaking.h> 
-#include <PFLobby.h>
-THIRD_PARTY_INCLUDES_END
-
+#include "Online/CoreOnline.h"
+#include "OnlineSessionSettings.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "OnlineSubsystemUtils.h"
+#include "PlayFabSDKIncludes.h"
 
-/**
- * PlayFab Lobby wrapper
- */
-	class FOnlineSessionInfoPlayFab : public FOnlineSessionInfo
+class FPlayFabUser;
+
+class FOnlineSessionInfoPlayFab : public FOnlineSessionInfo
 {
-
 public:
-	/**
-	 * Constructor
-	 */
 	FOnlineSessionInfoPlayFab()
 		: SessionId(FUniqueNetIdString::Create(TEXT(""), PLAYFAB_SUBSYSTEM))
-		, ConnectionString(FString())
-		, LobbyHandle(nullptr)
-		, SessionName(FName())
 	{
 	}
 
-	/**
-	 * Constructor
-	 *
-	 * @param InConnectionString lobby connection string
-	 */
-	FOnlineSessionInfoPlayFab(FString InConnectionString)
-		: SessionId(FUniqueNetIdString::Create(TEXT(""), PLAYFAB_SUBSYSTEM))
-		, ConnectionString(InConnectionString)
-		, LobbyHandle(nullptr)
-		, SessionName(FName())
-	{
-	}
-
-	/**
-	 * Constructor
-	 *
-	 * @param LobbyId The lobby associated with this session
-	 * @param InConnectionString lobby connection string
-	 */
-	FOnlineSessionInfoPlayFab(FString LobbyId, FString InConnectionString)
-		: SessionId(FUniqueNetIdString::Create(LobbyId, PLAYFAB_SUBSYSTEM))
-		, ConnectionString(InConnectionString)
-		, LobbyHandle(nullptr)
-		, SessionName(FName())
-	{
-	}
-
-	/**
-	 * Constructor
-	 *
-	 * @param LobbyId The lobby associated with this session
-	 * @param InLobbyHandle
-	 * @param InSessionName
-	 */
-	FOnlineSessionInfoPlayFab(FString LobbyId, PFLobbyHandle InLobbyHandle, FName InSessionName)
-		: SessionId(FUniqueNetIdString::Create(LobbyId, PLAYFAB_SUBSYSTEM))
-		, ConnectionString(FString())
-		, LobbyHandle(InLobbyHandle)
-		, SessionName(InSessionName)
-	{
-	}
-
-	/**
-	 * Constructor
-	 *
-	 * @param LobbyId The lobby associated with this session
-	 * @param InConnectionString lobby connection string
-	 * @param InLobbyHandle
-	 * @param InSessionName
-	 */
-	FOnlineSessionInfoPlayFab(FString LobbyId, FString InConnectionString,
-							  PFLobbyHandle InLobbyHandle, FName InSessionName)
-		: SessionId(FUniqueNetIdString::Create(LobbyId, PLAYFAB_SUBSYSTEM))
-		, ConnectionString(InConnectionString)
-		, LobbyHandle(InLobbyHandle)
-		, SessionName(InSessionName)
-	{
-	}
-
-	/** Destructor */
 	virtual ~FOnlineSessionInfoPlayFab() = default;
 
-	virtual const FUniqueNetId& GetSessionId() const override
+	const uint8* GetBytes() const override
 	{
-		return *SessionId;
+		return nullptr;
 	}
 
-	virtual const uint8* GetBytes() const override
-	{
-		// NOTIMPL
-		return NULL;
-	}
-
-	virtual int32 GetSize() const override
+	int32 GetSize() const override
 	{
 		return sizeof(FOnlineSessionInfoPlayFab);
 	}
 
-	FString GetConnectionString() const
-	{
-		return ConnectionString;
-	}
-
-	PFLobbyHandle GetLobbyHandle() const
-	{
-		return LobbyHandle;
-	}
-
-	FName GetSessionName() const
-	{
-		return SessionName;
-	}
-
-	void SetSessionId(FString InSessionId)
-	{
-		SessionId = FUniqueNetIdString::Create(InSessionId, PLAYFAB_SUBSYSTEM);
-	}
-
-	void SetConnectionString(FString InConnectionString)
-	{
-		ConnectionString = InConnectionString;
-	}
-
-	void SetLobbyHandle(PFLobbyHandle InLobbyHandle)
-	{
-		LobbyHandle = InLobbyHandle;
-	}
-
-	void SetSessionName(FName InSessionName)
-	{
-		SessionName = InSessionName;
-	}
-
-	virtual bool IsValid() const override
+	bool IsValid() const override
 	{
 		return LobbyHandle != nullptr || !ConnectionString.IsEmpty();
 	}
 
-	virtual FString ToString() const override
+	FString ToString() const override
 	{
 		return SessionName.ToString();
 	}
 
-	virtual FString ToDebugString() const override
+	FString ToDebugString() const override
 	{
 		return SessionName.ToString();
 	}
 
-	//
-	// Platform specific APIs
-	//
+	virtual const FUniqueNetId& GetSessionId() const override { return *SessionId; }
+	void SetSessionId(FString InSessionId) { SessionId = FUniqueNetIdString::Create(InSessionId, PLAYFAB_SUBSYSTEM); }
+#if defined(USES_NATIVE_SESSION)
+	const FString GetNativeSessionIdString() const { return NativeSessionIdString; }
+	void SetNativeSessionIdString(FString InNativeSessionId) { NativeSessionIdString = InNativeSessionId; }
+	const FString GetNativePlatform() const { return NativePlatform; }
+	void SetNativePlatform(FString InNativePlatform) { NativePlatform = InNativePlatform; }
+#endif
 
-private:
-
-	/** Placeholder unique id */
 	FUniqueNetIdStringRef SessionId;
+#if defined(USES_NATIVE_SESSION)
+	FString NativeSessionIdString;
+	FString NativePlatform;
+#endif
 	FString ConnectionString;
-	PFLobbyHandle LobbyHandle;
-	FName SessionName;
+	PFLobbyHandle LobbyHandle{};
+	FName SessionName = NAME_None;
 };
 
 const FString INVALID_UNIQUE_NETID = TEXT("");
@@ -190,63 +80,36 @@ protected:
 	/** Holds the net id for a player */
 	FString UniqueNetId;
 
-	/** Hidden on purpose */
 	FUniqueNetIdPlayFab() :
 		UniqueNetId()
 	{
 	}
 
-	/**
-	* Copy Constructor
-	*
-	* @param Src the id to copy
-	*/
 	explicit FUniqueNetIdPlayFab(const FUniqueNetIdPlayFab& Src) :
-		UniqueNetId(FString(Src.UniqueNetId))
+		UniqueNetId(Src.UniqueNetId)
+	{
+	}
+
+	explicit FUniqueNetIdPlayFab(const FString& Str) :
+		UniqueNetId(Str)
 	{
 	}
 
 public:
 
-	/**
-	 * Constructs this object with the specified net id
-	 *
-	 * @param String textual representation of an id
-	 */
-	explicit FUniqueNetIdPlayFab(const FString& Str) :
-		UniqueNetId(FString(Str, 0).ToLower())
-	{
-	}
-
 	static FUniqueNetIdPlayFabRef Create(const FString& InUniqueNetIdStr)
 	{
 		return MakeShareable(new FUniqueNetIdPlayFab(InUniqueNetIdStr));
 	}
-	
+
 	static FUniqueNetIdPlayFabRef Create(const FUniqueNetId& InUniqueNetId)
 	{
-		return StaticCastSharedRef<const FUniqueNetIdPlayFab>(InUniqueNetId.AsShared());
+		return MakeShareable(new FUniqueNetIdPlayFab(InUniqueNetId.ToString()));
 	}
 
 	virtual FName GetType() const override
 	{
-		#if ENGINE_MAJOR_VERSION >= 5
-		#if defined(OSS_PLAYFAB_WINGDK) || defined(OSS_PLAYFAB_XSX) || defined(OSS_PLAYFAB_XBOXONEGDK)
-			return GDK_SUBSYSTEM;
-		#elif defined(OSS_PLAYFAB_SWITCH)
-			return SWITCH_SUBSYSTEM;
-		#elif defined(OSS_PLAYFAB_WIN64)
-			return STEAM_SUBSYSTEM;
-		#elif defined(OSS_PLAYFAB_PS4)
-			return PS4_SUBSYSTEM;
-		#elif defined(OSS_PLAYFAB_PS5)
-			return PS5_SUBSYSTEM;
-		#endif // OSS_PLAYFAB_WINGDK || OSS_PLAYFAB_XSX || OSS_PLAYFAB_XBOXONEGDK
-		UE_LOG_ONLINE(Error, TEXT("Unsupported Platform."));
-		return FName();
-		#else // ENGINE_MAJOR_VERSION
 		return PLAYFAB_SUBSYSTEM;
-		#endif // ENGINE_MAJOR_VERSION
 	}
 
 	/**
@@ -315,15 +178,15 @@ public:
 	}
 
 	virtual bool Compare(const FUniqueNetId& Other) const override
-	{		
-		return Other.ToString().Equals(this->ToString(), ESearchCase::IgnoreCase);	
+	{
+		return Other.ToString().Equals(this->ToString(), ESearchCase::IgnoreCase);
 	}
 
 	virtual ~FUniqueNetIdPlayFab() = default;
 
 	friend FORCEINLINE uint32 GetTypeHash(const FUniqueNetIdPlayFab& Id)
 	{
-		return ::GetTypeHash(Id.UniqueNetId);
+		return GetTypeHashHelper(Id.UniqueNetId);
 	}
 
 	friend FArchive& operator<<(FArchive& Ar, FUniqueNetIdPlayFab& UserId)

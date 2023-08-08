@@ -42,11 +42,8 @@ bool UPlayFabNetDriver::InitBase(bool bInitAsClient, FNetworkNotify* InNotify, c
 		if (FPlayFabSocketSubsystem* SocketSubsystem = GetPlayFabSocketSubsystem())
 		{
 			FUniqueSocket NewSocket = CreateSocketForProtocol(FNetworkProtocolTypes::PlayFab);
-#if ENGINE_MAJOR_VERSION > 5 || ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+
 			SetSocketAndLocalAddress(TSharedPtr<FSocket>(NewSocket.Release(), FSocketDeleter(GetSocketSubsystem())));
-#else
-			SetSocketAndLocalAddress(NewSocket.Release());
-#endif
 
 			SocketSubsystem->LinkNetDriver(this);
 

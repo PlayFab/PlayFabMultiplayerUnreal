@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include "Dom/JsonObject.h"
+#include "OnlineSubsystemPlayFabPackage.h"
+
 THIRD_PARTY_INCLUDES_START
 #include <PFEntityKey.h>
 THIRD_PARTY_INCLUDES_END

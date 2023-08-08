@@ -1,6 +1,7 @@
 #include "PlayFabHelpers.h"
 
 #include "GenericPlatform/GenericPlatformMisc.h"
+#include "Serialization/JsonSerializer.h"
 
 bool
 MakePlayFabRestRequest(
@@ -95,7 +96,7 @@ GenerateGetPlayFabIDsFromNsaIDsRequestBody(
 	generatedRequestBody = SerializeRequestJson(HttpRequestJson);
 }
 
-#if OSS_PLAYFAB_PLAYSTATION
+#if defined(OSS_PLAYFAB_PLAYSTATION)
 void
 GenerateGetPlayFabIDsFromPsnIDsRequestBody(
 	const TArray<FString>& PsnUniqueIDs,
@@ -256,7 +257,7 @@ ParseNsaIdToPlayFabIdMappingDataObject(
 	return true;
 }
 
-#if OSS_PLAYFAB_PLAYSTATION
+#if defined(OSS_PLAYFAB_PLAYSTATION)
 bool
 ParsePsnIdToPlayFabIdMappingDataObject(
 	const TSharedPtr<FJsonObject>* JsonDataObject,
@@ -352,7 +353,7 @@ bool ParseTitleAccountIDsFromPlatformIDsResponse(
 	const FString ResponseStr = HttpResponse->GetContentAsString();
 	TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(ResponseStr);
 	TSharedPtr<FJsonObject> HttpResponseJSON;
-	const TSharedPtr<FJsonObject>* JsonDataObject;
+	const TSharedPtr<FJsonObject>* JsonDataObject = nullptr;
 	if (!ParseDataObjectFromPlayFabResponse(HttpResponse, JsonReader, HttpResponseJSON, JsonDataObject))
 	{
 		return false;
@@ -414,7 +415,7 @@ bool ParseTitlePlayerAccountFromPlayerCombinedInfoResponse(
 	const FString ResponseStr = HttpResponse->GetContentAsString();
 	TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(ResponseStr);
 	TSharedPtr<FJsonObject> HttpResponseJSON;
-	const TSharedPtr<FJsonObject>* JsonDataObject;
+	const TSharedPtr<FJsonObject>* JsonDataObject = nullptr;
 	if (!ParseDataObjectFromPlayFabResponse(HttpResponse, JsonReader, HttpResponseJSON, JsonDataObject))
 	{
 		return false;
