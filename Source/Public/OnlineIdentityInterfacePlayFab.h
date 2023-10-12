@@ -18,15 +18,26 @@
 
 using namespace Party;
 
+/**
+ * Called when PlayFab authentication was complete after calling AuthenticateUser.
+ *
+ * @param LocalUserNum the controller number of the associated user
+ * @param bWasSuccessful true if server was contacted and a valid result received
+ * @param PlatformUserIdStr the user id received from the server on successful authentication
+ * @param Error string representing the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnAuthenticateUserComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FString& /*PlatformUserIdStr*/, const FString& /*Error*/);
+typedef FOnAuthenticateUserComplete::FDelegate FOnAuthenticateUserCompleteDelegate;
+
 struct UserAuthRequestData
 {
 	FHttpRequestPtr m_HTTPRequest;
 };
 
-class FPlayFabUser
+class ONLINESUBSYSTEMPLAYFAB_API FPlayFabUser
 {
 public:
-	FPlayFabUser(const FString& PlatformUserIdStrIn, const FString& EntityTokenIn, const FString& EntityIdIn, const FString& EntityTypeIn, const FString& SessionTicketIn, PartyLocalUser* LocalUserIn)
+	FPlayFabUser(const FString& PlatformUserIdStrIn, const FString& EntityTokenIn, const FString& EntityIdIn, const FString& EntityTypeIn, const FString& SessionTicketIn, PartyLocalUser* LocalUserIn, const FString& PlayFabIdIn)
 		: PlatformUserIdStr(PlatformUserIdStrIn)
 		, EntityToken(EntityTokenIn)
 		, EntityId(EntityIdIn)
@@ -35,6 +46,7 @@ public:
 		, LocalUser(LocalUserIn)
 		, EntityIdStr(TCHAR_TO_UTF8(*EntityIdIn))
 		, EntityTypeStr(TCHAR_TO_UTF8(*EntityTypeIn))
+		, PlayFabId(PlayFabIdIn)
 	{
 		SetNewEntityTokenUpdateTime();
 	}
@@ -44,6 +56,7 @@ public:
 	const FString& GetEntityId() const { return EntityId; }
 	const FString& GetEntityType() const { return EntityType; }
 	const FString& GetSessionTicket() const { return SessionTicket; }
+	const FString& GetPlayFabId() const { return PlayFabId; }
 	const FDateTime& GetEntityTokenUpdateTime() const { return EntityTokenUpdateTime; }
 	PartyLocalUser* GetPartyLocalUser() const { return LocalUser; }
 	PFEntityKey GetEntityKey() const { return PFEntityKey{ EntityIdStr.c_str(), EntityTypeStr.c_str() }; }
@@ -61,10 +74,11 @@ private:
 	PartyLocalUser* LocalUser = nullptr;
 	std::string EntityIdStr;
 	std::string EntityTypeStr;
+	FString PlayFabId;
 	FDateTime EntityTokenUpdateTime;
 };
 
-class FOnlineIdentityPlayFab
+class ONLINESUBSYSTEMPLAYFAB_API FOnlineIdentityPlayFab
 	: public IOnlineIdentity
 	, public TSharedFromThis<FOnlineIdentityPlayFab, ESPMode::ThreadSafe>
 {
@@ -82,6 +96,16 @@ PACKAGE_SCOPE:
 public:
 
 	virtual ~FOnlineIdentityPlayFab();
+
+	/**
+	 * Called when PlayFab authentication was complete after calling AuthenticateUser.
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true if server was contacted and a valid result received
+	 * @param PlatformUserIdStr the user id received from the server on successful authentication
+	 * @param Error string representing the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnAuthenticateUserComplete, bool /*bWasSuccessful*/, const FString& /*PlatformUserIdStr*/, const FString& /*Error*/);
 
 	// IOnlineIdentity
 
@@ -152,6 +176,7 @@ public:
 
 	TSharedPtr<FPlayFabUser> GetPartyLocalUserFromPlatformId(const FUniqueNetId& PlatformNetId);
 	TSharedPtr<FPlayFabUser> GetPartyLocalUserFromPlatformIdString(const FString& PlatformNetIdStr);
+	TSharedPtr<FPlayFabUser> GetPartyLocalUserFromPlatformIdString(const FString& PlatformNetIdStr, int32& Index);
 	TSharedPtr<FPlayFabUser> GetPartyLocalUserFromEntityIdString(const FString& EntityIdString);
 
 	const TArray<TSharedPtr<FPlayFabUser>>& GetAllPartyLocalUsers() const
@@ -167,7 +192,7 @@ protected:
 	bool AuthenticateUser(const FString& UserPlatformIdStr);
 	void Auth_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
 
-	void CreateLocalUser(const FString& UserPlatformIdStr, const FString& EntityId, const FString& EntityType, const FString& SessionTicket, const FString& EntityToken, const FString& TokenExpiration);
+	void CreateLocalUser(const FString& UserPlatformIdStr, const FString& EntityId, const FString& EntityType, const FString& SessionTicket, const FString& EntityToken, const FString& TokenExpiration, const FString& PlayFabId);
 	void RemoveLocalUser(const FString& PlatformUserIdStr);
 
 private:
