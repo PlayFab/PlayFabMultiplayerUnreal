@@ -626,7 +626,7 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 	UserAuthRequestsInFlight.Remove(PlatformUserIdStr);
 }
 
-void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, const FString& EntityId, const FString& EntityType, const FString& SessionTicket, const FString& EntityToken, const FString& TokenExpiration, const FString& PlayFabId))
+void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, const FString& EntityId, const FString& EntityType, const FString& SessionTicket, const FString& EntityToken, const FString& TokenExpiration, const FString& PlayFabId)
 {
 	UE_LOG_ONLINE_IDENTITY(Verbose, TEXT("FOnlineIdentityPlayFab::CreateLocalUser"));
 
