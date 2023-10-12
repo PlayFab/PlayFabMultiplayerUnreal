@@ -67,7 +67,7 @@ public:
 		}
 		else
 		{
-			UE_LOG_ONLINE(Warning, TEXT("PlayFab API disabled!"));
+			UE_LOG_ONLINE(Display, TEXT("PlayFab API disabled!"));
 			DestroySubsystem();
 			return nullptr;
 		}
