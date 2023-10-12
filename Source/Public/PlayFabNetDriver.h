@@ -33,6 +33,8 @@ public:
 	class FOnlineSubsystemPlayFab* GetOnlineSubsystemPlayFab();
 	class FPlayFabSocketSubsystem* GetPlayFabSocketSubsystem();
 
+	bool bFallbackToPlatformSocketSubsystem = false;
+
 protected:
 
 	friend class FPlayFabSocketSubsystem;

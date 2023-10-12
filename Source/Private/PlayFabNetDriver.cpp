@@ -17,7 +17,16 @@ UPlayFabNetDriver::UPlayFabNetDriver(const FObjectInitializer& ObjectInitializer
 
 class ISocketSubsystem* UPlayFabNetDriver::GetSocketSubsystem()
 {
-	return ISocketSubsystem::Get(PLAYFAB_SOCKET_SUBSYSTEM);
+	if (bFallbackToPlatformSocketSubsystem)
+	{
+		// TODO: Find a way to get the correct one directly or do one return per platform with the hardcoded strings
+		UE_LOG(LogSockets, Display, TEXT("PlayFabNetDriver::GetSocketSubsystem: bFallbackToPlatformSocketSubsystem = true; Returning windows socket subsystem."));
+		return ISocketSubsystem::Get(FName(TEXT("WINDOWS")));
+	}
+	else
+	{
+		return ISocketSubsystem::Get(PLAYFAB_SOCKET_SUBSYSTEM);
+	}
 }
 
 bool UPlayFabNetDriver::IsAvailable() const
@@ -37,6 +46,12 @@ bool UPlayFabNetDriver::IsAvailable() const
 
 bool UPlayFabNetDriver::InitBase(bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error)
 {
+	if (bFallbackToPlatformSocketSubsystem)
+	{
+		UE_LOG(LogSockets, Display, TEXT("PlayFabNetDriver::InitBase: URL = %s bFallbackToPlatformSocketSubsystem = true; Returning early Super::InitBase instead of setting up PlayFab Sockets."), *URL.Host);
+		return Super::InitBase(bInitAsClient, InNotify, URL, bReuseAddressAndPort, Error);
+	}
+
 	if (FOnlineSubsystemPlayFab* OSSPlayFab = GetOnlineSubsystemPlayFab())
 	{
 		if (FPlayFabSocketSubsystem* SocketSubsystem = GetPlayFabSocketSubsystem())
@@ -64,6 +79,17 @@ bool UPlayFabNetDriver::InitListen(FNetworkNotify* InNotify, FURL& LocalURL, boo
 
 bool UPlayFabNetDriver::InitConnect(FNetworkNotify* InNotify, const FURL& InConnectURL, FString& Error)
 {
+	if (InConnectURL.Host.StartsWith(TEXT("0.0.0.0")))
+	{
+		UE_LOG(LogSockets, Display, TEXT("PlayFabNetDriver::InitConnect: URL = %s bFallbackToPlatformSocketSubsystem = false"), *InConnectURL.Host);
+		bFallbackToPlatformSocketSubsystem = false;
+	}
+	else
+	{
+		UE_LOG(LogSockets, Display, TEXT("PlayFabNetDriver::InitConnect: URL = %s bFallbackToPlatformSocketSubsystem = true; Connecting to a dedicated server."), *InConnectURL.Host);
+		bFallbackToPlatformSocketSubsystem = true;
+	}
+
 	return Super::InitConnect(InNotify, InConnectURL, Error);
 }
 
