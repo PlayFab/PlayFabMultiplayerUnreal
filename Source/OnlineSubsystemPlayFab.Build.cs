@@ -55,6 +55,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
 		PublicDefinitions.Add(String.Format("OSS_PLAYFAB_{0}=1", Target.Platform.ToString().ToUpper()));
 		PublicDefinitions.Add("PLAYFAB_SUBSYSTEM=FName(TEXT(\"PLAYFAB\"))");
 		PrivateDefinitions.Add("ONLINESUBSYSTEMPLAYFAB_PACKAGE=1");
+        PublicDefinitions.Add("WITH_OSS_PLAYFAB=1");
 
 		// For debugging purposes
 		PublicDefinitions.Add("OSS_PLAYFAB_VERBOSE_VOIP_LOGGING=" + (VerboseVOIPLoggingEnabled ? "1" : "0"));
