@@ -29,7 +29,7 @@ void UPlayFabNetConnection::InitLocalConnection(UNetDriver* InDriver, class FSoc
 		bFallbackToPlatformSocketSubsystem = PlayFabNetDriver->bFallbackToPlatformSocketSubsystem;
 		if (bFallbackToPlatformSocketSubsystem)
 		{
-			UE_LOG_ONLINE(Display, TEXT("UPlayFabNetConnection::InitLocalConnection bFallbackToPlatformSocketSubsystem = true; Connecting to a dedicated server and early returning."));
+			UE_LOG_ONLINE(Verbose, TEXT("UPlayFabNetConnection::InitLocalConnection bFallbackToPlatformSocketSubsystem = true; Connecting to a dedicated server and early returning."));
 			Super::InitLocalConnection(InDriver, InSocket, InURL, InState, InMaxPacket, InPacketOverhead);
 			return;
 		}

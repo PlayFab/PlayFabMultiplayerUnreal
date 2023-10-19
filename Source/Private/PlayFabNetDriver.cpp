@@ -20,7 +20,6 @@ class ISocketSubsystem* UPlayFabNetDriver::GetSocketSubsystem()
 	if (bFallbackToPlatformSocketSubsystem)
 	{
 		// TODO: Find a way to get the correct one directly or do one return per platform with the hardcoded strings
-		UE_LOG(LogSockets, Display, TEXT("PlayFabNetDriver::GetSocketSubsystem: bFallbackToPlatformSocketSubsystem = true; Returning windows socket subsystem."));
 		return ISocketSubsystem::Get(FName(TEXT("WINDOWS")));
 	}
 	else
@@ -48,7 +47,7 @@ bool UPlayFabNetDriver::InitBase(bool bInitAsClient, FNetworkNotify* InNotify, c
 {
 	if (bFallbackToPlatformSocketSubsystem)
 	{
-		UE_LOG(LogSockets, Display, TEXT("PlayFabNetDriver::InitBase: URL = %s bFallbackToPlatformSocketSubsystem = true; Returning early Super::InitBase instead of setting up PlayFab Sockets."), *URL.Host);
+		UE_LOG(LogSockets, Verbose, TEXT("PlayFabNetDriver::InitBase: URL = %s bFallbackToPlatformSocketSubsystem = true; Returning early Super::InitBase instead of setting up PlayFab Sockets."), *URL.Host);
 		return Super::InitBase(bInitAsClient, InNotify, URL, bReuseAddressAndPort, Error);
 	}
 
@@ -81,12 +80,12 @@ bool UPlayFabNetDriver::InitConnect(FNetworkNotify* InNotify, const FURL& InConn
 {
 	if (InConnectURL.Host.StartsWith(TEXT("0.0.0.0")))
 	{
-		UE_LOG(LogSockets, Display, TEXT("PlayFabNetDriver::InitConnect: URL = %s bFallbackToPlatformSocketSubsystem = false"), *InConnectURL.Host);
+		UE_LOG(LogSockets, Verbose, TEXT("PlayFabNetDriver::InitConnect: URL = %s bFallbackToPlatformSocketSubsystem = false"), *InConnectURL.Host);
 		bFallbackToPlatformSocketSubsystem = false;
 	}
 	else
 	{
-		UE_LOG(LogSockets, Display, TEXT("PlayFabNetDriver::InitConnect: URL = %s bFallbackToPlatformSocketSubsystem = true; Connecting to a dedicated server."), *InConnectURL.Host);
+		UE_LOG(LogSockets, Verbose, TEXT("PlayFabNetDriver::InitConnect: URL = %s bFallbackToPlatformSocketSubsystem = true; Connecting to a dedicated server."), *InConnectURL.Host);
 		bFallbackToPlatformSocketSubsystem = true;
 	}
 
