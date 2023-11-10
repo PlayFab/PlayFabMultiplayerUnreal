@@ -1286,7 +1286,7 @@ void FOnlineSubsystemPlayFab::OnEndpointDestroyed(const PartyStateChange* Change
 				TSharedRef<FInternetAddr> CompareAddr = SocketSubsystem->CreateInternetAddr();
 				CompareAddr->SetIp(EndpointId);
 				CompareAddr->SetPort(EndpointId);
-				UNetConnection** ConnectionFound = PlayFabNetDriver->MappedClientConnections.Find(CompareAddr);
+				auto* ConnectionFound = PlayFabNetDriver->MappedClientConnections.Find(CompareAddr);
 				if (ConnectionFound != nullptr)
 				{
 					ConnectionToClose = *ConnectionFound;
