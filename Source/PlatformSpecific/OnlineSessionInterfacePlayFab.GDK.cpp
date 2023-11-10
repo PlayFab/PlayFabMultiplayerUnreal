@@ -186,7 +186,7 @@ bool FOnlineSessionPlayFab::SendInvite(const FUniqueNetId& SenderId, FName Sessi
 
 	if (SUCCEEDED(Hr))
 	{
-		NewAsyncBlock.Release();
+		(void)NewAsyncBlock.Release();
 		return true;
 	}
 	else
@@ -366,7 +366,7 @@ void FOnlineSessionPlayFab::SetMultiplayerActivity(PFLobbyHandle LobbyHandle, co
 			Hr = XblMultiplayerActivitySetActivityAsync(GDKContext, &MultiplayerActivityInfo, true, NewAsyncBlock.Get());
 			if (SUCCEEDED(Hr))
 			{
-				NewAsyncBlock.Release();
+				(void)NewAsyncBlock.Release();
 			}
 			else
 			{
@@ -418,7 +418,7 @@ void FOnlineSessionPlayFab::DeleteMultiplayerActivity(PFLobbyHandle LobbyHandle,
 			HRESULT Hr = XblMultiplayerActivityDeleteActivityAsync(GDKContext, NewAsyncBlock.Get());
 			if (SUCCEEDED(Hr))
 			{
-				NewAsyncBlock.Release();
+				(void)NewAsyncBlock.Release();
 			}
 			else
 			{

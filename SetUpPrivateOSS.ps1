@@ -31,8 +31,8 @@ if ($Platform -eq "Switch")
 	Write-Host "Select Switch SDK version..."
 	Write-Host "    1: SDK 14.3.0-shipping"
 	Write-Host "    2: SDK 14.3.0-logging"
-    Write-Host "    3: SDK 15.3.0-shipping"
-    Write-Host "    4: SDK 15.3.0-logging"
+    Write-Host "    3: SDK 15.3.2-shipping"
+    Write-Host "    4: SDK 15.3.2-logging"
     while($True)
     {
         Write-Host -NoNewline "> "
