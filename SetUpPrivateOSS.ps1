@@ -77,7 +77,7 @@ if ($Platform -eq "Switch")
         {
             $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.Switch-16.2.0-shipping"
             $partyNugetVersion = "1.8.11"
-            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-15.3.2-shipping"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-16.2.0-shipping"
             $mlpNugetVersion = "1.6.2"
             break
         }
@@ -85,7 +85,7 @@ if ($Platform -eq "Switch")
         {
             $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.Switch-16.2.0-logging"
             $partyNugetVersion = "1.8.11"
-            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-15.3.2-logging"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-16.2.0-logging"
             $mlpNugetVersion = "1.6.2"
             break
         }
