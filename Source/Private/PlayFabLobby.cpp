@@ -1767,7 +1767,7 @@ void FPlayFabLobby::OnGetPlayFabIDsFromPlatformIDsCompleted(FHttpRequestPtr Http
 		return;
 	}
 
-	auto OnGetPlayerCombinedInfoRequestCompleted = TDelegate<void(FHttpRequestPtr, FHttpResponsePtr, bool)>::CreateLambda([&](FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
+	auto OnGetPlayerCombinedInfoRequestCompleted = TDelegate<void(FHttpRequestPtr, FHttpResponsePtr, bool)>::CreateLambda([this, PendingSendInvite](FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
 	{
 		if (HttpResponse == nullptr || HttpResponse->GetResponseCode() != 200)
 		{
