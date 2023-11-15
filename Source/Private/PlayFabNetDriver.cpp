@@ -19,8 +19,7 @@ class ISocketSubsystem* UPlayFabNetDriver::GetSocketSubsystem()
 {
 	if (bFallbackToPlatformSocketSubsystem)
 	{
-		// TODO: Find a way to get the correct one directly or do one return per platform with the hardcoded strings
-		return ISocketSubsystem::Get(FName(TEXT("WINDOWS")));
+		return ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 	}
 	else
 	{
