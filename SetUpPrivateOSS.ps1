@@ -28,11 +28,13 @@ function Set-NuGetPackageInfo($localPath, $partyFileName, $partyVersion, $mlpFil
 
 if ($Platform -eq "Switch")
 {
-	Write-Host "Select Switch SDK version..."
-	Write-Host "    1: SDK 14.3.0-shipping"
-	Write-Host "    2: SDK 14.3.0-logging"
+    Write-Host "Select Switch SDK version..."
+    Write-Host "    1: SDK 14.3.0-shipping"
+    Write-Host "    2: SDK 14.3.0-logging"
     Write-Host "    3: SDK 15.3.2-shipping"
     Write-Host "    4: SDK 15.3.2-logging"
+    Write-Host "    5: SDK 16.2.0-shipping"
+    Write-Host "    6: SDK 16.2.0-logging"
     while($True)
     {
         Write-Host -NoNewline "> "
@@ -68,6 +70,22 @@ if ($Platform -eq "Switch")
             $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.Switch-15.3.2-logging"
             $partyNugetVersion = "1.8.5"
             $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-15.3.2-logging"
+            $mlpNugetVersion = "1.6.2"
+            break
+        }
+        elseif ($Selection -eq '5')
+        {
+            $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.Switch-16.2.0-shipping"
+            $partyNugetVersion = "1.8.11"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-16.2.0-shipping"
+            $mlpNugetVersion = "1.6.2"
+            break
+        }
+        elseif ($Selection -eq '6')
+        {
+            $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.Switch-16.2.0-logging"
+            $partyNugetVersion = "1.8.11"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-16.2.0-logging"
             $mlpNugetVersion = "1.6.2"
             break
         }
