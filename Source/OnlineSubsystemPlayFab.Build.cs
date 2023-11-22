@@ -335,7 +335,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
         PublicSystemIncludePaths.Add(PlayFabPartyIncludePath);
 
         string PlayFabPartyLibraryPath = Path.Combine(PlatformDir, "Lib");
-        PublicSystemLibraries.Add(Path.Combine(PlayFabPartyLibraryPath, "Party.lib"));
+        PublicSystemLibraries.Add(Path.Combine(PlayFabPartyLibraryPath, "PartyWin.lib"));
         PublicAdditionalLibraries.Add(Path.Combine(PlayFabPartyLibraryPath, "PlayFabMultiplayerWin.lib"));
 
         string PlayFabPartyRedistPath = Path.Combine(PlatformDir, "Redist");

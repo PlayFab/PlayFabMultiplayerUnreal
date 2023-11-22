@@ -8,14 +8,7 @@ extern "C"
 #endif
 
 #define PARTY_API __stdcall
-
-#if defined(__ORBIS__)
-#define PARTY_API_ATTRIBUTES __declspec(dllexport)
-#elif defined(NX)
-#define PARTY_API_ATTRIBUTES __attribute__((visibility("default")))
-#else
 #define PARTY_API_ATTRIBUTES
-#endif
 
 typedef const struct PARTY_LOCAL_USER* PARTY_LOCAL_USER_HANDLE;
 typedef const struct PARTY_ENDPOINT* PARTY_ENDPOINT_HANDLE;
@@ -2416,8 +2409,4 @@ PartyGetChatControls(
 
 #ifdef __cplusplus
 }
-#endif
-
-#if defined(PARTY_WINDOWS) && !defined(PARTY_DISABLE_WINDOWS_OS_VERSION_DLL_DETECTION)
-#include <Party_WinOsVersionDetection.h>
 #endif

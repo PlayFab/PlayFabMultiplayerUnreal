@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #ifndef __cplusplus
 #error "This header requires C++"
@@ -10169,20 +10169,25 @@ public:
         ) party_no_throw;
 
     /// <summary>
-    /// Optionally configures the processor on which internal Party library threads will run.
+    /// Optionally configures the processor on which internal Party library threads run.
     /// </summary>
     /// <remarks>
     /// This method enables the title to configure the processor affinity for internal Party library threads of a given
-    /// type. On Windows, the <c>Audio</c> type affects both library's directly-owned threads and threads owned by
+    /// type. On Windows, the <c>Audio</c> type affects both the PlayFab Party library owned threads and threads owned by
     /// XAudio2. For more information, see <see cref="PartyThreadId" />.
     /// <para>
-    /// This method may be called at any time before or after <see cref="Initialize()" /> and will take effect
-    /// immediately. Thread processor settings are persisted across calls to <see cref="Cleanup()" /> and Initialize().
+    /// For all platforms, <b><i>except PlayStation®</i></b>, this method may be called at any time before or after
+    /// <see cref="Initialize()" /> and takes effect immediately. <b>On PlayStation®, attempting to set the
+    /// processor affinity for the <see cref="PartyThreadId" /> Audio thread after calling Initialize()
+    /// can result in audio rendering failures</b>. It's currently recommended to call this method prior to calling Initialize().
+    /// </para>
+    /// <para>
+    /// Thread processor settings are persisted across calls to <see cref="Cleanup()" /> and Initialize().
     /// When there are more than 64 cores present, this method always applies to processor group 0.
     /// </para>
     /// <para>
     /// In order to specify any processor, pass <c>c_anyProcessor</c> as the <paramref name="threadAffinityMask" />
-    /// parameter. This is also the default value the Party library will use if this method is never called.
+    /// parameter. <c>c_anyProcessor</c> is also the default value the Party library uses if this method is never called.
     /// </para>
     /// </remarks>
     /// <param name="threadId">

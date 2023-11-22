@@ -57,6 +57,15 @@ constexpr uint32_t PFLobbyClientRequestedSearchResultCountUpperLimit = 50;
 constexpr char PFLobbyMemberCountSearchKey[] = "lobby/memberCount";
 
 /// <summary>
+/// A special, predefined search key that can be used in the <see cref="PFLobbySearchConfiguration" /> filtering and
+/// sorting strings to search for lobbies based on the number of remaining members who can join the lobby.
+/// </summary>
+/// <remarks>
+/// Example: "lobby/memberCountRemaining gt 0"
+/// </remarks>
+constexpr char PFLobbyMemberCountRemainingSearchKey[] = "lobby/memberCountRemaining";
+
+/// <summary>
 /// A special, predefined search key that can be used in the <see cref="PFLobbySearchConfiguration" /> filtering
 /// string to search for lobbies that you are currently a member of.
 /// </summary>

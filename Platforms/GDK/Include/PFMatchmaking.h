@@ -351,7 +351,7 @@ struct PFMatchmakingServerBackfillTicketConfiguration
     /// clients that are matched with this ticket. Clients will be able to use this information to the connect to the
     /// game server.
     /// <para>
-    /// The server details are optional. If not server details need to be provided to clients on match completion, this
+    /// The server details are optional. If no server details need to be provided to clients on match completion, this
     /// value can be nullptr. Similarly, any of the fields in the server details don't need to be provided to
     /// clients can be empty or nullptr.
     /// </para>
@@ -705,6 +705,62 @@ PFMatchmakingTicketGetMatch(
     PFMatchmakingTicketHandle ticket,
     _Outptr_ const PFMatchmakingMatchDetails ** match
     ) noexcept;
+
+/// <summary>
+/// Retrieves the app's private, custom pointer-sized context value previously associated with this ticket object.
+/// </summary>
+/// <remarks>
+/// If no custom context has been set yet, the value pointed to by <paramref name="customContext" /> is set to nullptr.
+/// </remarks>
+/// <param name="ticket">
+/// The handle of the matchmaking ticket.
+/// </param>
+/// <param name="customContext">
+/// The output custom context.
+/// </param>
+/// <returns>
+/// <c>S_OK</c> if retrieving the custom context succeeded or an error code otherwise. The human-readable form of the
+/// error code can be retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+/// </returns>
+/// <seealso cref="PFMatchmakingTicketSetCustomContext" />
+PFMULTIPLAYER_API_ATTRIBUTES
+HRESULT
+PFMULTIPLAYER_API
+PFMatchmakingTicketGetCustomContext(
+    PFMatchmakingTicketHandle ticket,
+    _Outptr_result_maybenull_ void** customContext
+) noexcept;
+
+/// <summary>
+/// Configures an optional, custom pointer-sized context value with this ticket object.
+/// </summary>
+/// <remarks>
+/// The custom context is typically used as a "shortcut" that simplifies accessing local, title-specific memory
+/// associated with the matchmaking ticket without requiring a mapping lookup. The value is retrieved using the
+/// <see cref="PFMatchmakingTicketGetCustomContext()" /> method.
+/// <para>
+/// Any configured value is treated as opaque by the library, and is only valid on the local device; it is not
+/// transmitted over the network.
+/// </para>
+/// </remarks>
+/// <param name="ticket">
+/// The handle of the matchmaking ticket.
+/// </param>
+/// <param name="customContext">
+/// An arbitrary, pointer-sized value to store with the player object.
+/// </param>
+/// <returns>
+/// <c>S_OK</c> if configuring the custom context succeeded or an error code otherwise. The human-readable form of the
+/// error code can be retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+/// </returns>
+/// <seealso cref="PFMatchmakingTicketGetCustomContext" />
+PFMULTIPLAYER_API_ATTRIBUTES
+HRESULT
+PFMULTIPLAYER_API
+PFMatchmakingTicketSetCustomContext(
+    PFMatchmakingTicketHandle ticket,
+    _In_opt_ void* customContext
+) noexcept;
 
 #ifdef PFMULTIPLAYER_INCLUDE_SERVER_APIS
 /// <summary>
