@@ -453,17 +453,18 @@ bool FOnlineVoicePlayFab::IsRemotePlayerTalking(const FUniqueNetId& UniqueId)
 bool FOnlineVoicePlayFab::IsMuted(uint32 LocalUserNum, const FUniqueNetId& UniqueId) const
 {
 	const FLocalTalkerPlayFab* LocalTalker = GetLocalTalker(LocalUserNum);
-	if (LocalTalker)
+	const FRemoteTalkerPlayFab* RemoteTalker = GetRemoteTalker(UniqueId);
+	if (LocalTalker && RemoteTalker)
 	{
 		PartyBool InputMuted;
-		PartyError Err = LocalTalker->GetChatControl()->GetAudioInputMuted(&InputMuted);
+		PartyError Err = LocalTalker->GetChatControl()->GetIncomingAudioMuted(RemoteTalker->GetChatControl(), &InputMuted);
 		if (PARTY_SUCCEEDED(Err))
 		{
 			return static_cast<bool>(InputMuted);
 		}
 		else
 		{
-			UE_LOG_ONLINE(Error, TEXT("GetAudioInputMuted failed: %s"), *GetPartyErrorMessage(Err));
+			UE_LOG_ONLINE(Error, TEXT("GetIncomingAudioMuted failed: %s"), *GetPartyErrorMessage(Err));
 		}
 	}
 
