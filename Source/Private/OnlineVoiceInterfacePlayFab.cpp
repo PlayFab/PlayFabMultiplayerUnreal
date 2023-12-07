@@ -71,10 +71,13 @@ const FLocalTalkerPlayFab* FOnlineVoicePlayFab::GetLocalTalker(const int32 Local
 const FRemoteTalkerPlayFab* FOnlineVoicePlayFab::GetRemoteTalker(const FUniqueNetId& UniqueId) const
 {
 	const FString& PlatformId = UniqueId.ToString();
-	if (LocalTalkers.Contains(PlatformId))
+	for (auto& RemoteTalkerKvPair : RemoteTalkers)
 	{
-		const FRemoteTalkerPlayFab& PartyLocalTalker = RemoteTalkers[PlatformId];
-		return &PartyLocalTalker;
+		const FRemoteTalkerPlayFab& RemoteTalker = RemoteTalkerKvPair.Value;
+		if (RemoteTalker.GetPlatformUserId() == PlatformId)
+		{
+			return &RemoteTalker;
+		}
 	}
 
 	return nullptr;
