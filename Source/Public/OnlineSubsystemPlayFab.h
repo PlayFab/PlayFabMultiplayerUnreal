@@ -138,6 +138,7 @@ public:
 	virtual bool IsEnabled() const override;
 	virtual FString GetAppId() const override;
 	virtual FText GetOnlineServiceName() const override;
+	virtual void SetUsingMultiplayerFeatures(const FUniqueNetId& UniqueId, bool bUsingMP) override;
 
 	void OnAppSuspend();
 	void OnAppResume();

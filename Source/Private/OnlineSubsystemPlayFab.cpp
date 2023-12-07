@@ -369,6 +369,11 @@ FText FOnlineSubsystemPlayFab::GetOnlineServiceName() const
 	return NSLOCTEXT("OnlineSubsystemPlayFab", "OnlineServiceName", "PlayFab");
 }
 
+void FOnlineSubsystemPlayFab::SetUsingMultiplayerFeatures(const FUniqueNetId& UniqueId, bool bUsingMP)
+{
+	NativeOSS->SetUsingMultiplayerFeatures(UniqueId, bUsingMP);
+}
+
 void FOnlineSubsystemPlayFab::OnAppSuspend()
 {
 	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::OnAppSuspend"));
