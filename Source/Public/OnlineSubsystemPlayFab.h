@@ -125,6 +125,7 @@ public:
 	virtual IOnlineStatsPtr GetStatsInterface() const override;
 	virtual IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
 	virtual IOnlineTournamentPtr GetTournamentInterface() const override;
+	virtual IOnlineGameActivityPtr GetGameActivityInterface() const override;
 
 	/** Helpers to get typed Interface shared pointers */
 	FOnlineSessionPlayFabPtr GetSessionInterfacePlayFab() const { return SessionInterface; }
