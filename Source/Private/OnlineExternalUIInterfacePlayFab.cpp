@@ -98,6 +98,44 @@ bool FOnlineExternalUIPlayFab::ShowSendMessageUI(int32 InLocalUserNum, const FSh
 	return false;
 }
 
+bool FOnlineExternalUIPlayFab::ShowSendMessageToUserUI(int32 LocalUserNum, const FUniqueNetId& Recipient, const FShowSendMessageParams& ShowParams, const FOnShowSendMessageUIClosedDelegate& Delegate)
+{
+	UE_LOG_ONLINE_EXTERNALUI(Verbose, TEXT("FOnlineExternalUIPlayFab::ShowSendMessageToUserUI()"));
+	OSS_PLAYFAB_GET_NATIVE_EXTERNALUI_INTERFACE
+	{
+		return NativeExternalUIInterface->ShowSendMessageToUserUI(LocalUserNum, Recipient, ShowParams, Delegate);
+	}
+	return false;
+}
+
+bool FOnlineExternalUIPlayFab::ShowPlatformMessageBox(const FUniqueNetId& UserId, EPlatformMessageType MessageType)
+{
+	UE_LOG_ONLINE_EXTERNALUI(Verbose, TEXT("FOnlineExternalUIPlayFab::ShowPlatformMessageBox()"));
+	OSS_PLAYFAB_GET_NATIVE_EXTERNALUI_INTERFACE
+	{
+		return NativeExternalUIInterface->ShowPlatformMessageBox(UserId, MessageType);
+	}
+	return false;
+}
+
+void FOnlineExternalUIPlayFab::ReportEnterInGameStoreUI()
+{
+	UE_LOG_ONLINE_EXTERNALUI(Verbose, TEXT("FOnlineExternalUIPlayFab::ReportEnterInGameStoreUI()"));
+	OSS_PLAYFAB_GET_NATIVE_EXTERNALUI_INTERFACE
+	{
+		NativeExternalUIInterface->ReportEnterInGameStoreUI();
+	}
+}
+
+void FOnlineExternalUIPlayFab::ReportExitInGameStoreUI()
+{
+	UE_LOG_ONLINE_EXTERNALUI(Verbose, TEXT("FOnlineExternalUIPlayFab::ReportExitInGameStoreUI()"));
+	OSS_PLAYFAB_GET_NATIVE_EXTERNALUI_INTERFACE
+	{
+		NativeExternalUIInterface->ReportExitInGameStoreUI();
+	}
+}
+
 bool FOnlineExternalUIPlayFab::ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate)
 {
 	UE_LOG_ONLINE_EXTERNALUI(Verbose, TEXT("FOnlineExternalUIPlayFab::ShowProfileUI()"));
