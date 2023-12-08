@@ -39,6 +39,7 @@ OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineChatPtr, GetChatInterface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineStatsPtr, GetStatsInterface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineTurnBasedPtr, GetTurnBasedInterface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineTournamentPtr, GetTournamentInterface);
+OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineGameActivityPtr, GetGameActivityInterface);
 
 namespace
 {
@@ -367,6 +368,11 @@ FString FOnlineSubsystemPlayFab::GetAppId() const
 FText FOnlineSubsystemPlayFab::GetOnlineServiceName() const
 {
 	return NSLOCTEXT("OnlineSubsystemPlayFab", "OnlineServiceName", "PlayFab");
+}
+
+void FOnlineSubsystemPlayFab::SetUsingMultiplayerFeatures(const FUniqueNetId& UniqueId, bool bUsingMP)
+{
+	NativeOSS->SetUsingMultiplayerFeatures(UniqueId, bUsingMP);
 }
 
 void FOnlineSubsystemPlayFab::OnAppSuspend()

@@ -125,6 +125,7 @@ public:
 	virtual IOnlineStatsPtr GetStatsInterface() const override;
 	virtual IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
 	virtual IOnlineTournamentPtr GetTournamentInterface() const override;
+	virtual IOnlineGameActivityPtr GetGameActivityInterface() const override;
 
 	/** Helpers to get typed Interface shared pointers */
 	FOnlineSessionPlayFabPtr GetSessionInterfacePlayFab() const { return SessionInterface; }
@@ -138,6 +139,7 @@ public:
 	virtual bool IsEnabled() const override;
 	virtual FString GetAppId() const override;
 	virtual FText GetOnlineServiceName() const override;
+	virtual void SetUsingMultiplayerFeatures(const FUniqueNetId& UniqueId, bool bUsingMP) override;
 
 	void OnAppSuspend();
 	void OnAppResume();
