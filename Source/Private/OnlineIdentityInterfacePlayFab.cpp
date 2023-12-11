@@ -211,7 +211,7 @@ void FOnlineIdentityPlayFab::GetUserPrivilege(const FUniqueNetId& LocalUserId, E
 
 	OSS_PLAYFAB_GET_NATIVE_IDENTITY_INTERFACE
 	{
-		NativeIdentityInterface->GetUserPrivilege(UserId, Privilege, Delegate, ShowResolveUI);
+		NativeIdentityInterface->GetUserPrivilege(LocalUserId, Privilege, Delegate, ShowResolveUI);
 	}
 }
 
