@@ -262,9 +262,9 @@ void FOnlineIdentityPlayFab::Tick(float DeltaTime)
 				User->GetUserAttribute(USER_ATTR_ID, PlatformUserIdStr);
 				UsersToAuth.Add(PlatformUserIdStr);
 			}
-#if defined(OSS_PLAYFAB_WIN64) || defined(OSS_PLAYFAB_PLAYSTATION)
-			AutoLogin(0);
-#endif
+//#if defined(OSS_PLAYFAB_WIN64) || defined(OSS_PLAYFAB_PLAYSTATION)
+//			AutoLogin(0);
+//#endif
 			bAuthAllUsers = false;
 		}
 	}
