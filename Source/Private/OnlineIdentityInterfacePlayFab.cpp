@@ -205,13 +205,13 @@ void FOnlineIdentityPlayFab::RevokeAuthToken(const FUniqueNetId& UserId, const F
 	}
 }
 
-void FOnlineIdentityPlayFab::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
+void FOnlineIdentityPlayFab::GetUserPrivilege(const FUniqueNetId& LocalUserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate, EShowPrivilegeResolveUI ShowResolveUI)
 {
 	UE_LOG_ONLINE_IDENTITY(Verbose, TEXT("FOnlineIdentityPlayFab::GetUserPrivilege"));
 
 	OSS_PLAYFAB_GET_NATIVE_IDENTITY_INTERFACE
 	{
-		NativeIdentityInterface->GetUserPrivilege(UserId, Privilege, Delegate);
+		NativeIdentityInterface->GetUserPrivilege(UserId, Privilege, Delegate, ShowResolveUI);
 	}
 }
 
