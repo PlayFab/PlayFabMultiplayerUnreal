@@ -205,13 +205,13 @@ void FOnlineIdentityPlayFab::RevokeAuthToken(const FUniqueNetId& UserId, const F
 	}
 }
 
-void FOnlineIdentityPlayFab::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
+void FOnlineIdentityPlayFab::GetUserPrivilege(const FUniqueNetId& LocalUserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate, EShowPrivilegeResolveUI ShowResolveUI)
 {
 	UE_LOG_ONLINE_IDENTITY(Verbose, TEXT("FOnlineIdentityPlayFab::GetUserPrivilege"));
 
 	OSS_PLAYFAB_GET_NATIVE_IDENTITY_INTERFACE
 	{
-		NativeIdentityInterface->GetUserPrivilege(UserId, Privilege, Delegate);
+		NativeIdentityInterface->GetUserPrivilege(LocalUserId, Privilege, Delegate, ShowResolveUI);
 	}
 }
 
@@ -262,9 +262,12 @@ void FOnlineIdentityPlayFab::Tick(float DeltaTime)
 				User->GetUserAttribute(USER_ATTR_ID, PlatformUserIdStr);
 				UsersToAuth.Add(PlatformUserIdStr);
 			}
-//#if defined(OSS_PLAYFAB_WIN64) || defined(OSS_PLAYFAB_PLAYSTATION)
-//			AutoLogin(0);
-//#endif
+#if defined(OSS_PLAYFAB_WIN64) || defined(OSS_PLAYFAB_PLAYSTATION)
+			if (OSSPlayFab->bForceAutoLoginOnTick)
+			{
+				AutoLogin(0);
+			}
+#endif
 			bAuthAllUsers = false;
 		}
 	}
