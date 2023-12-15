@@ -25,7 +25,7 @@ typedef FOnPlayFabChatTextReceived::FDelegate FOnPlayFabChatTextReceivedDelegate
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnPlayFabVoiceChatTranscriptionReceived, TSharedRef<const FUniqueNetId> /*Sender*/, EVoiceChatTranscriptionSource /*SourceType*/, bool /*bFinalTranscription*/, const FString& /*TranscriptionText*/);
 typedef FOnPlayFabVoiceChatTranscriptionReceived::FDelegate FOnPlayFabVoiceChatTranscriptionReceivedDelegate;
 
-class FOnlineCognitiveServicesPlayFab
+class ONLINESUBSYSTEMPLAYFAB_API FOnlineCognitiveServicesPlayFab
 	: public TSharedFromThis<FOnlineCognitiveServicesPlayFab, ESPMode::ThreadSafe>
 {
 PACKAGE_SCOPE:

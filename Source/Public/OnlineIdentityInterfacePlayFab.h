@@ -64,7 +64,7 @@ private:
 	FDateTime EntityTokenUpdateTime;
 };
 
-class FOnlineIdentityPlayFab
+class ONLINESUBSYSTEMPLAYFAB_API FOnlineIdentityPlayFab
 	: public IOnlineIdentity
 	, public TSharedFromThis<FOnlineIdentityPlayFab, ESPMode::ThreadSafe>
 {
