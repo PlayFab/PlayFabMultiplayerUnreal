@@ -225,7 +225,7 @@ bool FOnlineVoicePlayFab::RegisterLocalTalker(TSharedPtr<FPlayFabUser> LocalPlay
 		UE_LOG_ONLINE(Warning, TEXT("Populating available TextToSpeechProfiles failed: %s"), *GetPartyErrorMessage(Err));
 	}
 
-#if OSS_PLAYFAB_IS_PC
+#if defined(OSS_PLAYFAB_IS_PC)
 	// Set the device to muted by default, this is standard for push to talk behavior on PC
 	NewChatControl->SetAudioInputMuted(true);
 #else
