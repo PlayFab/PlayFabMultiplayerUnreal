@@ -254,6 +254,9 @@ bool FOnlineSessionPlayFab::InternalCreateSession(const FUniqueNetId& HostingPla
 	Session->LocalOwnerId = HostingPlayerId.AsShared();
 	Session->SessionInfo = NewSessionInfo;
 
+	// Unique identifier of this build for compatibility
+	Session->SessionSettings.BuildUniqueId = GetBuildUniqueId();
+
 	if (!OSSPlayFab)
 	{
 		return false;
