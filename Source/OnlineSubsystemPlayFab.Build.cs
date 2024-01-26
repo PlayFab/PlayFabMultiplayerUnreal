@@ -45,6 +45,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
 				"AudioMixer",
 				"OnlineSubsystem",
 				"Json",
+				"JsonUtilities",
 				"PacketHandler",
 				"Projects",
 				"HTTP"

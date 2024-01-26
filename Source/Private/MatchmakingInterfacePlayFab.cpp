@@ -9,6 +9,10 @@
 #include "PlayFabHelpers.h"
 #include "PlayFabUtils.h"
 
+#include <JsonObjectWrapper.h>
+#include <JsonObjectConverter.h>
+
+
 FMatchmakingInterfacePlayFab::FMatchmakingInterfacePlayFab(FOnlineSubsystemPlayFab* InOSSPlayFab) :
 	OSSPlayFab(InOSSPlayFab)
 {
@@ -294,6 +298,8 @@ void FMatchmakingInterfacePlayFab::OnMatchmakingStatusChanged(const FName Sessio
 				NamedSession->HostingPlayerNum = INDEX_NONE;
 				NamedSession->OwningUserId = Ticket->SearchingPlayerNetId;
 				NamedSession->LocalOwnerId = Ticket->SearchingPlayerNetId;
+				// TODO: set server details
+				//NamedSession->SessionSettings.Set(FName(TEXT("MATCHMAKINGMATCHDETAILS")), MatchmakingMatchDetailsToJsonString(Ticket->PlayFabMatchmakingDetails), EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
 				OnJoinArrangedLobbyCompletedDelegate = FOnJoinArrangedLobbyCompletedDelegate::CreateRaw(this, &FMatchmakingInterfacePlayFab::OnJoinArrangedLobbyCompleted);
 				OnJoinArrangedLobbyCompleteDelegateHandle = OSSPlayFab->GetPlayFabLobbyInterface()->AddOnJoinArrangedLobbyCompletedDelegate_Handle(OnJoinArrangedLobbyCompletedDelegate);
@@ -345,6 +351,55 @@ void FMatchmakingInterfacePlayFab::OnMatchmakingStatusChanged(const FName Sessio
 			return;
 		}
 	}
+}
+
+FString FMatchmakingInterfacePlayFab::MatchmakingMatchDetailsToJsonString(const PFMatchmakingMatchDetails* matchmakingMatchDetails) const
+{
+	TSharedPtr<FJsonObject> rootJsonObject = MakeShared<FJsonObject>();
+
+	const FString matchId = FString(ANSI_TO_TCHAR(matchmakingMatchDetails->matchId));
+	// todo: should serialize other fields? we're interested only on server details for now...
+	//int32 memberCount = matchmakingMatchDetails->memberCount;
+
+	// server details
+	const FString fqdn = FString(ANSI_TO_TCHAR(matchmakingMatchDetails->serverDetails->fqdn));
+	const FString ipv4Address = FString(ANSI_TO_TCHAR(matchmakingMatchDetails->serverDetails->ipv4Address));	
+	const FString region = FString(ANSI_TO_TCHAR(matchmakingMatchDetails->serverDetails->region));
+	const int32 portCount = matchmakingMatchDetails->serverDetails->portCount;
+	// ports
+	TArray<TSharedPtr<FJsonValue>> portsJsonArray;
+	portsJsonArray.Reserve(portCount);
+	for (int32 index = 0; index < portCount; index++)
+	{
+		const FString portName = FString(ANSI_TO_TCHAR(matchmakingMatchDetails->serverDetails->ports[index].name));
+		const int32 portNum = matchmakingMatchDetails->serverDetails->ports[index].num;
+		const int32 protocol = static_cast<int32>(matchmakingMatchDetails->serverDetails->ports[index].protocol);
+
+		TSharedPtr<FJsonObject> portJsonObj = MakeShared<FJsonObject>();
+		portJsonObj->SetStringField(TEXT("PortName"), portName);
+		portJsonObj->SetNumberField(TEXT("PortNum"), portNum);
+		portJsonObj->SetNumberField(TEXT("Protocol"), protocol);
+		portsJsonArray.Add(MakeShared<FJsonValueObject>(portJsonObj));
+	}
+
+	TSharedPtr<FJsonObject> serverDetailsJsonObject = MakeShared<FJsonObject>();
+	serverDetailsJsonObject->SetStringField(TEXT("Fqdn"), fqdn);
+	serverDetailsJsonObject->SetStringField(TEXT("Ipv4Address"), ipv4Address);
+	serverDetailsJsonObject->SetStringField(TEXT("Region"), region);
+	serverDetailsJsonObject->SetNumberField(TEXT("PortCount"), portCount);
+	serverDetailsJsonObject->SetArrayField(TEXT("Ports"), portsJsonArray);
+
+	// create jsonObject with server details
+	rootJsonObject->SetStringField(TEXT("MatchId"), matchId);
+	rootJsonObject->SetObjectField(TEXT("ServerDetails"), serverDetailsJsonObject);
+
+	// convert json to string
+	FJsonObjectWrapper jsonObjectWrapper;
+	jsonObjectWrapper.JsonObject = rootJsonObject;
+	FString outputJsonStr;
+	jsonObjectWrapper.JsonObjectToString(outputJsonStr);
+
+	return outputJsonStr;
 }
 
 void FMatchmakingInterfacePlayFab::OnJoinArrangedLobbyCompleted(FName SessionName, bool bSucceeded)

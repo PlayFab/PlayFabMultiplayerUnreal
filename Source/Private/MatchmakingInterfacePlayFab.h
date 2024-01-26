@@ -55,4 +55,6 @@ private:
 	typedef TMap<FName, FOnlineMatchmakingTicketInfoPtr> TicketInfoMap;
 	mutable FCriticalSection TicketsLock;
 	TicketInfoMap MatchmakingTickets;
+
+	FString MatchmakingMatchDetailsToJsonString(const PFMatchmakingMatchDetails* matchmakingMatchDetails) const;
 };
