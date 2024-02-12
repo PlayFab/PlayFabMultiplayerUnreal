@@ -56,5 +56,5 @@ private:
 	mutable FCriticalSection TicketsLock;
 	TicketInfoMap MatchmakingTickets;
 
-	FString MatchmakingMatchDetailsToJsonString(const PFMatchmakingMatchDetails* matchmakingMatchDetails) const;
+	FString MakeMatchmakingMatchDetailsJsonString(const PFMatchmakingMatchDetails* matchmakingMatchDetails, const FString ticketId, const FString queueName) const;
 };

@@ -298,8 +298,8 @@ void FMatchmakingInterfacePlayFab::OnMatchmakingStatusChanged(const FName Sessio
 				NamedSession->HostingPlayerNum = INDEX_NONE;
 				NamedSession->OwningUserId = Ticket->SearchingPlayerNetId;
 				NamedSession->LocalOwnerId = Ticket->SearchingPlayerNetId;
-				// TODO: set server details
-				//NamedSession->SessionSettings.Set(FName(TEXT("MATCHMAKINGMATCHDETAILS")), MatchmakingMatchDetailsToJsonString(Ticket->PlayFabMatchmakingDetails), EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
+				const FString serverDetailsJsonStr = MakeMatchmakingMatchDetailsJsonString(Ticket->PlayFabMatchmakingDetails, Ticket->TicketId, Ticket->QueueName);
+				NamedSession->SessionSettings.Set(FName(TEXT("MATCHMAKINGMATCHDETAILS")), serverDetailsJsonStr, EOnlineDataAdvertisementType::ViaOnlineService);
 
 				OnJoinArrangedLobbyCompletedDelegate = FOnJoinArrangedLobbyCompletedDelegate::CreateRaw(this, &FMatchmakingInterfacePlayFab::OnJoinArrangedLobbyCompleted);
 				OnJoinArrangedLobbyCompleteDelegateHandle = OSSPlayFab->GetPlayFabLobbyInterface()->AddOnJoinArrangedLobbyCompletedDelegate_Handle(OnJoinArrangedLobbyCompletedDelegate);
@@ -353,7 +353,7 @@ void FMatchmakingInterfacePlayFab::OnMatchmakingStatusChanged(const FName Sessio
 	}
 }
 
-FString FMatchmakingInterfacePlayFab::MatchmakingMatchDetailsToJsonString(const PFMatchmakingMatchDetails* matchmakingMatchDetails) const
+FString FMatchmakingInterfacePlayFab::MakeMatchmakingMatchDetailsJsonString(const PFMatchmakingMatchDetails* matchmakingMatchDetails, const FString ticketId, const FString queueName) const
 {
 	TSharedPtr<FJsonObject> rootJsonObject = MakeShared<FJsonObject>();
 
@@ -390,7 +390,9 @@ FString FMatchmakingInterfacePlayFab::MatchmakingMatchDetailsToJsonString(const 
 	serverDetailsJsonObject->SetArrayField(TEXT("Ports"), portsJsonArray);
 
 	// create jsonObject with server details
+	rootJsonObject->SetStringField(TEXT("TicketId"), ticketId);
 	rootJsonObject->SetStringField(TEXT("MatchId"), matchId);
+	rootJsonObject->SetStringField(TEXT("QueueName"), queueName);
 	rootJsonObject->SetObjectField(TEXT("ServerDetails"), serverDetailsJsonObject);
 
 	// convert json to string
