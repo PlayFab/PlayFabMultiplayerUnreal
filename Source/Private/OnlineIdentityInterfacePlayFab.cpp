@@ -715,7 +715,7 @@ TSharedPtr<FPlayFabUser> FOnlineIdentityPlayFab::GetPartyLocalUserFromPlatformId
 	{
 		for (TSharedPtr<FPlayFabUser> LocalUser : LocalPlayFabUsers)
 		{
-			if (LocalUser->GetPlatformUserId().Compare(PlatformNetIdStr, ESearchCase::IgnoreCase) == 0)
+			if (PlatformNetIdStr.Contains(LocalUser->GetPlatformUserId(), ESearchCase::IgnoreCase))
 			{
 				return LocalUser;
 			}
