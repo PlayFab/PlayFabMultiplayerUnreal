@@ -299,7 +299,7 @@ void FMatchmakingInterfacePlayFab::OnMatchmakingStatusChanged(const FName Sessio
 				NamedSession->OwningUserId = Ticket->SearchingPlayerNetId;
 				NamedSession->LocalOwnerId = Ticket->SearchingPlayerNetId;
 				const char* ticketIdCharPtr = nullptr;
-				auto hResult = PFMatchmakingTicketGetTicketId(Ticket->PlayFabMatchTicket, &ticketIdCharPtr);
+				auto hResult = PFMatchmakingTicketGetTicketId(Ticket->PlayFabMatchTicket, &ticketIdCharPtr);				
 
 				if (!SUCCEEDED(hResult))
 				{					
@@ -312,6 +312,8 @@ void FMatchmakingInterfacePlayFab::OnMatchmakingStatusChanged(const FName Sessio
 				}
 
 				const FString ticketId = FString(ANSI_TO_TCHAR(ticketIdCharPtr));
+				delete ticketIdCharPtr;
+				ticketIdCharPtr = nullptr;
 				const FString serverDetailsJsonStr = MakeMatchmakingMatchDetailsJsonString(Ticket->PlayFabMatchmakingDetails, ticketId, Ticket->QueueName);
 				NamedSession->SessionSettings.Set(FName(TEXT("MATCHMAKINGMATCHDETAILS")), serverDetailsJsonStr, EOnlineDataAdvertisementType::ViaOnlineService);
 
