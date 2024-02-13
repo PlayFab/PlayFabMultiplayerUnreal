@@ -298,7 +298,21 @@ void FMatchmakingInterfacePlayFab::OnMatchmakingStatusChanged(const FName Sessio
 				NamedSession->HostingPlayerNum = INDEX_NONE;
 				NamedSession->OwningUserId = Ticket->SearchingPlayerNetId;
 				NamedSession->LocalOwnerId = Ticket->SearchingPlayerNetId;
-				const FString serverDetailsJsonStr = MakeMatchmakingMatchDetailsJsonString(Ticket->PlayFabMatchmakingDetails, Ticket->TicketId, Ticket->QueueName);
+				const char* ticketIdCharPtr = nullptr;
+				auto hResult = PFMatchmakingTicketGetTicketId(Ticket->PlayFabMatchTicket, &ticketIdCharPtr);
+
+				if (!SUCCEEDED(hResult))
+				{					
+					UE_LOG_ONLINE_SESSION(Error, TEXT("Failed to retrieve TicketId. Reason: %s"), ANSI_TO_TCHAR(PFMultiplayerGetErrorMessage(hResult)));
+					RemoveMatchmakingTicket(SessionName);
+					TriggerOnMatchmakingTicketCompletedDelegates(false, SessionName);
+					isRemoved = true;
+					Ticket->MatchmakingState = EOnlinePlayFabMatchmakingState::Failed;
+					return;
+				}
+
+				const FString ticketId = FString(ANSI_TO_TCHAR(ticketIdCharPtr));
+				const FString serverDetailsJsonStr = MakeMatchmakingMatchDetailsJsonString(Ticket->PlayFabMatchmakingDetails, ticketId, Ticket->QueueName);
 				NamedSession->SessionSettings.Set(FName(TEXT("MATCHMAKINGMATCHDETAILS")), serverDetailsJsonStr, EOnlineDataAdvertisementType::ViaOnlineService);
 
 				OnJoinArrangedLobbyCompletedDelegate = FOnJoinArrangedLobbyCompletedDelegate::CreateRaw(this, &FMatchmakingInterfacePlayFab::OnJoinArrangedLobbyCompleted);
