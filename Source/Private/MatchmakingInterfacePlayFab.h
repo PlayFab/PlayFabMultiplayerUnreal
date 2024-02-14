@@ -26,6 +26,13 @@ public:
 		FName SessionName, 
 		const FOnlineSessionSettings& NewSessionSettings, 
 		TSharedRef<FOnlineSessionSearch>& SearchSettings);
+
+	bool CreateMatchMakingTicket(const TArray< TSharedRef<const FUniqueNetId> >& LocalPlayers,
+		FName SessionName,
+		const FOnlineSessionSettings& NewSessionSettings,
+		TSharedRef<FOnlineSessionSearch>& SearchSettings,
+		const FOnStartMatchmakingComplete& CompletionDelegate);
+
 	bool CancelMatchmakingTicket(const FName& SessionName);
 
 	void DoWork();
@@ -46,6 +53,8 @@ PACKAGE_SCOPE:
 	void OnJoinArrangedLobbyCompleted(FName SessionName, bool bSucceeded);
 	FOnJoinArrangedLobbyCompletedDelegate OnJoinArrangedLobbyCompletedDelegate;
 	FDelegateHandle OnJoinArrangedLobbyCompleteDelegateHandle;
+
+	FOnStartMatchmakingComplete OnStartmatchmakingCompleteDelegate;
 
 private:
 	void HandleMatchmakingTicketStatusChanged(const PFMatchmakingTicketStatusChangedStateChange& StateChange);

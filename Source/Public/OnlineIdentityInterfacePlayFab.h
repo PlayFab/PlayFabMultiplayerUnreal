@@ -51,6 +51,14 @@ public:
 		SetNewEntityTokenUpdateTime();
 	}
 
+	explicit FPlayFabUser(const FString& platformUserIdStrIn, const FString& entityIdIn, const FString& entityTypeIn, const FString& playFabIdIn)
+		: PlatformUserIdStr(platformUserIdStrIn)
+		, EntityId(entityIdIn)
+		, EntityType(entityTypeIn)
+		, PlayFabId(playFabIdIn)
+	{
+	}
+
 	const FString& GetPlatformUserId() const { return PlatformUserIdStr; }
 	const FString& GetEntityToken() const { return EntityToken; }
 	const FString& GetEntityId() const { return EntityId; }
@@ -252,6 +260,14 @@ public:
 	virtual FDelegateHandle AddOnLoginFlowLogoutDelegate_Handle(const FOnLoginFlowLogoutDelegate& Delegate) override;
 	virtual void ClearOnLoginFlowLogoutDelegate_Handle(FDelegateHandle& Handle) override;
 	virtual void TriggerOnLoginFlowLogoutDelegates(const TArray<FString>& LoginDomains) override;
+
+	void CreateRemoteUser(const FString& PlatformUserIdStr, const FString& EntityId, const FString& EntityType, const FString& PlayFabId);
+	void RemoveRemoteUser(const FString& PlatformUserIdStr);
+	void RemoveAllRemoteUsers();
+	TSharedPtr<FPlayFabUser> GetRemoteUserFromPlatformId(const FUniqueNetId& PlatformNetId);
+
+private:
+	TArray<TSharedPtr<FPlayFabUser>> RemotePlayFabUsers;
 };
 
 typedef TSharedPtr<class FOnlineIdentityPlayFab, ESPMode::ThreadSafe> FOnlineIdentityPlayFabPtr;

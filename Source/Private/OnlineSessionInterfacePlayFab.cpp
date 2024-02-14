@@ -540,6 +540,38 @@ bool FOnlineSessionPlayFab::StartMatchmaking(const TArray< TSharedRef<const FUni
 	return true;
 }
 
+bool FOnlineSessionPlayFab::StartMatchmaking(const TArray<FSessionMatchmakingUser>& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings, const FOnStartMatchmakingComplete& CompletionDelegate)
+{
+	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::StartMatchmaking()"));
+
+	if (LocalPlayers.Num() == 0)
+	{
+		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::StartMatchmaking: LocalPlayers was empty. At least one player is required for matchmaking."));
+		TriggerOnMatchmakingCompleteDelegates(SessionName, false);
+		return false;
+	}
+
+	TArray<TSharedRef<const FUniqueNetId>> localPlayerUniqueNetIds;
+	for (auto& matchmakingUser : LocalPlayers)
+	{
+		localPlayerUniqueNetIds.Add(matchmakingUser.UserId);
+	}
+
+	// TODO: should we use this one instead of passing CompletionDelegate and firing it from the matchmaking interface?
+	OnMatchmakingTicketCompletedDelegateHandle = FOnMatchmakingTicketCompletedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnMatchmakingTicketCompleted);
+	OnMatchmakingTicketCompletedHandle = OSSPlayFab->GetMatchmakingInterface()->AddOnMatchmakingTicketCompletedDelegate_Handle(OnMatchmakingTicketCompletedDelegateHandle);
+
+	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::StartMatchmaking:CreateMatchMakingTicket()"));
+	if (!OSSPlayFab->GetMatchmakingInterface()->CreateMatchMakingTicket(localPlayerUniqueNetIds, SessionName, NewSessionSettings, SearchSettings, CompletionDelegate))
+	{
+		UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::StartMatchmaking: Failed to CreateMatchMakingTicket"));
+		TriggerOnMatchmakingCompleteDelegates(SessionName, false);
+		return false;
+	}
+
+	return true;
+}
+
 void FOnlineSessionPlayFab::OnMatchmakingTicketCompleted(bool fSuccess, FName SessionName)
 {
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnMatchmakingTicketCompleted()"));

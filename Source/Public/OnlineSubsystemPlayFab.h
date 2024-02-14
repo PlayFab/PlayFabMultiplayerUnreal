@@ -300,3 +300,9 @@ FString GetMultiplayerErrorMessage(HRESULT hr);
 FString PartyStateChangeResultToReasonString(PartyStateChangeResult result);
 FString GetPartyStateChangeTypeString(PartyStateChangeType Type);
 FString GetNetworkStateStateString(EPlayFabPartyNetworkState State);
+
+struct FSessionMatchmakingResultsPlayFab : public FSessionMatchmakingResults
+{
+	FString TicketId;
+	FString QueueName;
+};

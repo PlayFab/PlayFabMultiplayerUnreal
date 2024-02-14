@@ -11,6 +11,7 @@
 
 #include <JsonObjectWrapper.h>
 #include <JsonObjectConverter.h>
+#include <OnlineError.h>
 
 
 FMatchmakingInterfacePlayFab::FMatchmakingInterfacePlayFab(FOnlineSubsystemPlayFab* InOSSPlayFab) :
@@ -49,11 +50,21 @@ bool FMatchmakingInterfacePlayFab::CreateMatchMakingTicket(const TArray< TShared
 	for (int32 i = 0; i < LocalPlayers.Num(); ++i)
 	{
 		TSharedPtr<FPlayFabUser> LocalUser = PlayFabIdentityInt->GetPartyLocalUserFromPlatformId(LocalPlayers[i].Get());
+
 		if (LocalUser == nullptr)
 		{
-			UE_LOG_ONLINE(Error, TEXT("CreateMatchMakingTicket GetPartyLocalUserFromPlatformId returned empty user for %s!"), *LocalPlayers[i]->ToDebugString());
-			return false;
+			TSharedPtr<FPlayFabUser> RemoteUser = PlayFabIdentityInt->GetRemoteUserFromPlatformId(LocalPlayers[i].Get());
+			if (RemoteUser == nullptr)
+			{
+				UE_LOG_ONLINE(Error, TEXT("CreateMatchMakingTicket GetPartyLocalUserFromPlatformId returned empty user for %s!"), *LocalPlayers[i]->ToDebugString());
+				return false;
+			}
+
+			PFEntityKey EntityKey = RemoteUser->GetEntityKey();
+			LocalEntityKeys.Add(EntityKey);
+			continue;
 		}
+
 		PFEntityKey EntityKey = LocalUser->GetEntityKey();
 		LocalEntityKeys.Add(EntityKey);
 	}
@@ -129,6 +140,13 @@ bool FMatchmakingInterfacePlayFab::CreateMatchMakingTicket(const TArray< TShared
 	MatchmakingTicketPtr->SearchingPlayerNetId = FUniqueNetIdPlayFab::Create(LocalPlayers[0].Get());
 
 	return true;
+}
+
+bool FMatchmakingInterfacePlayFab::CreateMatchMakingTicket(const TArray< TSharedRef<const FUniqueNetId> >& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings, const FOnStartMatchmakingComplete& CompletionDelegate)
+{
+	OnStartmatchmakingCompleteDelegate = CompletionDelegate;
+
+	return CreateMatchMakingTicket(LocalPlayers, SessionName, NewSessionSettings, SearchSettings);
 }
 
 bool FMatchmakingInterfacePlayFab::CancelMatchmakingTicket(const FName& SessionName)
@@ -285,6 +303,24 @@ void FMatchmakingInterfacePlayFab::OnMatchmakingStatusChanged(const FName Sessio
 	{
 		case EOnlinePlayFabMatchmakingState::TicketCreated:
 		{
+			const char* ticketIdCharPtr = nullptr;
+			auto hResult = PFMatchmakingTicketGetTicketId(Ticket->PlayFabMatchTicket, &ticketIdCharPtr);
+			const FString ticketId = FString(ANSI_TO_TCHAR(ticketIdCharPtr));
+
+			if (!SUCCEEDED(hResult))
+			{
+				UE_LOG_ONLINE_SESSION(Error, TEXT("Failed to retrieve TicketId on TicketCreated. Reason: %s"), ANSI_TO_TCHAR(PFMultiplayerGetErrorMessage(hResult)));
+				return;
+			}
+
+			delete ticketIdCharPtr;
+			ticketIdCharPtr = nullptr;
+
+			FSessionMatchmakingResultsPlayFab results;
+			results.TicketId = ticketId;
+			results.QueueName = Ticket->QueueName;
+			OnStartmatchmakingCompleteDelegate.ExecuteIfBound(SessionName, FOnlineError::Success(), results);
+
 			break;
 		}
 		case EOnlinePlayFabMatchmakingState::MatchFound:
@@ -299,7 +335,7 @@ void FMatchmakingInterfacePlayFab::OnMatchmakingStatusChanged(const FName Sessio
 				NamedSession->OwningUserId = Ticket->SearchingPlayerNetId;
 				NamedSession->LocalOwnerId = Ticket->SearchingPlayerNetId;
 				const char* ticketIdCharPtr = nullptr;
-				auto hResult = PFMatchmakingTicketGetTicketId(Ticket->PlayFabMatchTicket, &ticketIdCharPtr);				
+				auto hResult = PFMatchmakingTicketGetTicketId(Ticket->PlayFabMatchTicket, &ticketIdCharPtr);
 
 				if (!SUCCEEDED(hResult))
 				{					

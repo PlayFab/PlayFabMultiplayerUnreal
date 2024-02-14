@@ -955,6 +955,59 @@ PartyLocalUser* FOnlineIdentityPlayFab::GetFirstPartyLocalUser()
 	return nullptr;
 }
 
+void FOnlineIdentityPlayFab::CreateRemoteUser(const FString& PlatformUserIdStr, const FString& EntityId, const FString& EntityType, const FString& PlayFabId)
+{
+	const bool bAlreadyContains = RemotePlayFabUsers.ContainsByPredicate([PlayFabId](const TSharedPtr<FPlayFabUser>& remotePlayFabUser)
+	{
+		return remotePlayFabUser->GetPlayFabId() == PlayFabId;
+	});
+
+	if (bAlreadyContains)
+	{
+		return;
+	}	
+
+	TSharedPtr<FPlayFabUser> NewRemoteUser = MakeShareable<FPlayFabUser>(new FPlayFabUser(PlatformUserIdStr, EntityId, EntityType, PlayFabId));
+	RemotePlayFabUsers.Add(NewRemoteUser);
+}
+
+void FOnlineIdentityPlayFab::RemoveRemoteUser(const FString& PlatformUserIdStr)
+{
+	if (PlatformUserIdStr.IsEmpty() == false)
+	{
+		for (TSharedPtr<FPlayFabUser> RemoteUser : RemotePlayFabUsers)
+		{
+			if (PlatformUserIdStr.Contains(RemoteUser->GetPlatformUserId(), ESearchCase::IgnoreCase))
+			{
+				RemotePlayFabUsers.Remove(RemoteUser);
+				break;
+			}
+		}
+	}
+}
+
+void FOnlineIdentityPlayFab::RemoveAllRemoteUsers()
+{
+	RemotePlayFabUsers.Empty();
+}
+
+TSharedPtr<FPlayFabUser> FOnlineIdentityPlayFab::GetRemoteUserFromPlatformId(const FUniqueNetId& PlatformNetId)
+{
+	auto PlatformNetIdStr = PlatformNetId.ToString();
+	if (PlatformNetIdStr.IsEmpty() == false)
+	{
+		for (TSharedPtr<FPlayFabUser> RemoteUser : RemotePlayFabUsers)
+		{
+			if (PlatformNetIdStr.Contains(RemoteUser->GetPlatformUserId(), ESearchCase::IgnoreCase))
+			{
+				return RemoteUser;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
 void FPlayFabUser::UpdateEntityToken(const FString& NewEntityToken)
 {
 	UE_LOG_ONLINE_IDENTITY(Verbose, TEXT("FOnlineIdentityPlayFab::UpdateEntityToken"));
