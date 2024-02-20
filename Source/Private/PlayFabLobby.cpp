@@ -194,13 +194,13 @@ bool FPlayFabLobby::CreateLobbyWithUser(const FUniqueNetId& HostingPlayerId, FNa
 					const FVariantData& VariantData = SettingValue.Data;
 					bool BoolVal;
 					VariantData.GetValue(BoolVal);
-					SearchKeys.Add(TCHAR_TO_ANSI(*SearchKey));
+					SearchKeys.Add(TCHAR_TO_UTF8(*SearchKey));
 					SearchValues.Add(BoolVal == true ? "1" : "0");
 					break;
 				}
 				case EOnlineKeyValuePairDataType::Int32:
 				case EOnlineKeyValuePairDataType::String:
-					SearchKeys.Add(TCHAR_TO_ANSI(*SearchKey));
+					SearchKeys.Add(TCHAR_TO_UTF8(*SearchKey));
 					SearchValues.Add(SettingValueString);
 					break;
 				}
@@ -589,13 +589,13 @@ bool FPlayFabLobby::UpdateLobby(FName SessionName, const FOnlineSessionSettings&
 					const FVariantData& VariantData = SettingValue.Data;
 					bool BoolVal;
 					VariantData.GetValue(BoolVal);
-					SearchKeys.Add(TCHAR_TO_ANSI(*SearchKey));
+					SearchKeys.Add(TCHAR_TO_UTF8(*SearchKey));
 					SearchValues.Add(BoolVal == true ? "1" : "0");
 					break;
 				}
 				case EOnlineKeyValuePairDataType::Int32:
 				case EOnlineKeyValuePairDataType::String:
-					SearchKeys.Add(TCHAR_TO_ANSI(*SearchKey));
+					SearchKeys.Add(TCHAR_TO_UTF8(*SearchKey));
 					SearchValues.Add(SettingValueString);
 					break;
 				}
@@ -1076,8 +1076,8 @@ void FPlayFabLobby::HandleCreateAndJoinLobbyCompleted(const PFLobbyCreateAndJoin
 							bSuccess = true;
 
 							NewSessionInfo->LobbyHandle = StateChange.lobby;
-							NewSessionInfo->SetSessionId(ANSI_TO_TCHAR(LobbyId));
-							NewSessionInfo->ConnectionString = ANSI_TO_TCHAR(ConnectionString);
+							NewSessionInfo->SetSessionId(UTF8_TO_TCHAR(LobbyId));
+							NewSessionInfo->ConnectionString = UTF8_TO_TCHAR(ConnectionString);
 
 							ExistingNamedSession->SessionState = EOnlineSessionState::Pending;
 
@@ -1172,8 +1172,8 @@ void FPlayFabLobby::HandleJoinLobbyCompleted(const PFLobbyJoinLobbyCompletedStat
 	}
 
 	TSharedRef<FOnlineSessionInfoPlayFab> NewSessionInfo = MakeShared<FOnlineSessionInfoPlayFab>();
-	NewSessionInfo->SetSessionId(ANSI_TO_TCHAR(LobbyId));
-	NewSessionInfo->ConnectionString = ANSI_TO_TCHAR(ConnectionString);
+	NewSessionInfo->SetSessionId(UTF8_TO_TCHAR(LobbyId));
+	NewSessionInfo->ConnectionString = UTF8_TO_TCHAR(ConnectionString);
 	NewSessionInfo->LobbyHandle = StateChange.lobby;
 	NewSessionInfo->SessionName = *SessionName;
 
@@ -1258,8 +1258,8 @@ void FPlayFabLobby::HandleJoinArrangedLobbyCompleted(const PFLobbyJoinArrangedLo
 	}
 
 	TSharedRef<FOnlineSessionInfoPlayFab> NewSessionInfo = MakeShared<FOnlineSessionInfoPlayFab>();
-	NewSessionInfo->SetSessionId(ANSI_TO_TCHAR(LobbyId));
-	NewSessionInfo->ConnectionString = ANSI_TO_TCHAR(ConnectionString);
+	NewSessionInfo->SetSessionId(UTF8_TO_TCHAR(LobbyId));
+	NewSessionInfo->ConnectionString = UTF8_TO_TCHAR(ConnectionString);
 	NewSessionInfo->LobbyHandle = StateChange.lobby;
 	NewSessionInfo->SessionName = *SessionName;
 
@@ -1533,7 +1533,7 @@ FOnlineSessionSearchResult FPlayFabLobby::CreateSearchResultFromLobby(const PFLo
 	}
 
 	TSharedRef<FOnlineSessionInfoPlayFab> NewSessionInfo = MakeShared<FOnlineSessionInfoPlayFab>();
-	NewSessionInfo->SetSessionId(ANSI_TO_TCHAR(LobbySearchResult.lobbyId));
+	NewSessionInfo->SetSessionId(UTF8_TO_TCHAR(LobbySearchResult.lobbyId));
 	NewSessionInfo->ConnectionString = LobbyConnectionString;
 
 	NewSearchResult.Session.SessionInfo = NewSessionInfo;
@@ -1548,32 +1548,31 @@ FOnlineSessionSearchResult FPlayFabLobby::CreateSearchResultFromLobby(const PFLo
 #endif
 	for (uint32_t i = 0; i < LobbySearchResult.searchPropertyCount; i++)
 	{
-		FString SearchPropertyKey = LobbySearchResult.searchPropertyKeys[i];
+		const FString SearchPropertyKey(UTF8_TO_TCHAR(LobbySearchResult.searchPropertyKeys[i]));
+		const FString SearchPropertyValue(UTF8_TO_TCHAR(LobbySearchResult.searchPropertyValues[i]));
 		if (SearchPropertyKey.Equals(SEARCH_KEY_PLATFORM_ID))
 		{
-			NewSearchResult.Session.OwningUserId = FUniqueNetIdPlayFab::Create(FString(LobbySearchResult.searchPropertyValues[i]));
+			NewSearchResult.Session.OwningUserId = FUniqueNetIdPlayFab::Create(SearchPropertyValue);
 			PlatformIdKeyFound = true;
 			continue;
 		}
 
 		if (SearchPropertyKey.Equals(SEARCH_KEY_HOST_NICKNAME))
 		{
-			NewSearchResult.Session.OwningUserName = FString(LobbySearchResult.searchPropertyValues[i]);
+			NewSearchResult.Session.OwningUserName = SearchPropertyValue;
 			OwnerNicknameFound = true;
 			continue;
 		}
 #if defined(USES_NATIVE_SESSION)
 		if (SearchPropertyKey.Equals(SEARCH_KEY_NATIVE_SESSIONID))
 		{
-			FString NativeSessionIdString = FString(LobbySearchResult.searchPropertyValues[i]);
-			NewSessionInfo->SetNativeSessionIdString(NativeSessionIdString);
+			NewSessionInfo->SetNativeSessionIdString(SearchPropertyValue);
 			NativeSessionIdFound = true;
 			continue;
 		}
 		if (SearchPropertyKey.Equals(SEARCH_KEY_NATIVE_PLATFORM))
 		{
-			FString NativePlatform = FString(LobbySearchResult.searchPropertyValues[i]);
-			NewSessionInfo->SetNativePlatform(NativePlatform);
+			NewSessionInfo->SetNativePlatform(SearchPropertyValue);
 			NativePlatformFound = true;
 			continue;
 		}
@@ -1589,37 +1588,37 @@ FOnlineSessionSearchResult FPlayFabLobby::CreateSearchResultFromLobby(const PFLo
 					NewSearchResult.Session.SessionSettings.Set(FName(SettingKey->Key), LobbySearchResult.searchPropertyValues[i][0] == '1' ? true : false, EOnlineDataAdvertisementType::ViaOnlineService);
 					break;
 				case EOnlineKeyValuePairDataType::Int32:
-					NewSearchResult.Session.SessionSettings.Set(FName(SettingKey->Key), FCStringAnsi::Atoi(LobbySearchResult.searchPropertyValues[i]), EOnlineDataAdvertisementType::ViaOnlineService);
+					NewSearchResult.Session.SessionSettings.Set(FName(SettingKey->Key), FCString::Atoi(*SearchPropertyValue), EOnlineDataAdvertisementType::ViaOnlineService);
 					break;
 				case EOnlineKeyValuePairDataType::String:
-					NewSearchResult.Session.SessionSettings.Set(FName(SettingKey->Key), FString(LobbySearchResult.searchPropertyValues[i]), EOnlineDataAdvertisementType::ViaOnlineService);
+					NewSearchResult.Session.SessionSettings.Set(FName(SettingKey->Key), SearchPropertyValue, EOnlineDataAdvertisementType::ViaOnlineService);
 					break;
 			}
 		}
 		else
 		{
-			NewSearchResult.Session.SessionSettings.Set(FName(SearchPropertyKey), FString(LobbySearchResult.searchPropertyValues[i]), EOnlineDataAdvertisementType::ViaOnlineService);
+			NewSearchResult.Session.SessionSettings.Set(FName(SearchPropertyKey), SearchPropertyValue, EOnlineDataAdvertisementType::ViaOnlineService);
 		}
 	}
 
 	if (!PlatformIdKeyFound)
 	{
-		UE_LOG_ONLINE_SESSION(Error, TEXT("Platform Id key is not found in lobby search properties, lobby Id %s"), LobbySearchResult.lobbyId);
+		UE_LOG_ONLINE_SESSION(Error, TEXT("Platform Id key is not found in lobby search properties, lobby Id %s"), UTF8_TO_TCHAR(LobbySearchResult.lobbyId));
 	}
 
 	if (!OwnerNicknameFound)
 	{
-		UE_LOG_ONLINE_SESSION(Error, TEXT("Owner nickname is not found in lobby search properties, lobby Id %s"), LobbySearchResult.lobbyId);
+		UE_LOG_ONLINE_SESSION(Error, TEXT("Owner nickname is not found in lobby search properties, lobby Id %s"), UTF8_TO_TCHAR(LobbySearchResult.lobbyId));
 	}
 
 #if defined(USES_NATIVE_SESSION)
 	if (!NativeSessionIdFound)
 	{
-		UE_LOG_ONLINE_SESSION(Warning, TEXT("Native Session Id is not found in lobby search properties, lobby Id %s"), LobbySearchResult.lobbyId);
+		UE_LOG_ONLINE_SESSION(Warning, TEXT("Native Session Id is not found in lobby search properties, lobby Id %s"), UTF8_TO_TCHAR(LobbySearchResult.lobbyId));
 	}
 	if (!NativePlatformFound)
 	{
-		UE_LOG_ONLINE_SESSION(Warning, TEXT("Native Platform is not found in lobby search properties, lobby Id %s"), LobbySearchResult.lobbyId);
+		UE_LOG_ONLINE_SESSION(Warning, TEXT("Native Platform is not found in lobby search properties, lobby Id %s"), UTF8_TO_TCHAR(LobbySearchResult.lobbyId));
 	}
 #endif
 
@@ -1876,7 +1875,7 @@ bool FPlayFabLobby::GetSearchKeyFromSettingMappingTable(const FString& SettingKe
 	return false;
 }
 
-TPair<FString, EOnlineKeyValuePairDataType::Type>* FPlayFabLobby::FindSearchKey(FString& SearchKey)
+const TPair<FString, EOnlineKeyValuePairDataType::Type>* FPlayFabLobby::FindSearchKey(const FString& SearchKey) const
 {
 	return SearchKeyMappingTable.Find(SearchKey);
 }

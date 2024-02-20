@@ -932,44 +932,50 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 	for (uint32 i = 0; i < StateChange.updatedLobbyPropertyCount; ++i)
 	{
 		const char* updatedLobbyKey = StateChange.updatedLobbyPropertyKeys[i];
-		const char* updatedLobbyPropertyValue;
+		const char* updatedLobbyPropertyValue = nullptr;
 		Hr = PFLobbyGetLobbyProperty(StateChange.lobby, updatedLobbyKey, &updatedLobbyPropertyValue);
 		if (FAILED(Hr))
 		{
 			LogMultiplayerErrorWithMessage("PFLobbyGetLobbyProperty", Hr);
 			continue;
 		}
+		
+		const FString UpdatedLobbyKey(UTF8_TO_TCHAR(updatedLobbyKey));
 
 		if (updatedLobbyPropertyValue == nullptr)
 		{
-			UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Remove Key:%s"), *FString(updatedLobbyKey));
-			ExistingNamedSession->SessionSettings.Remove(FName(updatedLobbyKey));
-		}
-		else if (FString(updatedLobbyKey) == TEXT("_flags"))
-		{
-			FString SessionSettingsFlagsValue(updatedLobbyPropertyValue);
-			int16 SessionSettingsFlags = 0;
-			LexFromString(SessionSettingsFlags, *SessionSettingsFlagsValue);
-
-			int32 BitShift = 0;
-			ExistingNamedSession->SessionSettings.bShouldAdvertise = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
-			ExistingNamedSession->SessionSettings.bAllowJoinInProgress = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
-			ExistingNamedSession->SessionSettings.bIsLANMatch = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
-			ExistingNamedSession->SessionSettings.bIsDedicated = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
-			ExistingNamedSession->SessionSettings.bUsesStats = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
-			ExistingNamedSession->SessionSettings.bAllowInvites = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
-			ExistingNamedSession->SessionSettings.bUsesPresence = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
-			ExistingNamedSession->SessionSettings.bAllowJoinViaPresence = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
-			ExistingNamedSession->SessionSettings.bAllowJoinViaPresenceFriendsOnly = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
-			ExistingNamedSession->SessionSettings.bAntiCheatProtected = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
+			UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Remove Key:%s"), *UpdatedLobbyKey);
+			ExistingNamedSession->SessionSettings.Remove(FName(UpdatedLobbyKey));
 		}
 		else
 		{
-			UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Lobby Key:%s, value:%s"), *FString(updatedLobbyKey), *FString(updatedLobbyPropertyValue));
-			ExistingNamedSession->SessionSettings.Set(FName(updatedLobbyKey), FString(updatedLobbyPropertyValue), EOnlineDataAdvertisementType::ViaOnlineService);
-			if (IsHostSetting(FName(updatedLobbyKey)))
+			const FString UpdatedLobbyPropertyValue(UTF8_TO_TCHAR(updatedLobbyPropertyValue));
+
+			if (UpdatedLobbyKey == TEXT("_flags"))
 			{
-				UpdateHostSetting = true;
+				int16 SessionSettingsFlags = 0;
+				LexFromString(SessionSettingsFlags, *UpdatedLobbyPropertyValue);
+
+				int32 BitShift = 0;
+				ExistingNamedSession->SessionSettings.bShouldAdvertise = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
+				ExistingNamedSession->SessionSettings.bAllowJoinInProgress = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
+				ExistingNamedSession->SessionSettings.bIsLANMatch = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
+				ExistingNamedSession->SessionSettings.bIsDedicated = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
+				ExistingNamedSession->SessionSettings.bUsesStats = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
+				ExistingNamedSession->SessionSettings.bAllowInvites = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
+				ExistingNamedSession->SessionSettings.bUsesPresence = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
+				ExistingNamedSession->SessionSettings.bAllowJoinViaPresence = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
+				ExistingNamedSession->SessionSettings.bAllowJoinViaPresenceFriendsOnly = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
+				ExistingNamedSession->SessionSettings.bAntiCheatProtected = (SessionSettingsFlags & (1 << BitShift++)) ? true : false;
+			}
+			else
+			{
+				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Lobby Key:%s, value:%s"), *UpdatedLobbyKey, *UpdatedLobbyPropertyValue);
+				ExistingNamedSession->SessionSettings.Set(FName(UpdatedLobbyKey), UpdatedLobbyPropertyValue, EOnlineDataAdvertisementType::ViaOnlineService);
+				if (IsHostSetting(FName(UpdatedLobbyKey)))
+				{
+					UpdateHostSetting = true;
+				}
 			}
 		}
 	}
@@ -977,37 +983,40 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 	for (uint32 i = 0; i < StateChange.updatedSearchPropertyCount; ++i)
 	{
 		const char* updatedSearchKey = StateChange.updatedSearchPropertyKeys[i];
-		const char* updatedSearchPropertyValue;
+		const char* updatedSearchPropertyValue = nullptr;
 		Hr = PFLobbyGetSearchProperty(StateChange.lobby, updatedSearchKey, &updatedSearchPropertyValue);
 		if (FAILED(Hr))
 		{
 			LogMultiplayerErrorWithMessage("PFLobbyGetSearchProperty", Hr);
 			continue;
 		}
-
-		// return search properties back to session settings
-		FString	UpdatedSearchKey = updatedSearchKey;
-		auto SettingKey = OSSPlayFab->GetPlayFabLobbyInterface()->FindSearchKey(UpdatedSearchKey);
-		if (SettingKey)
+		
+		const FString UpdatedSearchKey(UTF8_TO_TCHAR(updatedSearchKey));
+		
+		if (updatedSearchPropertyValue == nullptr)
 		{
-			if (updatedSearchPropertyValue == nullptr)
+			UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Remove Key:%s"), *UpdatedSearchKey);
+			ExistingNamedSession->SessionSettings.Remove(FName(UpdatedSearchKey));
+		}
+		else
+		{
+			const FString UpdatedSearchPropertyValue(UTF8_TO_TCHAR(updatedSearchPropertyValue));
+
+			// return search properties back to session settings
+			auto SettingKey = OSSPlayFab->GetPlayFabLobbyInterface()->FindSearchKey(UpdatedSearchKey);
+			if (SettingKey)
 			{
-				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Remove Key:%s"), *FString(SettingKey->Key));
-				ExistingNamedSession->SessionSettings.Remove(FName(SettingKey->Key));
-			}
-			else
-			{
-				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Search Key:%s, value:%s"), *FString(SettingKey->Key), *FString(updatedSearchPropertyValue));
+				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Search Key:%s, value:%s"), *FString(SettingKey->Key), *UpdatedSearchPropertyValue);
 				switch (SettingKey->Value)
 				{
 					case EOnlineKeyValuePairDataType::Bool:
 						ExistingNamedSession->SessionSettings.Set(FName(SettingKey->Key), *updatedSearchPropertyValue == '1' ? true : false, EOnlineDataAdvertisementType::ViaOnlineService);
 						break;
 					case EOnlineKeyValuePairDataType::Int32:
-						ExistingNamedSession->SessionSettings.Set(FName(SettingKey->Key), FCStringAnsi::Atoi(updatedSearchPropertyValue), EOnlineDataAdvertisementType::ViaOnlineService);
+						ExistingNamedSession->SessionSettings.Set(FName(SettingKey->Key), FCString::Atoi(*UpdatedSearchPropertyValue), EOnlineDataAdvertisementType::ViaOnlineService);
 						break;
 					case EOnlineKeyValuePairDataType::String:
-						ExistingNamedSession->SessionSettings.Set(FName(SettingKey->Key), FString(updatedSearchPropertyValue), EOnlineDataAdvertisementType::ViaOnlineService);
+						ExistingNamedSession->SessionSettings.Set(FName(SettingKey->Key), UpdatedSearchPropertyValue, EOnlineDataAdvertisementType::ViaOnlineService);
 						break;
 				}
 				if (IsHostSetting(FName(SettingKey->Key)))
@@ -1015,18 +1024,10 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 					UpdateHostSetting = true;
 				}
 			}
-		}
-		else
-		{
-			if (updatedSearchPropertyValue == nullptr)
-			{
-				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Remove Key:%s"), *FString(updatedSearchKey));
-				ExistingNamedSession->SessionSettings.Remove(FName(updatedSearchKey));
-			}
 			else
 			{
-				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Search Key:%s, value:%s"), *FString(updatedSearchKey), *FString(updatedSearchPropertyValue));
-				ExistingNamedSession->SessionSettings.Set(FName(updatedSearchKey), FString(updatedSearchPropertyValue), EOnlineDataAdvertisementType::ViaOnlineService);
+				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Search Key:%s, value:%s"), *UpdatedSearchKey, *UpdatedSearchPropertyValue);
+				ExistingNamedSession->SessionSettings.Set(FName(UpdatedSearchKey), UpdatedSearchPropertyValue, EOnlineDataAdvertisementType::ViaOnlineService);
 			}
 		}
 	}
@@ -1110,12 +1111,12 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 			for (uint32_t j = 0; j < MemberUpdate.updatedMemberPropertyCount; ++j)
 			{
 				const char* Key = MemberUpdate.updatedMemberPropertyKeys[j];
-				const char* Value;
+				const char* Value = nullptr;
 				Hr = PFLobbyGetMemberProperty(StateChange.lobby, MemberEntity, Key, &Value);
 				if (SUCCEEDED(Hr))
 				{
-					MemberSettings->Add(FName(Key), FOnlineSessionSetting(Value != nullptr ? FString(Value) : FString(), EOnlineDataAdvertisementType::ViaOnlineService));
-					UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Update member property for:%s, Key:%s Value:%s"), *FString(MemberEntity->id), *FString(Key), *FString(Value));
+					MemberSettings->Add(FName(Key), FOnlineSessionSetting(Value != nullptr ? FString(UTF8_TO_TCHAR(Value)) : FString(), EOnlineDataAdvertisementType::ViaOnlineService));
+					UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Update member property for:%s, Key:%s Value:%s"), *FString(MemberEntity->id), *FString(UTF8_TO_TCHAR(Key)), *FString(UTF8_TO_TCHAR(Value)));
 				}
 			}
 		}
@@ -1173,9 +1174,9 @@ void FOnlineSessionPlayFab::OnLobbyMemberAdded(FName SessionName, const PFLobbyM
 		return;
 	}
 	
-	FString EntityIdStr = FString(EntityKey.id);
-	FString PlatformIdStr = FString(PlatformIdValue);
-	FString PlatformModelStr = FString(PlatformModelValue);
+	const FString EntityIdStr(UTF8_TO_TCHAR(EntityKey.id));
+	const FString PlatformIdStr(UTF8_TO_TCHAR(PlatformIdValue));
+	const FString PlatformModelStr(UTF8_TO_TCHAR(PlatformModelValue));
 
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyMemberAdded Id:%s, PlatformId:%s, PlatformModel:%s"), *EntityIdStr, *PlatformIdStr, *PlatformModelStr);
 	EntityPlatformIdMapping.Add(EntityIdStr, PlatformIdStr);
@@ -1205,7 +1206,7 @@ void FOnlineSessionPlayFab::OnLobbyMemberAdded(FName SessionName, const PFLobbyM
 	SetMultiplayerActivityForSession(ExistingNamedSession);
 #endif
 
-	const TSharedRef<const FUniqueNetId> MemberAddedNetId = FUniqueNetIdPlayFab::Create(FString(PlatformIdValue));
+	const TSharedRef<const FUniqueNetId> MemberAddedNetId = FUniqueNetIdPlayFab::Create(PlatformIdStr);
 	TriggerOnSessionParticipantsChangeDelegates(SessionName, *MemberAddedNetId, true);
 }
 
@@ -1221,17 +1222,19 @@ void FOnlineSessionPlayFab::OnLobbyMemberRemoved(FName SessionName, const PFLobb
 	}
 	
 	const PFEntityKey& MemberRemovedEntity = StateChange.member;
-	const FString* PlatformId = EntityPlatformIdMapping.Find(FString(MemberRemovedEntity.id));
+	const FString MemberRemovedEntityIdStr(UTF8_TO_TCHAR(MemberRemovedEntity.id));
+	const FString MemberRemovedEntityTypeStr(UTF8_TO_TCHAR(MemberRemovedEntity.type));
+	const FString* PlatformId = EntityPlatformIdMapping.Find(MemberRemovedEntityIdStr);
 	if (PlatformId != nullptr && !PlatformId->IsEmpty())
 	{
-		UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyMemberRemoved Id:%s, Type:%s PlatformId:%s"), *FString(MemberRemovedEntity.id), *FString(MemberRemovedEntity.type), **PlatformId);
+		UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyMemberRemoved Id:%s, Type:%s PlatformId:%s"), *MemberRemovedEntityIdStr, *MemberRemovedEntityTypeStr, **PlatformId);
 		const TSharedRef<const FUniqueNetId> MemberRemovedNetId = FUniqueNetIdPlayFab::Create(**PlatformId);
-		EntityPlatformIdMapping.Remove(FString(MemberRemovedEntity.id));
+		EntityPlatformIdMapping.Remove(MemberRemovedEntityIdStr);
 		TriggerOnSessionParticipantsChangeDelegates(SessionName, *MemberRemovedNetId, false);
 	}
 	else
 	{
-		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnLobbyMemberRemoved failed to get PlatformId for Entity:%s!"), *FString(MemberRemovedEntity.id));
+		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnLobbyMemberRemoved failed to get PlatformId for Entity:%s!"), *MemberRemovedEntityIdStr);
 	}
 
 #if defined(OSS_PLAYFAB_GDK)
@@ -1276,7 +1279,7 @@ bool FOnlineSessionPlayFab::SetHostOnSession(FName SessionName, const PFEntityKe
 
 	if (FCStringAnsi::Strcmp(HostEntityKey.type, ENTITY_TYPE_TITLE_PLAYER) != 0)
 	{
-		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::SetHostOnSession owner type is not title_player_account: %s!"), *(FString(HostEntityKey.type)));
+		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::SetHostOnSession owner type is not title_player_account: %s!"), UTF8_TO_TCHAR(HostEntityKey.type));
 	}
 
 	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
@@ -2061,7 +2064,7 @@ void FOnlineSessionPlayFab::Tick(float DeltaTime)
 
 FOnlineSessionSearchResult FOnlineSessionPlayFab::CreateSearchResultFromInvite(const PFLobbyInviteReceivedStateChange& StateChange)
 {
-	FString LobbyConnectionString(StateChange.connectionString);
+	const FString LobbyConnectionString(UTF8_TO_TCHAR(StateChange.connectionString));
 
 	TSharedRef<FOnlineSessionInfoPlayFab> NewSessionInfo = MakeShared<FOnlineSessionInfoPlayFab>();
 	NewSessionInfo->ConnectionString = LobbyConnectionString;

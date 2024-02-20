@@ -5,8 +5,10 @@ class AnsiStringList
 public:
 	void Add(const FString& InString)
 	{
-		TArray<ANSICHAR>& AnsiKeyArray = AnsiStrings.AddDefaulted_GetRef();
-		AnsiKeyArray.Append(TCHAR_TO_UTF8(*InString), InString.Len() + 1);
+		TArray<UTF8CHAR>& AnsiKeyArray = AnsiStrings.AddDefaulted_GetRef();
+		auto Convert = StringCast<UTF8CHAR>(*InString);
+		AnsiKeyArray.Append(Convert.Get(), Convert.Length());
+		AnsiKeyArray.Push(UTF8CHAR(0));
 		AnsiStringPtrs.Add(AnsiKeyArray.GetData());
 		Count += 1;
 	}
@@ -19,7 +21,7 @@ public:
 
 	const char** GetData()
 	{
-		return AnsiStringPtrs.GetData();
+		return (const char**)AnsiStringPtrs.GetData();
 	}
 
 	const uint32_t GetCount()
@@ -28,6 +30,6 @@ public:
 	}
 private:
 	uint32_t Count{ 0 };
-	TArray<TArray<ANSICHAR>> AnsiStrings;
-	TArray<const ANSICHAR*> AnsiStringPtrs;
+	TArray<TArray<UTF8CHAR>> AnsiStrings;
+	TArray<const UTF8CHAR*> AnsiStringPtrs;
 };
