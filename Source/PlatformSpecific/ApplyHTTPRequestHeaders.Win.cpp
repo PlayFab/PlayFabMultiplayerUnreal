@@ -28,6 +28,37 @@ bool FOnlineIdentityPlayFab::ApplyPlatformHTTPRequestData(const FString& Platfor
 {
     IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
     bool headersApplied = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
+    if (NativeSubsystem)
+    {
+        IOnlineIdentityPtr NativeIdentityInterface = NativeSubsystem->GetIdentityInterface();
+        if (NativeIdentityInterface && NativeIdentityInterface.IsValid())
+        {
+            FOnGetLinkedAccountAuthTokenCompleteDelegate Delegate = FOnGetLinkedAccountAuthTokenCompleteDelegate::CreateLambda(
+            [this, InPlatformUserID = PlatformUserID](int32 LocalUserNum, bool bWasSuccessful, const FExternalAuthToken& AuthToken)
+            {
+                if (bWasSuccessful && AuthToken.HasTokenString())
+                {
+                    TSharedPtr<FJsonObject> RequestBodyJson;
+                    RequestBodyJson = MakeShareable(new FJsonObject());
+                    RequestBodyJson->SetStringField(TEXT("SteamTicket"), AuthToken.TokenString);
+                    RequestBodyJson->SetBoolField(TEXT("TicketIsServiceSpecific"), true);
+
+                    UserAuthRequestData MetaData;
+                    UserAuthRequestsInFlight.Add(InPlatformUserID, MetaData);
+
+                    FOnlineIdentityPlayFab::OnPopulatePlatformRequestDataCompleted(true, InPlatformUserID, TMap<FString, FString>(), RequestBodyJson);
+                }
+                else
+                {
+                    FOnlineIdentityPlayFab::OnPopulatePlatformRequestDataCompleted(false, InPlatformUserID, TMap<FString, FString>(), nullptr);
+                }
+            });
+            NativeIdentityInterface->GetLinkedAccountAuthToken(0, TEXT("WebAPI:AzurePlayFab"), Delegate);
+            headersApplied = true;
+        }
+    }
+#else
     TSharedPtr<FJsonObject> RequestBodyJson;
     if (NativeSubsystem)
     {
@@ -46,6 +77,7 @@ bool FOnlineIdentityPlayFab::ApplyPlatformHTTPRequestData(const FString& Platfor
         }
     }
     FOnlineIdentityPlayFab::OnPopulatePlatformRequestDataCompleted(headersApplied, PlatformUserID, TMap<FString, FString>(), RequestBodyJson);
+#endif
     return headersApplied;
 }
 #endif // OSS_PLAYFAB_WIN64
