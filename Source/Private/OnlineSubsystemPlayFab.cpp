@@ -63,7 +63,10 @@ bool FOnlineSubsystemPlayFab::Init()
 	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::Init"));
 	
 	NativeOSS = IOnlineSubsystem::GetByPlatform();
-	check(NativeOSS);
+	if (!ensure(NativeOSS))
+	{
+		return false;
+	}
 
 #ifdef OSS_PLAYFAB_PLAYSTATION
 	OnlineAsyncTaskThreadRunnable = new FOnlineAsyncTaskManagerPlayFab(this);
