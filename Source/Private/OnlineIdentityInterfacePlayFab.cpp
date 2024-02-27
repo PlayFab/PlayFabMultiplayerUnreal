@@ -205,13 +205,13 @@ void FOnlineIdentityPlayFab::RevokeAuthToken(const FUniqueNetId& UserId, const F
 	}
 }
 
-void FOnlineIdentityPlayFab::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
+void FOnlineIdentityPlayFab::GetUserPrivilege(const FUniqueNetId& LocalUserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
 {
 	UE_LOG_ONLINE_IDENTITY(Verbose, TEXT("FOnlineIdentityPlayFab::GetUserPrivilege"));
 
 	OSS_PLAYFAB_GET_NATIVE_IDENTITY_INTERFACE
 	{
-		NativeIdentityInterface->GetUserPrivilege(UserId, Privilege, Delegate);
+		NativeIdentityInterface->GetUserPrivilege(LocalUserId, Privilege, Delegate);
 	}
 }
 
@@ -263,7 +263,11 @@ void FOnlineIdentityPlayFab::Tick(float DeltaTime)
 				UsersToAuth.Add(PlatformUserIdStr);
 			}
 #if defined(OSS_PLAYFAB_WIN64) || defined(OSS_PLAYFAB_PLAYSTATION)
-			AutoLogin(0);
+			if (OSSPlayFab->bForceAutoLogin)
+			{
+				UE_LOG_ONLINE_IDENTITY(Verbose, TEXT("AutoLogin"));
+				AutoLogin(0);
+			}
 #endif
 			bAuthAllUsers = false;
 		}
@@ -520,7 +524,7 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 	FString ErrorStr;
 
 	if (bSucceeded && HttpResponse.IsValid())
-	{		
+	{
 		ResponseStr = HttpResponse->GetContentAsString();
 
 		// Deserialize response
@@ -545,13 +549,22 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 							FString EntityIdStr, EntityTypeStr;
 							if ((*JsonEntity)->TryGetStringField(TEXT("Id"), EntityIdStr) && (*JsonEntity)->TryGetStringField(TEXT("Type"), EntityTypeStr))
 							{
-								UE_LOG_ONLINE(Verbose, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Platform User %s authenticated with entityid %s and token %s and expiration %s"), *PlatformUserIdStr, *EntityIdStr, *EntityTokenStr, *TokenExpirationStr);
-								
-								TSharedPtr<FPlayFabUser> LocalUser = GetPartyLocalUserFromPlatformIdString(PlatformUserIdStr);
+								UE_LOG_ONLINE(
+									Verbose,
+									TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Platform User %s authenticated with EntityId %s, Token %s, and Expiration %s"),
+									*PlatformUserIdStr,
+									*EntityIdStr,
+									*EntityTokenStr,
+									*TokenExpirationStr
+								);
+
+								int32 Index;
+								TSharedPtr<FPlayFabUser> LocalUser = GetPartyLocalUserFromPlatformIdString(PlatformUserIdStr, &Index);
 								if (LocalUser)
 								{
 									// Update an existing user if we already have one
 									LocalUser->UpdateEntityToken(EntityTokenStr);
+									TriggerOnAuthenticateUserCompleteDelegates(Index, true, PlatformUserIdStr, TEXT(""));
 								}
 								else
 								{
@@ -559,11 +572,23 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 									FString SessionTicketStr = "";
 									if ((*JsonData)->TryGetStringField(TEXT("SessionTicket"), SessionTicketStr) == false)
 									{
-										UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Failed to parse SessionTicket data"));
+										ErrorStr = SessionTicketStr.IsEmpty() ? TEXT("SessionTicket data is empty") : TEXT("Failed to parse SessionTicket data");
+
+										UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] %s"), *ErrorStr);
+										TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, ErrorStr);
+									}
+
+									FString PlayFabIdStr = "";
+									if ((*JsonData)->TryGetStringField(TEXT("PlayFabId"), PlayFabIdStr) == false)
+									{
+										ErrorStr = PlayFabIdStr.IsEmpty() ? TEXT("PlayFabId data is empty") : TEXT("Failed to parse PlayFabId data");
+
+										UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] %s"), *ErrorStr);
+										TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, ErrorStr);
 									}
 
 									// Create a new user if we don't already have one
-									CreateLocalUser(PlatformUserIdStr, EntityIdStr, EntityTypeStr, SessionTicketStr, EntityTokenStr, TokenExpirationStr);
+									CreateLocalUser(PlatformUserIdStr, EntityIdStr, EntityTypeStr, SessionTicketStr, EntityTokenStr, TokenExpirationStr, PlayFabIdStr);
 								}
 
 								TimeSinceLastAuth = 0.0f;
@@ -573,36 +598,42 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 							{
 								// MS_ATG_PNF: in error cases, the user will re-auth on the next attempt
 								UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Failed to parse EntityId data"));
+								TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, TEXT("Failed to parse EntityId data"));
 							}
 						}
 						else
 						{
 							// MS_ATG_PNF: in error cases, the user will re-auth on the next attempt
 							UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Failed to parse Entity data"));
+							TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, TEXT("Failed to parse Entity data"));
 						}
 					}
 					else
 					{
 						// MS_ATG_PNF: in error cases, the user will re-auth on the next attempt
 						UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Failed to parse EntityToken data"));
+						TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, TEXT("Failed to parse EntityToken data"));
 					}
 				}
 				else
 				{
 					// MS_ATG_PNF: in error cases, the user will re-auth on the next attempt
 					UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Failed to parse EntityToken data"));
+					TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, TEXT("Failed to parse EntityToken data"));
 				}
 			}
 			else
 			{
 				// MS_ATG_PNF: in error cases, the user will re-auth on the next attempt
 				UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Failed to parse JSON data"));
+				TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, TEXT("Failed to parse JSON data"));
 			}
 		}
 		else
 		{
 			// MS_ATG_PNF: in error cases, the user will re-auth on the next attempt
 			UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Failed to deserialize response"));
+			TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, TEXT("Failed to deserialize response"));
 		}
 	}
 
@@ -610,7 +641,7 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 	UserAuthRequestsInFlight.Remove(PlatformUserIdStr);
 }
 
-void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, const FString& EntityId, const FString& EntityType, const FString& SessionTicket, const FString& EntityToken, const FString& TokenExpiration)
+void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, const FString& EntityId, const FString& EntityType, const FString& SessionTicket, const FString& EntityToken, const FString& TokenExpiration, const FString& PlayFabId)
 {
 	UE_LOG_ONLINE_IDENTITY(Verbose, TEXT("FOnlineIdentityPlayFab::CreateLocalUser"));
 
@@ -630,7 +661,7 @@ void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, c
 		return;
 	}
 	
-	TSharedPtr<FPlayFabUser> NewLocalUser = MakeShared<FPlayFabUser>(PlatformUserIdStr, EntityToken, EntityId, EntityType, SessionTicket, NewPartyLocalUser);
+	TSharedPtr<FPlayFabUser> NewLocalUser = MakeShared<FPlayFabUser>(PlatformUserIdStr, EntityToken, EntityId, EntityType, SessionTicket, NewPartyLocalUser, PlayFabId);
 
 	PFEntityKey EntityKey = NewLocalUser->GetEntityKey();
 	HRESULT hr = PFMultiplayerSetEntityToken(
@@ -645,7 +676,8 @@ void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, c
 		PartyManager::GetSingleton().DestroyLocalUser(NewPartyLocalUser, nullptr);
 		return;
 	}
-	LocalPlayFabUsers.Add(NewLocalUser);
+	int32 LocalUserNum = LocalPlayFabUsers.Add(NewLocalUser);
+	TriggerOnAuthenticateUserCompleteDelegates(LocalUserNum, true, PlatformUserIdStr, TEXT(""));
 
 	// Listening to invite is best effort
 	OSSPlayFab->GetPlayFabLobbyInterface()->RegisterForInvites_PlayFabMultiplayer(EntityKey);
@@ -689,17 +721,28 @@ TSharedPtr<FPlayFabUser> FOnlineIdentityPlayFab::GetPartyLocalUserFromPlatformId
 	return GetPartyLocalUserFromPlatformIdString(PlatformNetId.ToString());
 }
 
-TSharedPtr<FPlayFabUser> FOnlineIdentityPlayFab::GetPartyLocalUserFromPlatformIdString(const FString& PlatformNetIdStr)
+TSharedPtr<FPlayFabUser> FOnlineIdentityPlayFab::GetPartyLocalUserFromPlatformIdString(const FString& PlatformNetIdStr, int32* Index)
 {
-	if (PlatformNetIdStr.IsEmpty() == false)
+	int32 UserIndex = 0;
+	if (!PlatformNetIdStr.IsEmpty())
 	{
 		for (TSharedPtr<FPlayFabUser> LocalUser : LocalPlayFabUsers)
 		{
 			if (LocalUser->GetPlatformUserId().Compare(PlatformNetIdStr, ESearchCase::IgnoreCase) == 0)
 			{
+				if (Index)
+				{
+					*Index = UserIndex;
+				}
 				return LocalUser;
 			}
+			++UserIndex;
 		}
+	}
+
+	if (Index)
+	{
+		*Index = INDEX_NONE;
 	}
 
 	return nullptr;

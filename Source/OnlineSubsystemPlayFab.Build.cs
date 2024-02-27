@@ -207,17 +207,17 @@ public class OnlineSubsystemPlayFab : ModuleRules
 	{
         PublicDependencyModuleNames.Add("Core");
         PublicDependencyModuleNames.Add("OnlineSubsystemGDK");
-       
+
 		PublicDefinitions.Add("OSS_PLAYFAB_GDK=1");
-	   
+
         if(Target.Platform == UnrealTargetPlatform.Parse("WinGDK"))
 		{
 			PublicDefinitions.Add("OSS_PLAYFAB_IS_PC=1");
 		}
-			
+
 		PrivateDefinitions.Add("ONLINESUBSYSTEMGDK_PACKAGE=1");
-        
-        string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "GDK");
+
+        string PlatformDir = Path.Combine(PluginDirectory, "Platforms", "GDK");
 
         if (!Directory.Exists(PlatformDir) ||
             !Directory.Exists(Path.Combine(PlatformDir, "Redist")) ||
@@ -259,13 +259,13 @@ public class OnlineSubsystemPlayFab : ModuleRules
     private void ConfigureForSwitchPlatform()
 	{
 		PublicDependencyModuleNames.Add("OnlineSubsystemSwitch");
-        
-        string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "Switch");
+
+        string PlatformDir = Path.Combine(PluginDirectory, "Platforms", "Switch");
 
         if (!Directory.Exists(PlatformDir))
         {
             throw new BuildException("PlayFab precompiled dependencies were not found.");
-        }        
+        }
 
         // Find the MLP and Party library names under the PlatformDir.
         NuGetPackageLoader NuGetLoader = new NuGetPackageLoader();
@@ -320,7 +320,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
 		PublicDefinitions.Add("OSS_PLAYFAB_IS_PC=1");
 		PublicDefinitions.Add("USES_NATIVE_SESSION=1");
 
-		string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "Windows");
+		string PlatformDir = Path.Combine(PluginDirectory, "Platforms", "Windows");
 
         if (!Directory.Exists(PlatformDir) || 
             !Directory.Exists(Path.Combine(PlatformDir, "Redist")) || 
@@ -350,7 +350,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
 	{
 		NuGetPackageLoader.NuGetPackageInformation NugetPackageInfo = new NuGetPackageLoader.NuGetPackageInformation();
 		NuGetPackageLoader NuGetLoader = new NuGetPackageLoader();
-		string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "PS4");
+		string PlatformDir = Path.Combine(PluginDirectory, "Platforms", "PS4");
 		NuGetLoader.ParsingNuGetPackage(ref PlatformDir, ref NugetPackageInfo);
 
 		PublicDependencyModuleNames.Add("OnlineSubsystemPS4");
@@ -365,7 +365,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
     {
 		NuGetPackageLoader.NuGetPackageInformation NugetPackageInfo = new NuGetPackageLoader.NuGetPackageInformation();
 		NuGetPackageLoader NuGetLoader = new NuGetPackageLoader();
-        string PlatformDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "Plugins", "Online", "OnlineSubsystemPlayFab", "Platforms", "PS5");
+        string PlatformDir = Path.Combine(PluginDirectory, "Platforms", "PS5");
         NuGetLoader.ParsingNuGetPackage(ref PlatformDir, ref NugetPackageInfo);
     
         PublicDependencyModuleNames.Add("OnlineSubsystemPS5");

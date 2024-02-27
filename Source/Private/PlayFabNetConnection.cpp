@@ -4,6 +4,7 @@
 
 #include "PlayFabNetConnection.h"
 #include "PlayFabSocketSubsystem.h"
+#include "PlayFabNetDriver.h"
 #include "Net/DataChannel.h"
 
 #include "OnlineSubsystem.h"
@@ -22,6 +23,18 @@ UPlayFabNetConnection::UPlayFabNetConnection(const FObjectInitializer& ObjectIni
 
 void UPlayFabNetConnection::InitLocalConnection(UNetDriver* InDriver, class FSocket* InSocket, const FURL& InURL, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)
 {
+	UPlayFabNetDriver* PlayFabNetDriver = Cast<UPlayFabNetDriver>(InDriver);
+	if (PlayFabNetDriver)
+	{
+		bFallbackToPlatformSocketSubsystem = PlayFabNetDriver->bFallbackToPlatformSocketSubsystem;
+		if (bFallbackToPlatformSocketSubsystem)
+		{
+			UE_LOG_ONLINE(Verbose, TEXT("UPlayFabNetConnection::InitLocalConnection bFallbackToPlatformSocketSubsystem = true; Connecting to a dedicated server and early returning."));
+			Super::InitLocalConnection(InDriver, InSocket, InURL, InState, InMaxPacket, InPacketOverhead);
+			return;
+		}
+	}
+
 	DisableAddressResolution();
 	PlayerId.SetUniqueNetId(nullptr);
 
@@ -84,12 +97,12 @@ void UPlayFabNetConnection::InitRemoteConnection(UNetDriver* InDriver, class FSo
 
 void UPlayFabNetConnection::FlushNet(bool bIgnoreSimulation)
 {
-	#if ENGINE_MAJOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION >= 5
 	const EConnectionState CurState = UNetConnection::GetConnectionState();
-	if (CurState == USOCK_Closed || CurState == USOCK_Invalid)
-	#else
-	if (State == USOCK_Closed || State == USOCK_Invalid)
-	#endif
+	if (!bFallbackToPlatformSocketSubsystem && (CurState == USOCK_Closed || CurState == USOCK_Invalid))
+#else
+	if (!bFallbackToPlatformSocketSubsystem && (State == USOCK_Closed || State == USOCK_Invalid))
+#endif
 	{
 		SendBuffer.Reset();
 		InitSendBuffer();
