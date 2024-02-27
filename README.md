@@ -31,7 +31,7 @@ The quickstart guide for OnlineSubsystemPlayFab can be found at:
 
 |OSS Version|Release Note|
 |-|-|
-Latest Version |2.3.2|
+Latest Version |2.3.3|
 Deprecated Version |2.2.6 and 2.27 may potentially crash the game. **Please upgrade to the latest version to ensure the bug fix is included.**|
 
 ## Compatibility

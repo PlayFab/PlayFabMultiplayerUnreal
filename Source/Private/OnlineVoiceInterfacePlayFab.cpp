@@ -71,10 +71,13 @@ const FLocalTalkerPlayFab* FOnlineVoicePlayFab::GetLocalTalker(const int32 Local
 const FRemoteTalkerPlayFab* FOnlineVoicePlayFab::GetRemoteTalker(const FUniqueNetId& UniqueId) const
 {
 	const FString& PlatformId = UniqueId.ToString();
-	if (LocalTalkers.Contains(PlatformId))
+	for (const auto& RemoteTalkerKvPair : RemoteTalkers)
 	{
-		const FRemoteTalkerPlayFab& PartyLocalTalker = RemoteTalkers[PlatformId];
-		return &PartyLocalTalker;
+		const FRemoteTalkerPlayFab& RemoteTalker = RemoteTalkerKvPair.Value;
+		if (RemoteTalker.GetPlatformUserId() == PlatformId)
+		{
+			return &RemoteTalker;
+		}
 	}
 
 	return nullptr;
@@ -225,7 +228,7 @@ bool FOnlineVoicePlayFab::RegisterLocalTalker(TSharedPtr<FPlayFabUser> LocalPlay
 		UE_LOG_ONLINE(Warning, TEXT("Populating available TextToSpeechProfiles failed: %s"), *GetPartyErrorMessage(Err));
 	}
 
-#if OSS_PLAYFAB_IS_PC
+#ifdef OSS_PLAYFAB_IS_PC
 	// Set the device to muted by default, this is standard for push to talk behavior on PC
 	NewChatControl->SetAudioInputMuted(true);
 #else
@@ -450,20 +453,20 @@ bool FOnlineVoicePlayFab::IsRemotePlayerTalking(const FUniqueNetId& UniqueId)
 bool FOnlineVoicePlayFab::IsMuted(uint32 LocalUserNum, const FUniqueNetId& UniqueId) const
 {
 	const FLocalTalkerPlayFab* LocalTalker = GetLocalTalker(LocalUserNum);
-	if (LocalTalker)
+	const FRemoteTalkerPlayFab* RemoteTalker = GetRemoteTalker(UniqueId);
+	if (LocalTalker && RemoteTalker)
 	{
 		PartyBool InputMuted;
-		PartyError Err = LocalTalker->GetChatControl()->GetAudioInputMuted(&InputMuted);
+		PartyError Err = LocalTalker->GetChatControl()->GetIncomingAudioMuted(RemoteTalker->GetChatControl(), &InputMuted);
 		if (PARTY_SUCCEEDED(Err))
 		{
 			return static_cast<bool>(InputMuted);
 		}
 		else
 		{
-			UE_LOG_ONLINE(Error, TEXT("GetAudioInputMuted failed: %s"), *GetPartyErrorMessage(Err));
+			UE_LOG_ONLINE(Error, TEXT("GetIncomingAudioMuted failed: %s"), *GetPartyErrorMessage(Err));
 		}
 	}
-
 	return false;
 }
 

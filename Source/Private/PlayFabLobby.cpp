@@ -819,6 +819,10 @@ bool FPlayFabLobby::FindLobbies(const FUniqueNetId& UserId, TSharedPtr<FOnlineSe
 
 bool FPlayFabLobby::FindFriendLobbies(const FUniqueNetId& UserId)
 {
+#ifndef OSS_PLAYFAB_GDK
+	UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::FindFriendLobbies is not supported on current platform"));
+	return false;
+#else // OSS_PLAYFAB_GDK
 	// Don't start another search while one is in progress
 	if (!CurrentSessionSearch.IsValid())
 	{
@@ -856,13 +860,11 @@ bool FPlayFabLobby::FindFriendLobbies(const FUniqueNetId& UserId)
 	PFLobbySearchConfiguration LobbySearchConfig{};
 	PFLobbySearchFriendsFilter LobbySearchFriendsFilter;
 
-#if defined(OSS_PLAYFAB_GDK)
 	LobbySearchFriendsFilter.includeFacebookFriends = false;
 	LobbySearchFriendsFilter.includeSteamFriends = false;
 	FString XToken = PlayFabIdentityInt->GetLocalUserXToken();
 	std::string XTokenString(TCHAR_TO_UTF8(*XToken));
 	LobbySearchFriendsFilter.includeXboxFriendsToken = XTokenString.c_str();
-#endif
 
 	LobbySearchConfig.friendsFilter = &LobbySearchFriendsFilter;
 
@@ -877,6 +879,7 @@ bool FPlayFabLobby::FindFriendLobbies(const FUniqueNetId& UserId)
 	}
 
 	return true;
+#endif // !OSS_PLAYFAB_GDK
 }
 
 void FPlayFabLobby::RegisterForInvites_PlayFabMultiplayer(const PFEntityKey& ListenerEntity)

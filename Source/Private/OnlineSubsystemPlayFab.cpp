@@ -97,6 +97,8 @@ bool FOnlineSubsystemPlayFab::Init()
 	GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("MaxEndpointsPerDeviceCount"), MaxEndpointsPerDeviceCount, GEngineIni);
 	GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("MaxUserCount"), MaxUserCount, GEngineIni);
 	GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("MaxUsersPerDeviceCount"), MaxUsersPerDeviceCount, GEngineIni);
+	GConfig->GetBool(TEXT("OnlineSubsystemPlayFab"), TEXT("bForceAutoLogin"), bForceAutoLogin, GEngineIni);
+
 	ParseDirectPeerConnectivityOptions();
 
 	TSharedPtr<IPlugin> SocketsPlugin = IPluginManager::Get().FindPlugin(TEXT("PlayFabParty"));

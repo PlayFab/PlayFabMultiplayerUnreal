@@ -105,7 +105,7 @@ private:
 	PartyChatControl* ChatControl = nullptr;
 };
 
-class FOnlineVoicePlayFab
+class ONLINESUBSYSTEMPLAYFAB_API FOnlineVoicePlayFab
 	: public IOnlineVoice
 	, public TSharedFromThis<FOnlineVoicePlayFab, ESPMode::ThreadSafe>
 {

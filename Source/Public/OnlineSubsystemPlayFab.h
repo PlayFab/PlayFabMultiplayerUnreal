@@ -158,6 +158,7 @@ public:
 	bool bPartyInitialized = false;
 	bool bMultiplayerInitialized = false;
 	bool bMemoryCallbacksSet = false;
+	bool bForceAutoLogin = true;
 
 	int32 MaxDeviceCount = 8;
 	int32 MaxDevicesPerUserCount = 1;
