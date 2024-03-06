@@ -63,7 +63,7 @@ public:
 	bool LeaveLobby(const FUniqueNetId& PlayerId, FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate, const FOnUnregisterLocalPlayerCompleteDelegate& UnregisterLocalPlayerCompleteDelegate, bool bDestroyingSession);
 	bool FindLobbies(const FUniqueNetId& UserId, TSharedPtr<FOnlineSessionSearch> SearchSettings);
 	bool FindFriendLobbies(const FUniqueNetId& UserId);
-	TPair<FString, EOnlineKeyValuePairDataType::Type>* FindSearchKey(FString& SearchKey);
+	const TPair<FString, EOnlineKeyValuePairDataType::Type>* FindSearchKey(const FString& SearchKey) const;
 
 	void RegisterForInvites_PlayFabMultiplayer(const PFEntityKey& ListenerEntity);
 	void UnregisterForInvites_PlayFabMultiplayer(const PFEntityKey& ListenerEntity);
