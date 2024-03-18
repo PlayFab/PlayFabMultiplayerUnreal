@@ -345,9 +345,20 @@ bool FPlayFabLobby::JoinArrangedLobby(FName SessionName, const FOnlineMatchmakin
 	PFLobbyArrangedJoinConfiguration LobbyConfig{};
 	FString CustomMatchMemberKey = TEXT("CustomMatchJsonProperties");
 
-	LobbyConfig.maxMemberCount = MatchTicket->PlayFabMatchmakingDetails->memberCount;
+	LobbyConfig.maxMemberCount = MatchTicket->SessionSettings.NumPublicConnections;
 	LobbyConfig.ownerMigrationPolicy = PFLobbyOwnerMigrationPolicy::Automatic;
 	LobbyConfig.accessPolicy = PFLobbyAccessPolicy::Private;
+	if (MatchTicket->SessionSettings.bShouldAdvertise)
+	{
+		if (MatchTicket->SessionSettings.bAllowJoinViaPresenceFriendsOnly)
+		{
+			LobbyConfig.accessPolicy = PFLobbyAccessPolicy::Friends;
+		}
+		else
+		{
+			LobbyConfig.accessPolicy = PFLobbyAccessPolicy::Public;
+		}
+	}
 
 	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
 
@@ -635,6 +646,20 @@ bool FPlayFabLobby::UpdateLobby(FName SessionName, const FOnlineSessionSettings&
 	UpdateData.searchPropertyCount = SearchKeys.GetCount();
 	UpdateData.searchPropertyKeys = SearchKeys.GetData();
 	UpdateData.searchPropertyValues = SearchValues.GetData();
+
+	PFLobbyAccessPolicy AccessPolicy = PFLobbyAccessPolicy::Private;
+	if (SessionSettings.bShouldAdvertise)
+	{
+		if (SessionSettings.bAllowJoinViaPresenceFriendsOnly)
+		{
+			AccessPolicy = PFLobbyAccessPolicy::Friends;
+		}
+		else
+		{
+			AccessPolicy = PFLobbyAccessPolicy::Public;
+		}
+	}
+	UpdateData.accessPolicy = &AccessPolicy;
 
 	UpdateLobbyCompletionState.LobbyPostUpdateCount++;
 	TUniquePtr<TPair<int, int>> LobbyPostPair = MakeUnique<TPair<int, int>>(OperationId, UpdateLobbyCompletionState.LobbyPostUpdateCount);
