@@ -1080,14 +1080,7 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 		if (SUCCEEDED(Hr))
 		{
 			UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate access policy updated to :%u"), NewAccessPolicy);
-			if (NewAccessPolicy == PFLobbyAccessPolicy::Public)
-			{
-				ExistingNamedSession->SessionSettings.bShouldAdvertise = true;
-			}
-			else //(NewAccessPolicy == PFLobbyAccessPolicy::Private) || (NewAccessPolicy == PFLobbyAccessPolicy::Friends)
-			{
-				ExistingNamedSession->SessionSettings.bShouldAdvertise = false;
-			}
+			ExistingNamedSession->SessionSettings.bShouldAdvertise = (NewAccessPolicy != PFLobbyAccessPolicy::Private);
 		}
 		else
 		{
