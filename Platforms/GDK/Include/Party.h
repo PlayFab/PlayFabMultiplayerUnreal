@@ -200,17 +200,17 @@ constexpr uint32_t c_maxChatTextMessageStringLength = 1023;
 constexpr uint32_t c_maxChatTranscriptionMessageStringLength = 1023;
 
 /// <summary>
-/// Maximum length in characters of a text to speech profile identifier, not including the null terminator.
+/// Maximum length in characters of a text-to-speech profile identifier, not including the null terminator.
 /// </summary>
 constexpr uint32_t c_maxTextToSpeechProfileIdentifierStringLength = 255;
 
 /// <summary>
-/// Maximum length in characters of a text to speech profile name, not including the null terminator.
+/// Maximum length in characters of a text-to-speech profile name, not including the null terminator.
 /// </summary>
 constexpr uint32_t c_maxTextToSpeechProfileNameStringLength = 127;
 
 /// <summary>
-/// Maximum length in characters of a text to speech synthesis input string, not including the null terminator.
+/// Maximum length in characters of a text-to-speech synthesis input string, not including the null terminator.
 /// </summary>
 constexpr uint32_t c_maxTextToSpeechInputStringLength = 1023;
 
@@ -945,7 +945,7 @@ enum class PartyDestroyedReason
 };
 
 /// <summary>
-/// The level of filtering that will apply to incoming text chat when text moderation is enabled with
+/// The level of filtering that applies to incoming text chat when text moderation is enabled with
 /// <see cref="PartyLocalChatControl::SetTextChatOptions" />.
 /// </summary>
 /// <see cref="PartyOption::TextChatFilterLevel" />
@@ -954,17 +954,20 @@ enum class PartyDestroyedReason
 enum class PartyTextChatFilterLevel : uint32_t
 {
     /// <summary>
-    /// Text chat will be filtered at a family-friendly level.
+    /// Text chat is filtered at a family-friendly level.
     /// </summary>
+    /// <remarks>
+    /// This value is the default when <see cref="PartyOption::TextChatFilterLevel" /> hasn't been configured.
+    /// </remarks>
     FamilyFriendly = 0,
 
     /// <summary>
-    /// Text chat will be filtered at a medium level.
+    /// Text chat is filtered at a medium level.
     /// </summary>
     Medium = 1,
 
     /// <summary>
-    /// Text chat will be filtered at a mature level.
+    /// Text chat is filtered at a mature level.
     /// </summary>
     Mature = 2,
 };
@@ -977,6 +980,8 @@ enum class PartyTextChatFilterLevel : uint32_t
 /// <seealso cref="PartyLocalUdpSocketBindAddressConfiguration" />
 /// <seealso cref="PartyNetworkConfiguration" />
 /// <seealso cref="PartyDirectPeerConnectivityOptions" />
+/// <seealso cref="PartyRegionUpdateConfiguration" />
+/// <seealso cref="PartyRegionQualityMeasurementConfiguration" />
 enum class PartyOption : uint32_t
 {
     /// <summary>
@@ -984,8 +989,9 @@ enum class PartyOption : uint32_t
     /// </summary>
     /// <remarks>
     /// To override this option, call <see cref="PartyManager::SetOption" /> passing null for the object parameter, this
-    /// value for the option parameter, and an optional pointer to a PartyLocalUdpSocketBindAddressConfiguration
-    /// structure for the value.
+    /// value for the option parameter, and an optional pointer to a
+    /// <see cref="PartyLocalUdpSocketBindAddressConfiguration" /> structure for the value. If a null
+    /// PartyLocalUdpSocketBindAddressConfiguration pointer is provided, the default configuration is restored.
     /// <para>
     /// To query this option, call <see cref="PartyManager::GetOption" /> passing null for the object parameter, this
     /// value for the option parameter, and a pointer to an output PartyLocalUdpSocketBindAddressConfiguration structure
@@ -1030,8 +1036,9 @@ enum class PartyOption : uint32_t
     /// </para>
     /// <para>
     /// To override this option, call <see cref="PartyManager::SetOption" /> passing null for the object parameter, this
-    /// value for the option parameter, and a pointer to a <see cref="PartyDirectPeerConnectivityOptions" /> variable
-    /// containing all desired option flags.
+    /// value for the option parameter, and an optional pointer to a <see cref="PartyDirectPeerConnectivityOptions" />
+    /// variable containing all desired option flags. If a null PartyDirectPeerConnectivityOptions pointer is provided,
+    /// the default options are restored.
     /// </para>
     /// <para>
     /// To query this option, call <see cref="PartyManager::GetOption" /> passing null for the object parameter, this
@@ -1051,7 +1058,7 @@ enum class PartyOption : uint32_t
     LocalDeviceDirectPeerConnectivityOptionsMask = 1,
 
     /// <summary>
-    /// An option for fine-tuning the level that chat text will be filtered at.
+    /// An option for fine-tuning the level at which chat text will be filtered.
     /// </summary>
     /// <remarks>
     /// This feature only applies to incoming chat text detected as English. The filter level cannot be changed for
@@ -1063,8 +1070,9 @@ enum class PartyOption : uint32_t
     /// </para>
     /// <para>
     /// To override this option, call <see cref="PartyManager::SetOption" /> passing null for the object parameter, this
-    /// value for the option parameter, and a pointer to a <see cref="PartyTextChatFilterLevel" /> variable containing
-    /// the desired filter level.
+    /// value for the option parameter, and an optional pointer to a <see cref="PartyTextChatFilterLevel" /> variable
+    /// containing the desired filter level. If a null PartyTextChatFilterLevel pointer is provided, the default level
+    /// is restored.
     /// </para>
     /// <para>
     /// To query this option, call <see cref="PartyManager::GetOption" /> passing null for the object parameter, this
@@ -1072,7 +1080,8 @@ enum class PartyOption : uint32_t
     /// the currently configured filter level should be written.
     /// </para>
     /// <para>
-    /// It is safe to override or query for this option at any time.
+    /// It's safe to override or query for this option at any time, including prior to initializing the Party library.
+    /// Setting a new value will take effect immediately.
     /// </para>
     /// </remarks>
     TextChatFilterLevel = 2,
@@ -1097,14 +1106,61 @@ enum class PartyOption : uint32_t
     /// </para>
     /// <para>
     /// To override this value, call <see cref="PartyManager::SetOption" /> passing null for the object parameter,
-    /// <see cref="PartyOption::LocalDeviceMaxDirectPeerConnections" /> value for the option parameter, and an optional
-    /// pointer to a uint32_t variable for the value.
+    /// this value for the option parameter, and an optional pointer to a uint32_t variable for the value. If a null
+    /// uint32_t pointer is provided, the default value is restored.
     /// </para>
     /// <para>
-    /// The new value will take effect for all networks joined after the value is changed.
+    /// To query this option, call <see cref="PartyManager::GetOption" /> passing null for the object parameter, this
+    /// value for the option parameter, and a pointer to a uint32_t variable into which the currently configured value
+    /// should be written.
+    /// </para>
+    /// <para>
+    /// It's safe to override or query for this option at any time, including prior to initializing the Party library.
+    /// Setting a new value will take effect for all networks joined after the value is changed.
     /// </para>
     /// </remarks>
     LocalDeviceMaxDirectPeerConnections = 3,
+
+    /// <summary>
+    /// An option used to configure when the Party library performs automatic region discovery and connection quality
+    /// measurement updates.
+    /// </summary>
+    /// <remarks>
+    /// To override this option, call <see cref="PartyManager::SetOption" /> passing null for the object parameter, this
+    /// value for the option parameter, and an optional pointer to a <see cref="PartyRegionUpdateConfiguration" />
+    /// structure for the value. If a null PartyRegionUpdateConfiguration pointer is provided, the default configuration
+    /// is restored.
+    /// <para>
+    /// To query this option, call <see cref="PartyManager::GetOption" /> passing null for the object parameter, this
+    /// value for the option parameter, and a pointer to an output <see cref="PartyRegionUpdateConfiguration" />
+    /// structure for the value.
+    /// </para>
+    /// <para>
+    /// It's safe to override or query for this option at any time, including prior to initializing the Party library.
+    /// Overriding the region update configuration will take effect immediately.
+    /// </para>
+    /// </remarks>
+    RegionUpdateConfiguration = 4,
+
+    /// <summary>
+    /// An option used for fine-grained control over Party library region quality measurement behavior.
+    /// </summary>
+    /// <remarks>
+    /// To override this option, call <see cref="PartyManager::SetOption" /> passing null for the object parameter, this
+    /// value for the option parameter, and an optional pointer to a
+    /// <see cref="PartyRegionQualityMeasurementConfiguration" /> structure for the value. If a null
+    /// PartyRegionQualityMeasurementConfiguration pointer is provided, the default configuration is restored.
+    /// <para>
+    /// To query this option, call <see cref="PartyManager::GetOption" /> passing null for the object parameter, this
+    /// value for the option parameter, and a pointer to an output
+    /// <see cref="PartyRegionQualityMeasurementConfiguration" /> structure for the value.
+    /// </para>
+    /// <para>
+    /// It's safe to override or query for this option at any time, including prior to initializing the Party library.
+    /// Overriding the region quality measurement configuration will take effect with the next region update.
+    /// </para>
+    /// </remarks>
+    RegionQualityMeasurementConfiguration = 5,
 };
 
 /// <summary>
@@ -1113,30 +1169,28 @@ enum class PartyOption : uint32_t
 /// <remarks>
 /// When used with <see cref="PartyManager::GetWorkMode()" /> and <see cref="PartyManager::SetWorkMode()" />, allows the
 /// title to read and write (respectively) the work mode for the associated internal processing task. Title interaction
-/// with the internal processing task differs greatly depending on the currently-configured work mode.
+/// with the internal processing task differs greatly depending on the currently configured work mode.
 /// <para>
-/// When the work mode of the processing task associated with <see cref="PartyThreadId::Audio" /> is set to
-/// <see cref="PartyWorkMode::Automatic" />, the task is performed by the Party library using internally-managed, high
-/// priority, frequently-running threads with real-time requirements. On Windows and Xbox consoles, these audio threads
-/// interact directly with XAudio2 every 40 milliseconds. The Party library's instance(s) of XAudio2 will be initialized
-/// with a processor affinity that corresponds to the processor affinity configured for the audio thread type via
-/// <see cref="PartyManager::SetThreadAffinityMask()" />. If no processor affinity is specified for the audio thread
-/// type, the instance(s) of XAudio2 will be initialized with a processor affinity of XAUDIO2_DEFAULT_PROCESSOR.
+/// When the PartyThreadId::Audio work mode is set to <see cref="PartyWorkMode::Automatic" />, the Party library
+/// performs the task using internally managed, high priority, frequently running threads with real-time requirements.
+/// On Windows and Xbox consoles, these audio threads interact directly with XAudio2 every 40 milliseconds. Party
+/// library instances of XAudio2 are initialized with a processor affinity that corresponds to the processor affinity
+/// configured for PartyThreadId::Audio via <see cref="PartyManager::SetThreadAffinityMask()" />. If no processor
+/// affinity is specified for the audio thread type, the instance(s) of XAudio2 is initialized with a processor affinity
+/// of XAUDIO2_DEFAULT_PROCESSOR.
 /// </para>
 /// <para>
-/// Similarly, when the work mode of the processing task associated with <see cref="PartyThreadId::Networking" /> is set
-/// to <see cref="PartyWorkMode::Automatic" />, networking threads are created and managed internally. These threads are
-/// driven from both network I/O and polling mechanisms, waking every 50 to 100 milliseconds or whenever network traffic
-/// is received.
+/// When the PartyThreadId::Networking work mode is set to <see cref="PartyWorkMode::Automatic" />, networking threads
+/// are created and managed internally. These threads are driven from both network I/O and polling mechanisms, waking
+/// every 16 milliseconds to 100 milliseconds or whenever network traffic is received. The processor affinity for these
+/// PartyThreadId::Networking threads is optionally configured via <see cref="PartyManager::SetThreadAffinityMask()" />.
 /// </para>
 /// <para>
-/// For all processing tasks, when the work mode is set to <see cref="PartyWorkMode::Automatic" />, title
-/// interaction/responsibility is limited to specifying the processor affinity of associated internal worker threads via
-/// <see cref="PartyManager::SetThreadAffinityMask()" />. Alternatively, when a processing task's work mode is set to
-/// <see cref="PartyWorkMode::Manual" />, internal worker threads are no longer created and managed by the Party
-/// library. Instead, it becomes the title's responsibility to perform the required processing via periodic calls to
-/// <see cref="PartyManager::DoWork()" />. The periodicity of these calls should match that of the internal threads that
-/// are created when the work mode is <see cref="PartyWorkMode::Automatic" />.
+/// For any PartyThreadId type work mode set to <see cref="PartyWorkMode::Manual" />, the Party library doesn't create
+/// internal worker threads and instead it's the title's responsibility to perform the required processing via periodic
+/// calls to <see cref="PartyManager::DoWork()" />. The periodicity of those title calls should match or exceed the
+/// minimum polling frequencies used by the internal threads when the work mode is
+/// <see cref="PartyWorkMode::Automatic" />.
 /// </para>
 /// </remarks>
 /// <seealso cref="PartyManager::GetThreadAffinityMask" />
@@ -2326,23 +2380,23 @@ enum class PartyChatControlChatIndicator
 };
 
 /// <summary>
-/// Genders for text to speech profiles.
+/// Genders for text-to-speech profiles.
 /// </summary>
 /// <seealso cref="PartyTextToSpeechProfile" />
 enum class PartyGender
 {
     /// <summary>
-    /// The text to speech profile represents a gender-neutral voice.
+    /// The text-to-speech profile represents a gender-neutral voice.
     /// </summary>
     Neutral = 0,
 
     /// <summary>
-    /// The text to speech profile represents a female voice.
+    /// The text-to-speech profile represents a female voice.
     /// </summary>
     Female = 1,
 
     /// <summary>
-    /// The text to speech profile represents a male voice.
+    /// The text-to-speech profile represents a male voice.
     /// </summary>
     Male = 2,
 };
@@ -2915,11 +2969,89 @@ enum class PartyChatTextReceivedOptions
 DEFINE_ENUM_FLAG_OPERATORS(PartyChatTextReceivedOptions);
 
 /// <summary>
+/// Configuration modes representing how the Party library performs automatic region discovery and connection
+/// quality measurement as part of the <see cref="PartyRegionUpdateConfiguration" /> structure.
+/// </summary>
+/// <seealso cref="PartyOption::RegionUpdateConfiguration" />
+/// <seealso cref="PartyRegionUpdateConfiguration" />
+/// <seealso cref="PartyRegionsChangedStateChange" />
+/// <seealso cref="PartyCreateNewNetworkCompletedStateChange" />
+/// <seealso cref="PartyPopulateAvailableTextToSpeechProfilesCompletedStateChange" />
+/// <seealso cref="PartySetTextToSpeechProfileCompletedStateChange" />
+/// <seealso cref="PartySetTranscriptionOptionsCompletedStateChange" />
+/// <seealso cref="PartyManager::Initialize" />
+/// <seealso cref="PartyManager::CreateNewNetwork" />
+/// <seealso cref="PartyLocalChatControl::PopulateAvailableTextToSpeechProfiles" />
+/// <seealso cref="PartyLocalChatControl::SetTextToSpeechProfile" />
+/// <seealso cref="PartyLocalChatControl::SetTranscriptionOptions" />
+enum class PartyRegionUpdateMode
+{
+    /// <summary>
+    /// Automatically begin retrieving the list of available regions and measuring connection quality to them as soon as
+    /// possible.
+    /// </summary>
+    /// <remarks>
+    /// The Party library automatically discovers the available regions and measures connection quality to them when
+    /// PartyManager::Initialize() is first invoked.
+    /// <para>
+    /// The Party library also periodically refreshes the list and quality measurements until PartyManager::Cleanup()
+    /// is called. If already connected or in the process of connecting to an existing Party network, then refreshing
+    /// is delayed until disconnected from all Party networks. The periodic refresh interval can be configured using the
+    /// <em>refreshIntervalInSeconds</em> field in the containing <see cref="PartyRegionUpdateConfiguration" />
+    /// structure.
+    /// </para>
+    /// <para>
+    /// The application is automatically provided a <see cref="PartyRegionsChangedStateChange" /> indicating available
+    /// regions or the failure <see cref="PartyStateChangeResult" /> whenever a measurement operation completes.
+    /// </para>
+    /// <para>
+    /// This mode is the default value when <see cref="PartyOption::RegionUpdateConfiguration" /> hasn't been
+    /// configured.
+    /// </para>
+    /// </remarks>
+    Immediate = 0,
+
+    /// <summary>
+    /// Delay retrieving the list of available regions and measuring connection quality to them until creating a new
+    /// Party network or using certain text-to-speech or speech-to-text functionality.
+    /// </summary>
+    /// <remarks>
+    /// The Party library doesn't automatically discover the available regions or measure connection quality to them
+    /// unless the application calls <see cref="PartyManager::CreateNewNetwork()" /> with a region list array with zero
+    /// entries, or isn't connected to an existing network but calls
+    /// <see cref="PartyLocalChatControl::PopulateAvailableTextToSpeechProfiles()" />,
+    /// <see cref="PartyLocalChatControl::SetTextToSpeechProfile()" />, or
+    /// <see cref="PartyLocalChatControl::SetTranscriptionOptions()" /> with option flags that include
+    /// <see cref="PartyVoiceChatTranscriptionOptions::TranscribeSelfRegardlessOfNetworkState" />. Once deferred region
+    /// discovery and quality measurement start, a <see cref="PartyRegionsChangedStateChange" /> indicating available
+    /// regions or the failure <see cref="PartyStateChangeResult" /> is provided prior to the triggering operation's
+    /// <see cref="PartyCreateNewNetworkCompletedStateChange" />,
+    /// <see cref="PartyPopulateAvailableTextToSpeechProfilesCompletedStateChange" />,
+    /// <see cref="PartySetTextToSpeechProfileCompletedStateChange" />, or
+    /// <see cref="PartySetTranscriptionOptionsCompletedStateChange" /> completion state change.
+    /// <para>
+    /// On subsequent calls to the above functions with the described parameters, the region list is retrieved and
+    /// measured again if the refresh interval has elapsed since the last measurements were successfully performed. If
+    /// already connected or in the process of connecting to an existing Party network, then refreshing is delayed until
+    /// disconnected from all Party networks. The refresh interval can be configured using the
+    /// <em>refreshIntervalInSeconds</em> field in the containing <see cref="PartyRegionUpdateConfiguration" />
+    /// structure.
+    /// </para>
+    /// <para>
+    /// Chat controls internally use local device region latency estimates to optimize service usage for text-to-speech
+    /// synthesis, speech-to-text transcription, and translation. Using PartyRegionUpdateMode::Deferred may result in
+    /// these features experiencing higher latency.
+    /// </para>
+    /// </remarks>
+    Deferred = 1,
+};
+
+/// <summary>
 /// The configuration used by the Party library to bind to a UDP socket.
 /// </summary>
 /// <remarks>
 /// This structure can be used together with <see cref="PartyOption::LocalUdpSocketBindAddress" /> to either override or
-/// query the Party library's current configuration via <see cref="PartyManager::SetOption()" /> and
+/// query the Party library's current configuration via <see cref="PartyManager::SetOption()" /> or
 /// <see cref="PartyManager::GetOption()" /> respectively.
 /// </remarks>
 /// <seealso cref="PartyOption::LocalUdpSocketBindAddress" />
@@ -2937,14 +3069,14 @@ struct PartyLocalUdpSocketBindAddressConfiguration
     /// The specific port number to which the local UDP socket will be bound the next time Party is initialized.
     /// </summary>
     /// <remarks>
-    /// In the Microsoft Game Core version of the Party library, a port value of 0 means that the Party library will
-    /// select the Game Core preferred local UDP multiplayer port unless the
+    /// In the Microsoft Game Core version of the Party library, a port value of 0 means that the Party library selects
+    /// the Game Core preferred local UDP multiplayer port unless the
     /// PartyLocalUdpSocketBindAddressOptions::ExcludeGameCorePreferredUdpMultiplayerPort option flag is specified in
     /// the <em>options</em> field. On all other versions of the Party library, a port value of 0 means the Party
-    /// library will let the system dynamically select a port that's available on all local IP address interfaces.
+    /// library lets the system dynamically select a port that's available on all local IP address interfaces.
     /// <para>
-    /// If this port value cannot be bound when the Party library is initialized,
-    /// <see cref="PartyManager::Initialize()" /> will synchronously return an error. The human-readable form of the
+    /// If this port value can't be bound when the Party library is initialized,
+    /// <see cref="PartyManager::Initialize()" /> synchronously returns an error. The human-readable form of the
     /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
     /// </para>
     /// <para>
@@ -2953,10 +3085,237 @@ struct PartyLocalUdpSocketBindAddressConfiguration
     /// byte order used by socket address port numbers.
     /// </para>
     /// <para>
-    /// The default value is 0 when <see cref="PartyOption::LocalUdpSocketBindAddress" /> has not been configured.
+    /// The default value is 0 when <see cref="PartyOption::LocalUdpSocketBindAddress" /> hasn't been configured.
     /// </para>
     /// </remarks>
     uint16_t port;
+};
+
+/// <summary>
+/// The configuration used by the Party library to control how it performs automatic region discovery and connection
+/// quality measurement updates.
+/// </summary>
+/// <remarks>
+/// This structure can be used together with <see cref="PartyOption::RegionUpdateConfiguration" /> to either override
+/// or query the Party library's current configuration via <see cref="PartyManager::SetOption()" /> or
+/// <see cref="PartyManager::GetOption()" /> respectively. It configures the behavior of the region discovery and
+/// connection quality measurement process that produces <see cref="PartyRegionsChangedStateChange" /> state changes.
+/// </remarks>
+/// <seealso cref="PartyOption::RegionUpdateConfiguration" />
+/// <seealso cref="PartyRegionUpdateMode" />
+/// <seealso cref="PartyRegionsChangedStateChange" />
+/// <seealso cref="PartyManager::SetOption" />
+/// <seealso cref="PartyManager::GetOption" />
+struct PartyRegionUpdateConfiguration
+{
+    /// <summary>
+    /// The mode controlling when region discovery and connection quality measurement updates are performed.
+    /// </summary>
+    /// <remarks>
+    /// The default value is <see cref="PartyRegionUpdateMode::Immediate" /> when
+    /// <see cref="PartyOption::RegionUpdateConfiguration" /> hasn't been configured.
+    /// </remarks>
+    PartyRegionUpdateMode mode;
+
+    /// <summary>
+    /// The number of seconds allowed to elapse after region quality measurements complete before a new region discovery
+    /// and connection quality measurement process may begin.
+    /// </summary>
+    /// <remarks>
+    /// This refresh interval is used whenever a <see cref="PartyRegionsChangedStateChange" /> is provided to determine
+    /// when the next region quality measurement is eligible to start under the update mode defined by the <em>mode</em>
+    /// field.
+    /// <para>
+    /// Becoming eligible for a refresh doesn't guarantee that the refresh begins at that exact time. If the
+    /// <em>mode</em> field is set to <see cref="PartyRegionUpdateMode::Deferred" />, the next refresh doesn't happen
+    /// until one of the applicable methods is called to trigger a region update. The library also waits until the local
+    /// device is no longer in any Party networks and applies a small amount of randomized delay to try to avoid
+    /// PlayFab service load from multiple, unintentionally synchronized devices.
+    /// </para>
+    /// <para>
+    /// The default value is 28800 (8 hours) when <see cref="PartyOption::RegionUpdateConfiguration" /> hasn't been
+    /// configured.
+    /// </para>
+    /// <para>
+    /// A value of zero causes the Party library to never automatically refresh measurements in the future. Otherwise,
+    /// the minimum allowed value is 30 seconds.
+    /// </para>
+    /// </remarks>
+    uint32_t refreshIntervalInSeconds;
+};
+
+/// <summary>
+/// The configuration used by the Party library to control region quality measurement behavior.
+/// </summary>
+/// <remarks>
+/// This structure can be used together with <see cref="PartyOption::RegionQualityMeasurementConfiguration" /> to either
+/// override or query the Party library's current configuration via <see cref="PartyManager::SetOption()" /> or
+/// <see cref="PartyManager::GetOption()" /> respectively. It configures the low-level behavior of the region quality
+/// measurement process associated with <see cref="PartyRegionsChangedStateChange" /> state changes.
+/// </remarks>
+/// <seealso cref="PartyOption::RegionQualityMeasurementConfiguration" />
+/// <seealso cref="PartyRegionsChangedStateChange" />
+/// <seealso cref="PartyManager::SetOption" />
+/// <seealso cref="PartyManager::GetOption" />
+struct PartyRegionQualityMeasurementConfiguration
+{
+    /// <summary>
+    /// The maximum number of milliseconds to allow for resolving hostnames and attempting to measure networking
+    /// conditions between the local device and PlayFab Quality of Service beacon servers.
+    /// </summary>
+    /// <remarks>
+    /// This value controls the maximum allowed time, in milliseconds, for the Party library to resolve the PlayFab
+    /// Quality of Service beacon server hostnames for all available regions and to send lightweight messages to measure
+    /// connection quality to them. If environmental issues cause slow name resolution or high latency/packet loss to
+    /// some regions, then only those regions that were successfully contacted at least once within this timeout are
+    /// reported in the <see cref="PartyRegionsChangedStateChange" /> result.
+    /// <para>
+    /// This value does not include or affect the time it takes for the Party library to retrieve the list of available
+    /// regions from the PlayFab service.
+    /// </para>
+    /// <para>
+    /// Applications should typically define this timeout in terms of user experience goals/worst cases rather than
+    /// attempting to derive some number based on technical assumptions. The exact amount of time required to measure
+    /// any given region or all regions can vary greatly depending on factors like the number of available regions,
+    /// the current networking environment conditions, the Party library's dynamically tuned timeouts based on observed
+    /// latency, and more.
+    /// </para>
+    /// <para>
+    /// This value is effectively a worst case timeout for devices that experience complete or partial failures. This
+    /// may be useful to contrast with real-world observations of typical successes. Using the default
+    /// PartyRegionQualityMeasurementConfiguration values, region availability, and player usage patterns, the Party
+    /// library currently observes that most devices worldwide complete the entire measurement process successfully in
+    /// 2.3 seconds or less, and 97% of devices successfully complete in less than 6 seconds. This duration is expected
+    /// to increase slightly over time as more regions are introduced.
+    /// </para>
+    /// <para>
+    /// The default value is 15000 (15 seconds) when
+    /// <see cref="PartyOption::RegionQualityMeasurementConfiguration" /> hasn't been configured.
+    /// </para>
+    /// <para>
+    /// A value of zero means there's no timeout, and all measurements are therefore allowed to complete regardless of
+    /// how long any regions take to succeed or fail. Otherwise, the minimum value is 50 milliseconds.
+    /// </para>
+    /// </remarks>
+    uint32_t totalMeasurementTimeoutInMilliseconds;
+
+    /// <summary>
+    /// A hint indicating the highest latency threshold, in milliseconds, above which the application deems a region to
+    /// be too latent to spend additional time performing detailed measurement.
+    /// </summary>
+    /// <remarks>
+    /// This target value represents a soft upper limit for region latency. It doesn't directly prevent including
+    /// regions measured to have higher latency, but it does cause the Party library to choose timeout and retry values
+    /// optimized for regions with less latency than this number. It's also inspected for each region after the minimum
+    /// number of responses (configured in the <em>minRequiredSuccessfulResponses</em> field) is received. If the median
+    /// measured latency for a region is greater than this target, then the ideal number of responses (configured in the
+    /// <em>idealNumberOfSuccessfulResponses</em> field) isn't used and no more measurement attempts are sent.
+    /// <para>
+    /// This value can't be zero.
+    /// </para>
+    /// <para>
+    /// The default value is 200 when <see cref="PartyOption::RegionQualityMeasurementConfiguration" /> hasn't been
+    /// configured.
+    /// </para>
+    /// </remarks>
+    uint16_t highLatencyHintInMilliseconds;
+
+    /// <summary>
+    /// The minimum number of successful measurement message responses needed for each region for basic evaluation.
+    /// </summary>
+    /// <remarks>
+    /// Each potential region to be measured is expected to respond successfully at least this many times during the
+    /// quality measurement lightweight message exchange before results are considered accurate enough to evaluate
+    /// against the <em>highLatencyHintInMilliseconds</em> field target latency. Setting larger minimum requirements
+    /// results in more measurement samples, and therefore more consistency and accuracy in the face of any outlier
+    /// packet fluctuations, at the expense of taking more time to complete.
+    /// <para>
+    /// Even without sufficient successful responses, measuring a particular region is considered complete if any of the
+    /// following occur: no successful responses arrive at all and the number of attempts exceeds the value configured
+    /// in the <em>maxRetriesWithNoResponse</em> field, at least one response arrived and the number of attempts exceeds
+    /// the value configured in the <em>maxTimeoutsAfterResponse</em> field, or the overall timeout for all regions
+    /// configured in the <em>totalMeasurementTimeoutInMilliseconds</em> field elapses.
+    /// </para>
+    /// <para>
+    /// This value can't be zero.
+    /// </para>
+    /// <para>
+    /// The default value is 3 when <see cref="PartyOption::RegionQualityMeasurementConfiguration" /> hasn't been
+    /// configured.
+    /// </para>
+    /// <para>
+    /// </remarks>
+    uint16_t minRequiredSuccessfulResponses;
+
+    /// <summary>
+    /// The number of successful measurement message responses desired for each region in order to achieve thorough
+    /// evaluation.
+    /// </summary>
+    /// <remarks>
+    /// This value represents the total preferred number of successful responses to achieve the desired accuracy in
+    /// latency measurements for regions of interest. This value must be the same or higher than the minimum value in
+    /// the <em>minRequiredSuccessfulResponses</em> field. The Party library only attempts to obtain the additional
+    /// response count difference between the minimum and this ideal value for a region if that region was already
+    /// measured to have a median latency less than or equal to the threshold configured in the
+    /// <em>highLatencyHintInMilliseconds</em> field. This field's ideal number of responses allows continuing to
+    /// refine measurement accuracy for regions likely to be of more value to the local device without also spending
+    /// that additional time for the higher latency regions.
+    /// <para>
+    /// If the minimum number of responses for a region wasn't obtained, then this additional ideal target isn't
+    /// attempted. Otherwise, if the <em>maxTimeoutsAfterResponse</em> limit for the region is reached or the overall
+    /// <em>totalMeasurementTimeoutInMilliseconds</em> field timeout for all regions elapses, then measuring the region
+    /// is considered complete even without receiving this ideal number of successful responses.
+    /// </para>
+    /// <para>
+    /// The default value is 4 when <see cref="PartyOption::RegionQualityMeasurementConfiguration" /> hasn't been
+    /// configured.
+    /// </para>
+    /// </remarks>
+    uint16_t idealNumberOfSuccessfulResponses;
+
+    /// <summary>
+    /// The maximum number of additional times to resend an initial measurement message to a region without any
+    /// responses before considering the region unreachable.
+    /// </summary>
+    /// <remarks>
+    /// This value configures the total number of additional attempts beyond the first that the Party library makes when
+    /// retrying the first quality measurement lightweight message to a region before considering that region
+    /// unavailable. If at least one successful response is received from the region's Quality of Service beacon server,
+    /// then this maximum is no longer used and instead the <em>maxTimeoutsAfterResponse</em> field governs the number
+    /// of attempts allowed to time out.
+    /// <para>
+    /// Larger maximum retry values are more tolerant of temporary environmental issues such as packet loss, at the
+    /// expense of taking longer to abandon unreachable regions. The absolute maximum time permitted for measuring all
+    /// regions is capped by the separate <em>totalMeasurementTimeoutInMilliseconds</em> field value.
+    /// </para>
+    /// <para>
+    /// The default value is 3 when <see cref="PartyOption::RegionQualityMeasurementConfiguration" /> hasn't been
+    /// configured.
+    /// </para>
+    /// </remarks>
+    uint16_t maxRetriesWithNoResponse;
+
+    /// <summary>
+    /// The maximum number of measurement message attempts allowed to time out for a region that has previously
+    /// responded before considering the networking path too unreliable to continue measuring.
+    /// </summary>
+    /// <remarks>
+    /// If at least one successful response has been received from a region's Quality of Service beacon server, this
+    /// value determines the total number of timed-out attempts the Party library will permit while trying to obtain
+    /// <em>minRequiredSuccessfulResponses</em> and <em>idealNumberOfSuccessfulResponses</em> measurement results for
+    /// the region.
+    /// <para>
+    /// Larger maximum timeout values are more tolerant of temporary environmental issues such as packet loss, at the
+    /// expense of potentially taking longer to finish measuring regions with those poor quality characteristics. The
+    /// absolute maximum time permitted for measuring all regions is capped by the separate
+    /// <em>totalMeasurementTimeoutInMilliseconds</em> field value.
+    /// </para>
+    /// <para>
+    /// The default value is 3 when <see cref="PartyOption::RegionQualityMeasurementConfiguration" /> hasn't been
+    /// configured.
+    /// </para>
+    /// </remarks>
+    uint16_t maxTimeoutsAfterResponse;
 };
 
 /// <summary>
@@ -3340,8 +3699,8 @@ struct PartyTranslation
     /// Indicates whether the translation operation succeeded.
     /// </summary>
     /// <remarks>
-    /// On success, <c>translation</c> will be a string of non-zero length containing the translated text. On failure,
-    /// the string will be empty.
+    /// On success, <c>translation</c> is a string of nonzero length containing the translated text. On failure,
+    /// the string is empty.
     /// </remarks>
     PartyStateChangeResult result;
 
@@ -3358,9 +3717,9 @@ struct PartyTranslation
     /// The language code of the translation.
     /// </summary>
     /// <remarks>
-    /// The language code will be in BCP 47 format, such as en-US for English (United States). Supported language codes
-    /// are enumerated at
-    /// <see cref="https://docs.microsoft.com/azure/cognitive-services/speech-service/language-support" />.
+    /// The language code is in BCP 47 format, such as en-US for English (United States). Supported language codes
+    /// are enumerated in
+    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />.
     /// </remarks>
     PartyString languageCode;
 
@@ -3382,7 +3741,7 @@ struct PartyTranslation
     /// The translation string may be up to <c>c_maxChatTextMessageLength</c> characters long, not including the null
     /// terminator. Truncation occurs if the translated string length would exceed that limit, which can happen due to
     /// language differences even though the original string length is less than or equal to
-    /// <c>c_maxChatTextMessageLength</c>. In such a case, <c>options</c> will contain
+    /// <c>c_maxChatTextMessageLength</c>. In such a case, <c>options</c> contains
     /// <see cref="PartyTranslationReceivedOptions::Truncated" />. Truncation may occur at an arbitrary point in the
     /// UTF-8 byte sequence and may not result in a complete, valid character or word. Strings are always null
     /// terminated, even when truncated.
@@ -3519,27 +3878,50 @@ struct PartyStateChange
 /// <summary>
 /// Information specific to the <em>RegionsChanged</em> type of state change.
 /// </summary>
+/// <remarks>
+/// Retrieving the list of available regions and measuring connection quality to them occurs automatically in the
+/// background. This operation is first initiated when <see cref="PartyManager::Initialize()" /> is called unless the
+/// <see cref="PartyOption::RegionUpdateConfiguration" /> option was used to configure an update mode of
+/// <see cref="PartyRegionUpdateMode::Deferred" />, in which case region updates may not happen at all. Deferred region
+/// updates only occur if the application calls <see cref="PartyManager::CreateNewNetwork()" /> with a zero entry region
+/// array, or isn't connected to an existing network but calls
+/// <see cref="PartyLocalChatControl::PopulateAvailableTextToSpeechProfiles()" />,
+/// <see cref="PartyLocalChatControl::SetTextToSpeechProfile()" />, or
+/// <see cref="PartyLocalChatControl::SetTranscriptionOptions()" /> with option flags that include
+/// <see cref="PartyVoiceChatTranscriptionOptions::TranscribeSelfRegardlessOfNetworkState" />. The
+/// <see cref="PartyOption::RegionUpdateConfiguration" /> option can also be used to configure the interval after
+/// which the regions are refreshed.
+/// <para>
+/// The amount of time it takes to retrieve the list of available regions and measure connection quality to them is
+/// dependent on many environmental or dynamic factors, and whether the
+/// <see cref="PartyOption::RegionQualityMeasurementConfiguration" /> option was used to modify low-level measurement
+/// settings. The <em>totalMeasurementTimeoutInMilliseconds</em> field in the
+/// <see cref="PartyRegionQualityMeasurementConfiguration" /> structure is used to configure the worst case maximum
+/// timeout before considering all measurements complete and generating this state change.
+/// </para>
+/// </remarks>
 /// <seealso cref="PartyManager::GetRegions" />
 struct PartyRegionsChangedStateChange : PartyStateChange
 {
     /// <summary>
     /// Indicates whether a background operation to query the list of supported regions and the latency to each region
-    /// Succeeded, or provides the reason that it failed.
+    /// succeeded, or provides the reason that it failed.
     /// </summary>
     /// <remarks>
-    /// On success, the region list provided by <see cref="PartyManager::GetRegions()" /> will be populated with the
-    /// results of the operation. On failure, the region list provided by PartyManager::GetRegions() will be empty.
+    /// When the result is <see cref="PartyStateChangeResult::Succeeded" />, the region list provided by
+    /// <see cref="PartyManager::GetRegions()" /> is populated with the results of the operation. On failure, the region
+    /// list provided by PartyManager::GetRegions() is empty.
     /// <para>
     /// If the result is <see cref="PartyStateChangeResult::FailedToBindToLocalUdpSocket" />, the library couldn't bind
     /// to the local UDP socket specified in the <see cref="PartyOption::LocalUdpSocketBindAddress" /> option. The title
     /// must clean up its instance of the library, update the <see cref="PartyOption::LocalUdpSocketBindAddress" />
-    /// option to a valid, available bind address, and re-initialize the library.
+    /// option to a valid, available bind address, and reinitialize the library.
     /// </para>
     /// </remarks>
     PartyStateChangeResult result;
 
     /// <summary>
-    /// A diagnostic value providing additional troubleshooting information regarding any potential error condition.
+    /// A diagnostic value providing more troubleshooting information regarding any potential error condition.
     /// </summary>
     /// <remarks>
     /// The human-readable form of this error detail can be retrieved via
@@ -4756,12 +5138,12 @@ struct PartyChatTextReceivedStateChange : PartyStateChange
     /// The language of the chat text.
     /// </summary>
     /// <remarks>
-    /// The language will only be provided when translation to the local language is enabled. If translation isn't
-    /// enabled, or failure is encountered during translation, the language code will be an empty string.
+    /// The language is only provided when translation to the local language is enabled. If translation isn't
+    /// enabled, or failure is encountered during translation, the language code is an empty string.
     /// <para>
-    /// The language code will be in BCP 47 format, such as en-US for English (United States). Supported language codes
-    /// are enumerated at
-    /// <see cref="https://docs.microsoft.com/azure/cognitive-services/speech-service/language-support" />.
+    /// The language code is in BCP 47 format, such as en-US for English (United States). Supported language codes
+    /// are enumerated in
+    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />.
     /// </para>
     /// </remarks>
     PartyString languageCode;
@@ -4792,7 +5174,7 @@ struct PartyChatTextReceivedStateChange : PartyStateChange
     /// The number of translations associated with the chat text.
     /// </summary>
     /// <remarks>
-    /// Translations will be provided if <see cref="PartyTextChatOptions::TranslateToLocalLanguage" /> had previously
+    /// Translations are provided if <see cref="PartyTextChatOptions::TranslateToLocalLanguage" /> has previously
     /// been specified via <see cref="PartyLocalChatControl::SetTextChatOptions()" /> on a chat control local to this
     /// device. There may be more than one translation if multiple local chat controls have enabled translation and the
     /// local chat controls have specified different languages via <see cref="PartyLocalDevice::CreateChatControl()" />.
@@ -4806,7 +5188,7 @@ struct PartyChatTextReceivedStateChange : PartyStateChange
     /// An array containing the translations of the chat text string.
     /// </summary>
     /// <remarks>
-    /// Translations will be provided if <see cref="PartyTextChatOptions::TranslateToLocalLanguage" /> had previously
+    /// Translations are provided if <see cref="PartyTextChatOptions::TranslateToLocalLanguage" /> has previously
     /// been specified via <see cref="PartyLocalChatControl::SetTextChatOptions()" /> on a chat control local to this
     /// device. There may be more than one translation if multiple local chat controls have enabled translation and the
     /// local chat controls have specified different languages via <see cref="PartyLocalDevice::CreateChatControl()" />.
@@ -4816,8 +5198,8 @@ struct PartyChatTextReceivedStateChange : PartyStateChange
     /// </remarks>
     /// <para>
     /// A translation corresponding to the language for each chat control in <c>receiverChatControls</c> that has
-    /// enabled translation will be provided, even if the source chat control's language is the same as the local chat
-    /// control's language. In such a case, the chat text and translation strings will be identical.
+    /// enabled translation is provided, even if the source chat control's language is the same as the local chat
+    /// control's language. In such a case, the chat text and translation strings are identical.
     /// </para>
     _Field_size_(translationCount) PartyTranslation * translations;
 
@@ -4859,7 +5241,7 @@ struct PartyVoiceChatTranscriptionReceivedStateChange : PartyStateChange
     /// Indicates that the transcription operation Succeeded or provides the reason that it failed.
     /// </summary>
     /// <remarks>
-    /// On success, the <c>transcription</c> field will be a string of non-zero length. On failure, the string will be
+    /// On success, the <c>transcription</c> field is a string of non-zero length. On failure, the string is
     /// empty. Failure indicates that a transcription operation was attempted for the speaker but could not be
     /// completed. If transcription is enabled at the request of the user associated with the chat control, and the
     /// transcription messages are shown via UI, it is recommended that failures also be indicated to the user in order
@@ -4905,12 +5287,12 @@ struct PartyVoiceChatTranscriptionReceivedStateChange : PartyStateChange
     /// The language code of the transcription.
     /// </summary>
     /// <remarks>
-    /// The language code will always be provided when the <c>result</c> field indicates success. Otherwise, the
-    /// language code will be an empty string.
+    /// The language code is always provided when the <c>result</c> field indicates success. Otherwise, the
+    /// language code is an empty string.
     /// <para>
-    /// The language code will be in BCP 47 format, such as en-US for English (United States). Supported language codes
-    /// are enumerated at
-    /// <see cref="https://docs.microsoft.com/azure/cognitive-services/speech-service/language-support" />.
+    /// The language code is in BCP 47 format, such as en-US for English (United States). Supported language codes
+    /// are enumerated in
+    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />.
     /// </para>
     /// </remarks>
     PartyString languageCode;
@@ -4920,7 +5302,7 @@ struct PartyVoiceChatTranscriptionReceivedStateChange : PartyStateChange
     /// </summary>
     /// <remarks>
     /// The string may be up to <c>c_maxChatTextMessageLength</c> characters long, not including the null terminator.
-    /// The string will always be empty when the <c>result</c> field indicates failures.
+    /// The string is always empty when the <c>result</c> field indicates failures.
     /// </remarks>
     PartyString transcription;
 
@@ -4928,7 +5310,7 @@ struct PartyVoiceChatTranscriptionReceivedStateChange : PartyStateChange
     /// Indicates the phrase type of the text provided in the <c>transcription</c> field.
     /// </summary>
     /// <remarks>
-    /// The type will always be <see cref="PartyVoiceChatTranscriptionPhraseType::Final" /> when the <c>result</c> field
+    /// The type is always <see cref="PartyVoiceChatTranscriptionPhraseType::Final" /> when the <c>result</c> field
     /// indicates failure.
     /// </remarks>
     PartyVoiceChatTranscriptionPhraseType type;
@@ -4937,7 +5319,7 @@ struct PartyVoiceChatTranscriptionReceivedStateChange : PartyStateChange
     /// The number of translations associated with the transcribed voice chat text.
     /// </summary>
     /// <remarks>
-    /// Translations will be provided if <see cref="PartyVoiceChatTranscriptionOptions::TranslateToLocalLanguage" /> had
+    /// Translations are provided if <see cref="PartyVoiceChatTranscriptionOptions::TranslateToLocalLanguage" /> has
     /// previously been specified via <see cref="PartyLocalChatControl::SetTranscriptionOptions()" /> on a chat control
     /// local to this device. There may be more than one translation if multiple local chat controls have enabled
     /// translation and the local chat controls have specified different languages via
@@ -4952,7 +5334,7 @@ struct PartyVoiceChatTranscriptionReceivedStateChange : PartyStateChange
     /// An array containing the translations of the voice chat transcription string.
     /// </summary>
     /// <remarks>
-    /// Translations will be provided if <see cref="PartyVoiceChatTranscriptionOptions::TranslateToLocalLanguage" /> had
+    /// Translations are provided if <see cref="PartyVoiceChatTranscriptionOptions::TranslateToLocalLanguage" /> has
     /// previously been specified via <see cref="PartyLocalChatControl::SetTranscriptionOptions()" /> on a chat control
     /// local to this device. There may be more than one translation if multiple local chat controls have enabled
     /// translation and the local chat controls have specified different languages via
@@ -4962,8 +5344,8 @@ struct PartyVoiceChatTranscriptionReceivedStateChange : PartyStateChange
     /// to determine the target local chat control for each translation.
     /// <para>
     /// A translation corresponding to the language for each chat control in <c>receiverChatControls</c> that has
-    /// enabled translation will be provided, even if the speaking chat control's language is the same as the local chat
-    /// control's language. In such a case, the transcription and translation strings will be identical.
+    /// enabled translation is provided, even if the speaking chat control's language is the same as the local chat
+    /// control's language. In such a case, the transcription and translation strings are identical.
     /// </para>
     /// </remarks>
     _Field_size_(translationCount) PartyTranslation * translations;
@@ -6015,9 +6397,7 @@ public:
     /// Gets the value of a shared property.
     /// </summary>
     /// <remarks>
-    /// This method is currently unimplemented and will always fail.
-    /// <para>
-    /// If there is no property associated with the key, the resulting value will be nullptr. The returned value is only
+    /// If there is no property associated with the key, the resulting value is nullptr. The returned value is only
     /// valid until the next call to <see cref="PartyManager::StartProcessingStateChanges()" />.
     /// </para>
     /// </remarks>
@@ -6026,13 +6406,14 @@ public:
     /// </param>
     /// <param name="value">
     /// An output struct that receives a pointer to the property's value and the length in bytes of the value data. If
-    /// the property was not found, the call will succeed, but the value will be nullptr and the byte length will be 0.
+    /// the property was not found, the call succeeds, but the value is nullptr and the byte length is 0.
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
     /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
     /// </returns>
-    /// <nyi />
+    /// <seealso cref="PartyNetwork::CreateEndpoint" />
+    /// <seealso_nyi cref="PartyEndpointPropertiesChangedStateChange" />
     PartyError GetSharedProperty(
         PartyString key,
         _Out_ PartyDataBuffer * value
@@ -6533,7 +6914,7 @@ public:
     /// <remarks>
     /// This method is currently unimplemented and will always fail.
     /// <para>
-    /// If there is no property associated with the key, the resulting value will be nullptr. The returned value is only
+    /// If there is no property associated with the key, the resulting value is nullptr. The returned value is only
     /// valid until the next call to <see cref="PartyManager::StartProcessingStateChanges()" />.
     /// </para>
     /// </remarks>
@@ -6542,7 +6923,7 @@ public:
     /// </param>
     /// <param name="value">
     /// An output struct that receives a pointer to the property's value and the length in bytes of the value data. If
-    /// the property was not found, the call will succeed, but the value will be nullptr and the byte length will be 0.
+    /// the property was not found, the call succeeds, but the value is nullptr and the byte length is 0.
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
@@ -6662,17 +7043,17 @@ public:
     /// <para>
     /// The language associated with this chat control can optionally be specified via the
     /// <paramref name="languageCode" /> parameter. If no language is specified, the user's default, as determined by
-    /// the platform, will be used. The language is used as the spoken the language associated with this chat control
-    /// for transcription and the target language for incoming translations. If the language code specified is en-US,
-    /// for instance, the input audio to this chat control will be treated as the English (United States) language and
+    /// the platform, will be used. The language is used as the spoken language associated with this chat control for
+    /// transcription and the target language for incoming translations. If the language code specified is en-US, for
+    /// instance, the input audio to this chat control will be treated as the English (United States) language and
     /// transcribed as such. If translation is enabled via either
     /// <see cref="PartyLocalChatControl::SetTranscriptionOptions()" /> or
     /// <see cref="PartyLocalChatControl::SetTextChatOptions()" />, the incoming voice chat transcriptions and/or text
     /// chat will be translated to English (United States).
     /// </para>
     /// <para>
-    /// The language code should be in BCP 47 format; supported language codes are enumerated at
-    /// <see cref="https://docs.microsoft.com/azure/cognitive-services/speech-service/language-support" />. Specifying
+    /// The language code should be in BCP 47 format; supported language codes are enumerated in
+    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />. Specifying
     /// an unsupported or invalid language code will not cause this method to fail, but will result in failure to
     /// generate transcriptions associated with this chat control. The language code used with this method can be
     /// queried via <see cref="PartyLocalChatControl::GetLanguage()" />.
@@ -7238,29 +7619,29 @@ public:
     /// <para>
     /// This method optionally provides <paramref name="localEndpoint" /> as output that can immediately be used to
     /// perform asynchronous endpoint operations, such as <see cref="PartyLocalEndpoint::SendMessage()" /> and
-    /// PartyLocalEndpoint::SetSharedProperties(). These asynchronous operations will be internally queued until the
+    /// PartyLocalEndpoint::SetSharedProperties(). These asynchronous operations are internally queued until the
     /// endpoint creation completes, at which point they will be processed.
-    /// <see cref="PartyEndpoint::GetUniqueIdentifier()" /> will return a failure until the endpoint creation completes.
+    /// <see cref="PartyEndpoint::GetUniqueIdentifier()" /> returns a failure until the endpoint creation completes.
     /// This <paramref name="localEndpoint" /> will also be provided in the resulting
     /// PartyCreateEndpointCompletedStateChange.
     /// </para>
     /// <para>
     /// A local user may optionally be provided as the owner of an endpoint. If an owning local user is provided, it
     /// must be authenticated into the network or in the process of authenticating into the network. If its
-    /// authentication fails, the endpoint creation will consequently fail as well. If the owning local user is removed
+    /// authentication fails, the endpoint creation will fail as well. If the owning local user is removed
     /// from the network while this endpoint exists, the endpoint will be automatically destroyed. This will be signaled
     /// via a PartyEndpointDestroyedStateChange.
     /// </para>
     /// <para>
     /// If the local device enters a state in which there are no authenticated users and no authentication operations in
-    /// progress, then all endpoints, including those that are not fully created, will be destroyed automatically. This
+    /// progress, then all endpoints, including those that are not fully created, are destroyed automatically. This
     /// will be signaled by PartyEndpointDestroyedStateChanges.
     /// </para>
     /// <para>
     /// On successful return, this method invalidates the memory for any array previously returned by
     /// <see cref="GetEndpoints()" />, as it synchronously adds the new endpoint to the array.
     /// <see cref="PartyManager::StartProcessingStateChanges()" /> also invalidates the memory for the array. The
-    /// returned <paramref name="localEndpoint" /> object will be valid until a PartyEndpointDestroyedStateChange has
+    /// returned <paramref name="localEndpoint" /> object remains valid until a PartyEndpointDestroyedStateChange has
     /// been generated and all state changes referencing the object have been returned to
     /// <see cref="PartyManager::FinishProcessingStateChanges()" />.
     /// </para>
@@ -7269,12 +7650,8 @@ public:
     /// is queryable as soon as the endpoint becomes visible.
     /// </para>
     /// <para>
-    /// The property bag is currently unimplemented. <paramref name="propertyCount" /> must be zero and both
-    /// <paramref name="keys" /> and <paramref name="values" /> must be nullptr.
-    /// </para>
-    /// <para>
     /// If a client would violate the <see cref="PartyNetworkConfiguration::maxEndpointsPerDeviceCount" /> limit by
-    /// calling this method after the network configuration was made available, this operation will fail synchronously.
+    /// calling this method after the network configuration was made available, this operation fails synchronously.
     /// If the client queues a violating number of endpoint creations before the network configuration becomes
     /// available, the client will be kicked from the network and a <see cref="PartyNetworkDestroyedStateChange" /> will
     /// be generated when the network configuration becomes available.
@@ -7282,23 +7659,22 @@ public:
     /// </remarks>
     /// <param name="localUser">
     /// An optional local user to associate as the owner of this endpoint. When this endpoint becomes visible on remote
-    /// devices, the user's identifier will be tied to this endpoint. The endpoint will be destroyed if the user becomes
+    /// devices, the user's identifier is tied to this endpoint. The endpoint will be destroyed if the user becomes
     /// unauthenticated because they were voluntarily removed via <see cref="RemoveLocalUser()" /> or kicked via
     /// PartyNetwork::KickUser().
     /// </param>
     /// <param name="propertyCount">
-    /// The number of properties in the input <paramref name="keys" /> and <paramref name="values" /> arrays. Property
-    /// bags are currently unimplemented. This parameter must be zero.
+    /// The number of properties in the input <paramref name="keys" /> and <paramref name="values" /> arrays.
     /// </param>
     /// <param name="keys">
     /// The <paramref name="propertyCount" /> entry array of property bag keys. The nth key in this array maps to the
-    /// nth value in the <paramref name="values" /> array. Property bags are currently unimplemented. This parameter
-    /// must be nullptr.
+    /// nth value in the <paramref name="values" /> array. This parameter must be nullptr if
+    /// <paramref name="propertyCount" /> is 0.
     /// </param>
     /// <param name="values">
     /// The <paramref name="propertyCount" /> entry array of property bag values. The nth value in this array is mapped
-    /// by the nth key in the <paramref name="keys" /> array. Property bags are currently unimplemented. This parameter
-    /// must be nullptr.
+    /// by the nth key in the <paramref name="keys" /> array. This parameter must be nullptr if
+    /// <paramref name="propertyCount" /> is 0.
     /// </param>
     /// <param name="asyncIdentifier">
     /// An optional, app-defined, pointer-sized context value that can be used to associate the completion state change
@@ -7309,7 +7685,7 @@ public:
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the asynchronous operation to create the endpoint began, or an error code
-    /// otherwise. If this method fails, no related state changes will be generated. The human-readable form of the
+    /// otherwise. If this method fails, no related state changes are generated. The human-readable form of the
     /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
     /// </returns>
     /// <seealso cref="PartyCreateEndpointCompletedStateChange" />
@@ -7322,6 +7698,7 @@ public:
     /// <seealso_nyi cref="PartyLocalEndpoint::SetSharedProperties" />
     /// <seealso cref="PartyEndpoint::GetUniqueIdentifier" />
     /// <seealso cref="PartyEndpoint::GetEntityId" />
+    /// <seealso cref="PartyEndpoint::GetSharedProperty" />
     /// <seealso cref="PartyNetwork::AuthenticateLocalUser" />
     /// <seealso cref="PartyNetwork::RemoveLocalUser" />
     /// <seealso_nyi cref="PartyNetwork::KickUser" />
@@ -7680,7 +8057,7 @@ public:
     /// <remarks>
     /// This method is currently unimplemented and will always fail.
     /// <para>
-    /// If there is no property associated with the key, the resulting value will be nullptr. The returned value is only
+    /// If there is no property associated with the key, the resulting value is nullptr. The returned value is only
     /// valid until the next call to <see cref="PartyManager::StartProcessingStateChanges()" />.
     /// </para>
     /// </remarks>
@@ -7689,7 +8066,7 @@ public:
     /// </param>
     /// <param name="value">
     /// An output struct that receives a pointer to the property's value and the length in bytes of the value data. If
-    /// the property was not found, the call will succeed, but the value will be nullptr and the byte length will be 0.
+    /// the property was not found, the call succeeds, but the value is nullptr and the byte length is 0.
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
@@ -8341,7 +8718,7 @@ public:
     /// <remarks>
     /// This method is currently unimplemented and will always fail.
     /// <para>
-    /// If there is no property associated with the key, the resulting value will be nullptr. The returned value is only
+    /// If there is no property associated with the key, the resulting value is nullptr. The returned value is only
     /// valid until the next call to <see cref="PartyManager::StartProcessingStateChanges()" />.
     /// </para>
     /// </remarks>
@@ -8350,7 +8727,7 @@ public:
     /// </param>
     /// <param name="value">
     /// An output struct that receives a pointer to the property's value and the length in bytes of the value data. If
-    /// the property was not found, the call will succeed, but the value will be nullptr and the byte length will be 0.
+    /// the property was not found, the call succeeds, but the value is nullptr and the byte length is 0.
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
@@ -8905,14 +9282,24 @@ public:
         ) const party_no_throw;
 
     /// <summary>
-    /// Populates the local chat control's list of supported text to speech profiles.
+    /// Populates the local chat control's list of supported text-to-speech profiles.
     /// </summary>
     /// <remarks>
     /// This is an asynchronous operation; a
-    /// <see cref="PartyPopulateAvailableTextToSpeechProfilesCompletedStateChange" /> will be provided via
+    /// <see cref="PartyPopulateAvailableTextToSpeechProfilesCompletedStateChange" /> is provided via
     /// <see cref="PartyManager::StartProcessingStateChanges()" /> on completion.
     /// <para>
     /// The asynchronous operation must complete successfully before GetAvailableTextToSpeechProfiles() can be called.
+    /// </para>
+    /// <para>
+    /// Text-to-speech synthesis functionality internally uses available region and latency measurement estimates to
+    /// optimize service usage. If the <see cref="PartyOption::RegionUpdateConfiguration" /> option was used to
+    /// configure an update mode of <see cref="PartyRegionUpdateMode::Deferred" />, then retrieving the
+    /// set of available regions and measuring connection quality to them may not have started yet, or the last update
+    /// may have exceeded the configured refresh interval age. If the local device isn't currently connecting or
+    /// connected to any networks, PopulateAvailableTextToSpeechProfiles() ensures any deferred region update has
+    /// started and the associated <see cref="PartyRegionsChangedStateChange" /> is provided prior to this call's
+    /// <see cref="PartyPopulateAvailableTextToSpeechProfilesCompletedStateChange" /> completion.
     /// </para>
     /// </remarks>
     /// <param name="asyncIdentifier">
@@ -8921,8 +9308,8 @@ public:
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the asynchronous operation began, or an error code otherwise. If this method
-    /// fails, no related state changes will be generated. The human-readable form of the error code can be retrieved
-    /// via <see cref="PartyManager::GetErrorMessage()" />.
+    /// fails, no related state changes are generated. The human-readable form of the error code can be retrieved via
+    /// <see cref="PartyManager::GetErrorMessage()" />.
     /// </returns>
     /// <seealso cref="PartyLocalChatControl::GetAvailableTextToSpeechProfiles" />
     /// <seealso cref="PartyLocalChatControl::SetTextToSpeechProfile" />
@@ -8932,7 +9319,7 @@ public:
         ) party_no_throw;
 
     /// <summary>
-    /// Gets the text to speech profiles for this chat control.
+    /// Gets the text-to-speech profiles for this chat control.
     /// </summary>
     /// <remarks>
     /// This method synchronously returns the result cached by the last successful
@@ -8962,22 +9349,32 @@ public:
     /// Configures the profile to use for a specified type of text-to-speech operation.
     /// </summary>
     /// <remarks>
-    /// The profile provided will be used for all subsequent calls to <see cref="SynthesizeTextToSpeech()" /> that
-    /// specify the same value for <paramref name="type" />. No profile will be configured until
-    /// SetTextToSpeechProfile() is called at least once. Thus, this method must be called at least once before any
-    /// calls to SynthesizeTextToSpeech() can succeed.
+    /// The profile provided is used for all subsequent calls to <see cref="SynthesizeTextToSpeech()" /> that specify
+    /// the same value for <paramref name="type" />. No profile is configured until SetTextToSpeechProfile() is called
+    /// at least once. Thus, this method must be called at least once before any calls to SynthesizeTextToSpeech()
+    /// succeed.
     /// <para>
     /// This method accepts a profile identifier to indicate the profile selection so that titles may either pass in the
     /// result of <see cref="PartyTextToSpeechProfile::GetIdentifier()" /> or provide a profile identifier cached from a
     /// previous Party library session.
     /// </para>
     /// <para>
-    /// Multiple SetTextToSpeechProfile() operations can be initiated, and they will be asynchronously queued. Each
-    /// operation will be processed and completed in order.
+    /// Multiple SetTextToSpeechProfile() operations can be initiated, and they are asynchronously queued. Each
+    /// operation is processed and completed in order.
     /// </para>
     /// <para>
-    /// This is an asynchronous operation; a <see cref="PartySetTextToSpeechProfileCompletedStateChange" /> will be
-    /// provided via <see cref="PartyManager::StartProcessingStateChanges()" /> on completion.
+    /// This is an asynchronous operation; a <see cref="PartySetTextToSpeechProfileCompletedStateChange" /> is provided
+    /// via <see cref="PartyManager::StartProcessingStateChanges()" /> on completion.
+    /// </para>
+    /// <para>
+    /// Text-to-speech synthesis functionality internally uses available region and latency measurement estimates to
+    /// optimize service usage. If the <see cref="PartyOption::RegionUpdateConfiguration" /> option was used to
+    /// configure an update mode of <see cref="PartyRegionUpdateMode::Deferred" />, then retrieving the
+    /// set of available regions and measuring connection quality to them may not have started yet, or the last update
+    /// may have exceeded the configured refresh interval age. If the local device isn't currently connecting or
+    /// connected to any networks, SetTextToSpeechProfile() ensures any deferred region update has started and the
+    /// associated <see cref="PartyRegionsChangedStateChange" /> is provided prior to this call's
+    /// <see cref="PartySetTextToSpeechProfileCompletedStateChange" /> completion.
     /// </para>
     /// </remarks>
     /// <param name="type">
@@ -8991,7 +9388,7 @@ public:
     /// with this call.
     /// </param>
     /// <returns>
-    /// <c>c_partyErrorSuccess</c> if the asynchronous operation to set the text to speech profile began, or an error
+    /// <c>c_partyErrorSuccess</c> if the asynchronous operation to set the text-to-speech profile began, or an error
     /// code otherwise. If this method fails, no related state changes will be generated. The human-readable form of the
     /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
     /// </returns>
@@ -9079,8 +9476,8 @@ public:
     /// enabled via either <see cref="SetTranscriptionOptions()" /> or <see cref="SetTextChatOptions()" />, the incoming
     /// voice chat transcriptions and/or text chat will be translated to English (United States).
     /// <para>
-    /// The language code should be in BCP 47 format; supported language codes are enumerated at
-    /// <see cref="https://docs.microsoft.com/azure/cognitive-services/speech-service/language-support" />. Specifying
+    /// The language code should be in BCP 47 format; supported language codes are enumerated in
+    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />. Specifying
     /// an unsupported or invalid language code will not cause this method to fail, but will result in failure to
     /// generate transcriptions associated with this chat control. The language code can be queried via
     /// <see cref="GetLanguage()" />.
@@ -9118,8 +9515,8 @@ public:
     /// <see cref="SetTextChatOptions()" />, the incoming voice chat transcriptions and/or text chat will be translated
     /// to English (United States).
     /// <para>
-    /// The language code should be in BCP 47 format; supported language codes are enumerated at
-    /// <see cref="https://docs.microsoft.com/azure/cognitive-services/speech-service/language-support" />. Specifying
+    /// The language code should be in BCP 47 format; supported language codes are enumerated in
+    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />. Specifying
     /// an unsupported or invalid language code will not cause this method to fail, but will result in failure to
     /// generate transcriptions associated with this chat control. The language code can be queried via GetLanguage().
     /// </para>
@@ -9151,6 +9548,18 @@ public:
     /// <para>
     /// Only chat controls configured to use a language that supports transcription, via
     /// <see cref="PartyLocalDevice::CreateChatControl()" />, will provide transcriptions.
+    /// </para>
+    /// <para>
+    /// Speech-to-text transcription functionality internally uses available region and latency measurement estimates to
+    /// optimize service usage. If the <see cref="PartyOption::RegionUpdateConfiguration" /> option was used to
+    /// configure an update mode of <see cref="PartyRegionUpdateMode::Deferred" />, then retrieving the
+    /// set of available regions and measuring connection quality to them may not have started yet, or the last update
+    /// may have exceeded the configured refresh interval age. If the local device isn't currently connecting or
+    /// connected to any networks, and the application specifies option flags that include
+    /// <see cref="PartyVoiceChatTranscriptionOptions::TranscribeSelfRegardlessOfNetworkState" />, then
+    /// SetTranscriptionOptions() ensures any deferred region update has started and the associated
+    /// <see cref="PartyRegionsChangedStateChange" /> is provided prior to this call's
+    /// <see cref="PartySetTranscriptionOptionsCompletedStateChange" /> completion.
     /// </para>
     /// </remarks>
     /// <param name="options">
@@ -10508,38 +10917,41 @@ public:
     /// information.
     /// </summary>
     /// <remarks>
-    /// The array provided by this method is not populated until the first <see cref="PartyRegionsChangedStateChange" />
+    /// The array provided by this method isn't populated until the first <see cref="PartyRegionsChangedStateChange" />
     /// is provided. Each subsequent PartyRegionsChangedStateChange indicates an update to this set of regions.
-    /// Background operations to populate this set begin when <see cref="Initialize()" /> is called and, if this set
-    /// hasn't yet been successfully populated, when <see cref="CreateNewNetwork()" /> is called.
+    /// Background operations populating this set begin when <see cref="Initialize()" /> is called, unless
+    /// the <see cref="PartyOption::RegionUpdateConfiguration" /> option was used to configure an update mode of
+    /// <see cref="PartyRegionUpdateMode::Deferred" />. The deferred mode means region retrieval and connection quality
+    /// measurement doesn't begin until the application calls <see cref="CreateNewNetwork()" /> with a zero
+    /// entry region array, or isn't connected to any network and calls
+    /// <see cref="PartyLocalChatControl::PopulateAvailableTextToSpeechProfiles()" />,
+    /// <see cref="PartyLocalChatControl::SetTextToSpeechProfile()" />, or
+    /// <see cref="PartyLocalChatControl::SetTranscriptionOptions()" /> with option flags that include
+    /// <see cref="PartyVoiceChatTranscriptionOptions::TranscribeSelfRegardlessOfNetworkState" />. The
+    /// <see cref="PartyOption::RegionUpdateConfiguration" /> option can also be used to configure the interval after
+    /// which the regions array is to be refreshed.
     /// <para>
-    /// The array will be sorted in order of increasing latency. Latency for a region is defined as the end-to-end time
-    /// it takes to send a UDP datagram to the PlayFab Quality of Service beacon for that region and receive a response.
-    /// The library will measure latency for each region several times in order to calculate high fidelity results.
+    /// The returned array is sorted in order of increasing latency. Latency for a region is defined as the end-to-end
+    /// time it takes to send a UDP datagram to the region's PlayFab Quality of Service beacon and receive a response.
+    /// The library measures latency for each region several times in order to calculate high fidelity results.
+    /// Applications can alter low-level aspects of this connection quality measurement procedure using the
+    /// <see cref="PartyOption::RegionQualityMeasurementConfiguration" /> option.
     /// </para>
     /// <para>
-    /// A latency equivalent to UINT32_MAX indicates that the region is supported but latency information could not be
-    /// determined, either due to failures internal to the library or a ping timeout was reached without receiving a
-    /// response from the beacon. This can be used for diagnostic purposes (a UINT32_MAX latency to every region likely
-    /// indicates a local configuration problem) or used to filter out regions that are unlikely to be viable during
-    /// region selection.
+    /// A latency equivalent to UINT32_MAX indicates that the region is supported but latency information couldn't be
+    /// determined, either due to failures internal to the library or a timeout was reached without receiving a response
+    /// from the beacon. This can be used for diagnostic purposes (a UINT32_MAX latency to every region likely indicates
+    /// a local configuration problem) or used to filter out regions that are unlikely to be viable during region
+    /// selection.
     /// </para>
     /// <para>
-    /// The returned names in the <see cref="PartyRegion" /> structures are not localized to the current user's
-    /// language, and showing the strings directly in UI is not recommended outside of troubleshooting.
+    /// The returned names in the <see cref="PartyRegion" /> structures aren't localized to the current user's language,
+    /// and showing the strings directly in UI isn't recommended outside of troubleshooting.
     /// </para>
     /// <para>
-    /// You shouldn't assume the set of regions returned will remain the same over the life of your title. The PlayFab
-    /// Party library will automatically take advantage of additions and changes to available regions over time to
-    /// continually improve the experience for end users.
-    /// </para>
-    /// <para>
-    /// After internally retrieving the set of regions, the worst-case time for failing latency measurements to every
-    /// region would be approximately 500 milliseconds multiplied by the number of regions, but measurements are
-    /// actually performed in parallel to reduce the overall duration. Successful latency measurement time varies by
-    /// network environment. Currently most devices worldwide successfully complete the entire measurement process in
-    /// 2.2 seconds or less, and 95% of devices successfully complete in less than 6 seconds. This may increase slightly
-    /// over time as additional regions are introduced.
+    /// Don't assume the set of regions returned remain the same over the life of your title. The PlayFab Party library
+    /// will automatically take advantage of additions and changes to available regions over time to continually improve
+    /// the experience for end users.
     /// </para>
     /// </remarks>
     /// <param name="regionCount">
@@ -10563,38 +10975,36 @@ public:
     /// Queues an asynchronous attempt to create a new network.
     /// </summary>
     /// <remarks>
-    /// A PartyNetwork is a set of devices, such as Xbox One consoles and PCs, that are connected via a client-server
-    /// topology to a transparent cloud relay server. Each device in the network contains a collection of endpoints
-    /// associated with the network; directed messages can be sent from an endpoint on the local device to any set of
-    /// endpoints, or broadcast to all endpoints. This method queues an attempt to allocate a relay, thus creating a new
-    /// network, on behalf of the user represented by <paramref name="localUser" /> but does not connect the local
-    /// device to the network.
+    /// A PartyNetwork is a set of devices that are connected via a client-server topology to a transparent cloud relay
+    /// server. Each device in the network contains a collection of endpoints associated with the network; directed
+    /// messages can be sent from an endpoint on the local device to any set of endpoints, or broadcast to all
+    /// endpoints. This method queues an attempt to allocate a relay, thus creating a new network, on behalf of the user
+    /// represented by <paramref name="localUser" /> but does not connect the local device to the network.
     /// <para>
-    /// If no devices connect to the network within ten minutes of the relay's creation, it will shut down. The network
-    /// will stay active indefinitely while at least one device is connected, migrating to a new relay if required. If
-    /// no devices are connected to the network, the relay will become inactive and shut down after one minute of
-    /// inactivity.
+    /// If no devices connect to the network within 10 minutes of the relay's creation, it will shut down. The network
+    /// stays active indefinitely while at least one device is connected, migrating to a new relay if required. If no
+    /// devices are connected to the network, the relay becomes inactive and shuts down after 1 minute of inactivity.
     /// </para>
     /// <para>
     /// The local device can queue an attempt to connect to the new network by immediately passing
     /// <paramref name="networkDescriptor" /> to <see cref="ConnectToNetwork()" />. Using this descriptor with
-    /// SerializeNetworkDescriptor() will result in failure because the descriptor does not contain enough information
-    /// for a remote device to connect to the network. The network descriptor changes and becomes serializable when the
+    /// SerializeNetworkDescriptor() fails because the descriptor doesn't contain enough information for a remote device
+    /// to connect to the network. The network descriptor changes and becomes serializable when the
     /// <see cref="PartyCreateNewNetworkCompletedStateChange" /> is provided and indicates success. The updated network
-    /// descriptor is provided as a field in the PartyCreateNewNetworkCompletedStateChange. Once connected to the
-    /// network, the descriptor can be retrieved using <see cref="PartyNetwork::GetNetworkDescriptor()" />.
+    /// descriptor is provided as a field in the PartyCreateNewNetworkCompletedStateChange. The descriptor can also be
+    /// retrieved after connecting to the network using <see cref="PartyNetwork::GetNetworkDescriptor()" />.
     /// </para>
     /// <para>
     /// The network is created in the first available region using the order specified in <paramref name="regions" />.
     /// If none of the specified regions are available, the network will not be created. Specifying 0 for
     /// <paramref name="regionCount" /> defaults to using all regions in which the title is configured, ordered by
-    /// lowest latency to this device.
+    /// lowest latency to this device, which is the same array returned by GetRegions().
     /// </para>
     /// <para>
-    /// Note that the default region selection only includes latency measurements from this device and not from any
-    /// other devices. Titles that have a set of participants for the session known up front should implement
-    /// functionality to gather measurements from all devices prior to creating the network and construct a new
-    /// <paramref name="regions" /> array ordered by lowest aggregate latency for the whole group.
+    /// The default region selection only includes latency measurements from this device and not from any other devices.
+    /// Titles that have a set of participants for the session known up front should gather measurements from all
+    /// devices prior to creating the network and construct a new <paramref name="regions" /> array ordered by lowest
+    /// aggregate latency for the whole group.
     /// </para>
     /// <para>
     /// For titles that support join-in-progress, the region with the best overall latency for the group of connected
@@ -10606,14 +11016,22 @@ public:
     /// disconnect from the original one.
     /// </para>
     /// <para>
-    /// The initial invitation for the newly created network will not be owned by any user. Therefore calling
-    /// <see cref="PartyInvitation::GetCreatorEntityId()" /> will return nullptr for the initial invitation. As well,
-    /// the initial invitation for the newly created network will persist for the lifetime of the network until
-    /// specifically revoked via <see cref="PartyNetwork::RevokeInvitation()" />. New invitations can be created for the
-    /// network via <see cref="PartyNetwork::CreateInvitation()" /> by local users that are authenticated into the
-    /// network, and those invitations will persist until their creating local users are removed from the network. Users
-    /// join the network via <see cref="PartyNetwork::AuthenticateLocalUser()" /> by providing the identifier of an
-    /// invitation that was successfully created, has not been revoked, and allows them to join.
+    /// If the <see cref="PartyOption::RegionUpdateConfiguration" /> option was used to configure an update mode of
+    /// <see cref="PartyRegionUpdateMode::Deferred" />, then retrieving the set of available regions and measuring
+    /// connection quality to them may not have started yet, or the last update may have exceeded the configured refresh
+    /// interval age. Specifying 0 for <paramref name="regionCount" /> to CreateNewNetwork() ensures any deferred region
+    /// update has started and its associated <see cref="PartyRegionsChangedStateChange" /> is provided prior to this
+    /// call's <see cref="PartyCreateNewNetworkCompletedStateChange" /> completion.
+    /// </para>
+    /// <para>
+    /// The initial invitation for the newly created network isn't owned by any user. Therefore calling
+    /// <see cref="PartyInvitation::GetCreatorEntityId()" /> returns nullptr for the initial invitation. The initial
+    /// invitation also persists for the lifetime of the network until specifically revoked via
+    /// <see cref="PartyNetwork::RevokeInvitation()" />. New invitations can be created for the network via
+    /// <see cref="PartyNetwork::CreateInvitation()" /> by local users authenticated into the network, and those
+    /// invitations will persist until their creating local users are removed from the network. Users join the network
+    /// via <see cref="PartyNetwork::AuthenticateLocalUser()" /> by providing the identifier of an invitation that was
+    /// successfully created, has not been revoked, and allows them to join.
     /// </para>
     /// <h>Retrying on failure</h>
     /// <para>
@@ -10634,12 +11052,12 @@ public:
     /// ` | UserNotAuthorized | This result can mean that the user's entity token was invalid, expired, or that the user
     ///         was not authorized for other reasons. Retry no more than one time, and only after getting a new entity
     ///         token for the user and calling <see cref="PartyLocalUser::UpdateEntityToken()" />.|
-    /// ` | UserCreateNetworkThrottled | Do not retry automatically. Instead, display a message to the user and wait for
+    /// ` | UserCreateNetworkThrottled | Don't retry automatically. Instead, display a message to the user and wait for
     ///         the user to initiate another attempt. |
     /// ` | FailedToBindToLocalUdpSocket | This result means that the library couldn't bind to the local UDP socket
     ///         specified in the <see cref="PartyOption::LocalUdpSocketBindAddress" /> option. The title must clean up
     ///         its instance of the library, update the <see cref="PartyOption::LocalUdpSocketBindAddress" /> option to
-    ///         a valid, available bind address, and re-initialize the library.
+    ///         a valid, available bind address, and reinitialize the library.
     /// </para>
     /// </remarks>
     /// <param name="localUser">
@@ -10647,41 +11065,39 @@ public:
     /// </param>
     /// <param name="networkConfiguration">
     /// Network configuration properties such as max user count and max device count. These properties last for the
-    /// lifetime of the network and cannot be changed.
+    /// lifetime of the network and can't be changed.
     /// </param>
     /// <param name="regionCount">
     /// The number of regions provided in the array of preferred regions specified via <paramref name="regions" />. If
-    /// this is zero, the library will use all regions in which the title is configured, ordered by lowest round trip
+    /// this is zero, the library uses all regions in which the title is configured, ordered by lowest round trip
     /// latency from this device.
     /// </param>
     /// <param name="regions">
-    /// The array of preferred regions in which the network should be created. The network will be created in the first
+    /// The array of preferred regions in which the network should be created. The network is created in the first
     /// available region.
     /// </param>
     /// <param name="initialInvitationConfiguration">
     /// An optionally specified configuration for the initial invitation.
     /// <para>
-    /// If this value is null, then default configuration values will be used. By default, PlayFab Party will generate a
-    /// unique invitation identifier for the title, the revocability will be
-    /// <see cref="PartyInvitationRevocability::Anyone" />, and the PlayFab Entity ID list will be empty, allowing any
-    /// user to join using the invitation.
+    /// If this value is null, then default configuration values are used. By default, PlayFab Party generates a unique
+    /// invitation identifier for the title, the revocability is <see cref="PartyInvitationRevocability::Anyone" />, and
+    /// the PlayFab Entity ID list is empty, allowing any user to join using the invitation.
     /// </para>
     /// <para>
     /// If a configuration is provided, the title may optionally specify the identifier on the configuration. If the
-    /// identifier is nullptr or an empty string, the PlayFab Party library will generate an identifier for the title.
-    /// It is guaranteed that this generated identifier will be different from all identifiers that the PlayFab Party
-    /// library will generate for all future invitations on this network across all devices. Titles may specify their
-    /// own identifier by providing a non-null, non-empty value in the configuration. If the title specifies the
-    /// identifier, it is the title's responsibility to ensure that this identifier does not collide with the
-    /// identifiers of future invitations created on this network via <see cref="PartyNetwork::CreateInvitation()" /> on
-    /// any device.
+    /// identifier is nullptr or an empty string, the PlayFab Party library generates an identifier for the title that's
+    /// guaranteed to be different from all identifiers that the PlayFab Party library will generate for all future
+    /// invitations on this network across all devices. Titles may specify their own identifier by providing a non-null,
+    /// nonempty value in the configuration. If the title specifies the identifier, it's the title's responsibility to
+    /// ensure that this identifier doesn't collide with the identifiers of future invitations created on this network
+    /// via <see cref="PartyNetwork::CreateInvitation()" /> on any device.
     /// </para>
     /// <para>
     /// If a configuration is provided, its revocability must be PartyInvitationRevocability::Anyone.
     /// </para>
     /// <para>
-    /// If a configuration is provided and the list of PlayFab Entity IDs is empty, all users will be allowed to join
-    /// using the new invitation.
+    /// If a configuration is provided and the list of PlayFab Entity IDs is empty, all users are allowed to join using
+    /// the new invitation.
     /// </para>
     /// </param>
     /// <param name="asyncIdentifier">
@@ -10694,10 +11110,10 @@ public:
     /// </param>
     /// <param name="appliedInitialInvitationIdentifier">
     /// The optional, output buffer to which the initial invitation's identifier is written. If
-    /// <paramref name="initialInvitationConfiguration" /> has been provided with a non-null, non-empty identifier, then
-    /// this buffer will be filled with the same identifier. If an initial configuration was not provided or the
-    /// provided configuration had an empty or null identifier, the PlayFab Party library will generate one and return
-    /// it to the title in this buffer.
+    /// <paramref name="initialInvitationConfiguration" /> is provided with a non-null, nonempty identifier, then this
+    /// buffer will be filled with the same identifier. If an initial configuration isn't provided or the provided
+    /// configuration has an empty or null identifier, the PlayFab Party library generates one and returns it to the
+    /// title in this buffer.
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the asynchronous operation to create a new network began, or an error code

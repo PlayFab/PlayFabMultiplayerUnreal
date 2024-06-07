@@ -1,7 +1,6 @@
 //--------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
-#pragma once
 
 #if defined(OSS_PLAYFAB_GDK)
 #include "OnlineExternalUIInterfacePlayFab.h"
@@ -47,7 +46,7 @@ bool FOnlineExternalUIPlayFab::ShowInviteUI(int32 InLocalUserNum, FName InSessio
 		}
 	};
 
-	FGDKUserHandle RequestedUser = FGDKUserManager::Get().GetUserHandleByPlatformId(FPlatformMisc::GetPlatformUserForUserIndex(InLocalUserNum));
+	FGDKUserHandle RequestedUser = IGDKRuntimeModule::Get().GetUserHandleByPlatformId(FPlatformMisc::GetPlatformUserForUserIndex(InLocalUserNum));
 	HRESULT Hr = XGameUiShowMultiplayerActivityGameInviteAsync(pNewAsyncBlock, RequestedUser);
 	if (FAILED(Hr))
 	{

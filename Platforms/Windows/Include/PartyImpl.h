@@ -1882,6 +1882,8 @@ PARTY_C_ASSERT(PARTY_OPTION_LOCAL_UDP_SOCKET_BIND_ADDRESS == static_cast<uint32_
 PARTY_C_ASSERT(PARTY_OPTION_LOCAL_DEVICE_DIRECT_PEER_CONNECTIVITY_OPTIONS_MASK == static_cast<uint32_t>(PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask));
 PARTY_C_ASSERT(PARTY_OPTION_TEXT_CHAT_FILTER_LEVEL == static_cast<uint32_t>(PartyOption::TextChatFilterLevel));
 PARTY_C_ASSERT(PARTY_OPTION_LOCAL_DEVICE_MAX_DIRECT_PEER_CONNECTIONS == static_cast<uint32_t>(PartyOption::LocalDeviceMaxDirectPeerConnections));
+PARTY_C_ASSERT(PARTY_OPTION_REGION_UPDATE_CONFIGURATION == static_cast<uint32_t>(PartyOption::RegionUpdateConfiguration));
+PARTY_C_ASSERT(PARTY_OPTION_REGION_QUALITY_MEASUREMENT_CONFIGURATION == static_cast<uint32_t>(PartyOption::RegionQualityMeasurementConfiguration));
 
 PARTY_C_ASSERT(PARTY_THREAD_ID_AUDIO == static_cast<uint32_t>(PartyThreadId::Audio));
 PARTY_C_ASSERT(PARTY_THREAD_ID_NETWORKING == static_cast<uint32_t>(PartyThreadId::Networking));
@@ -2038,11 +2040,34 @@ PARTY_C_ASSERT(PARTY_CHAT_TEXT_RECEIVED_OPTIONS_FILTERED_OFFENSIVE_TERMS == stat
 PARTY_C_ASSERT(PARTY_CHAT_TEXT_RECEIVED_OPTIONS_FILTERED_ENTIRE_MESSAGE == static_cast<uint32_t>(PartyChatTextReceivedOptions::FilteredEntireMessage));
 PARTY_C_ASSERT(PARTY_CHAT_TEXT_RECEIVED_OPTIONS_FILTERED_DUE_TO_ERROR == static_cast<uint32_t>(PartyChatTextReceivedOptions::FilteredDueToError));
 
+PARTY_C_ASSERT(PARTY_REGION_UPDATE_MODE_IMMEDIATE == static_cast<uint32_t>(PartyRegionUpdateMode::Immediate));
+PARTY_C_ASSERT(PARTY_REGION_UPDATE_MODE_DEFERRED == static_cast<uint32_t>(PartyRegionUpdateMode::Deferred));
+
 PARTY_C_ASSERT(sizeof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION) == sizeof(PartyLocalUdpSocketBindAddressConfiguration));
 PARTY_C_ASSERT(sizeof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION::options) == sizeof(PartyLocalUdpSocketBindAddressConfiguration::options));
 PARTY_C_ASSERT(offsetof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION, options) == offsetof(PartyLocalUdpSocketBindAddressConfiguration, options));
 PARTY_C_ASSERT(sizeof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION::port) == sizeof(PartyLocalUdpSocketBindAddressConfiguration::port));
 PARTY_C_ASSERT(offsetof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION, port) == offsetof(PartyLocalUdpSocketBindAddressConfiguration, port));
+
+PARTY_C_ASSERT(sizeof(PARTY_REGION_UPDATE_CONFIGURATION) == sizeof(PartyRegionUpdateConfiguration));
+PARTY_C_ASSERT(sizeof(PARTY_REGION_UPDATE_CONFIGURATION::mode) == sizeof(PartyRegionUpdateConfiguration::mode));
+PARTY_C_ASSERT(offsetof(PARTY_REGION_UPDATE_CONFIGURATION, mode) == offsetof(PartyRegionUpdateConfiguration, mode));
+PARTY_C_ASSERT(sizeof(PARTY_REGION_UPDATE_CONFIGURATION::refreshIntervalInSeconds) == sizeof(PartyRegionUpdateConfiguration::refreshIntervalInSeconds));
+PARTY_C_ASSERT(offsetof(PARTY_REGION_UPDATE_CONFIGURATION, refreshIntervalInSeconds) == offsetof(PartyRegionUpdateConfiguration, refreshIntervalInSeconds));
+
+PARTY_C_ASSERT(sizeof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION) == sizeof(PartyRegionQualityMeasurementConfiguration));
+PARTY_C_ASSERT(sizeof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION::totalMeasurementTimeoutInMilliseconds) == sizeof(PartyRegionQualityMeasurementConfiguration::totalMeasurementTimeoutInMilliseconds));
+PARTY_C_ASSERT(offsetof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION, totalMeasurementTimeoutInMilliseconds) == offsetof(PartyRegionQualityMeasurementConfiguration, totalMeasurementTimeoutInMilliseconds));
+PARTY_C_ASSERT(sizeof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION::highLatencyHintInMilliseconds) == sizeof(PartyRegionQualityMeasurementConfiguration::highLatencyHintInMilliseconds));
+PARTY_C_ASSERT(offsetof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION, highLatencyHintInMilliseconds) == offsetof(PartyRegionQualityMeasurementConfiguration, highLatencyHintInMilliseconds));
+PARTY_C_ASSERT(sizeof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION::minRequiredSuccessfulResponses) == sizeof(PartyRegionQualityMeasurementConfiguration::minRequiredSuccessfulResponses));
+PARTY_C_ASSERT(offsetof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION, minRequiredSuccessfulResponses) == offsetof(PartyRegionQualityMeasurementConfiguration, minRequiredSuccessfulResponses));
+PARTY_C_ASSERT(sizeof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION::idealNumberOfSuccessfulResponses) == sizeof(PartyRegionQualityMeasurementConfiguration::idealNumberOfSuccessfulResponses));
+PARTY_C_ASSERT(offsetof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION, idealNumberOfSuccessfulResponses) == offsetof(PartyRegionQualityMeasurementConfiguration, idealNumberOfSuccessfulResponses));
+PARTY_C_ASSERT(sizeof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION::maxRetriesWithNoResponse) == sizeof(PartyRegionQualityMeasurementConfiguration::maxRetriesWithNoResponse));
+PARTY_C_ASSERT(offsetof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION, maxRetriesWithNoResponse) == offsetof(PartyRegionQualityMeasurementConfiguration, maxRetriesWithNoResponse));
+PARTY_C_ASSERT(sizeof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION::maxTimeoutsAfterResponse) == sizeof(PartyRegionQualityMeasurementConfiguration::maxTimeoutsAfterResponse));
+PARTY_C_ASSERT(offsetof(PARTY_REGION_QUALITY_MEASUREMENT_CONFIGURATION, maxTimeoutsAfterResponse) == offsetof(PartyRegionQualityMeasurementConfiguration, maxTimeoutsAfterResponse));
 
 PARTY_C_ASSERT(sizeof(PARTY_NETWORK_DESCRIPTOR) == sizeof(PartyNetworkDescriptor));
 PARTY_C_ASSERT(sizeof(PARTY_NETWORK_DESCRIPTOR::networkIdentifier) == sizeof(PartyNetworkDescriptor::networkIdentifier));

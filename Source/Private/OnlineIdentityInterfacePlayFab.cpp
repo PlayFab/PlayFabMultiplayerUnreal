@@ -205,13 +205,13 @@ void FOnlineIdentityPlayFab::RevokeAuthToken(const FUniqueNetId& UserId, const F
 	}
 }
 
-void FOnlineIdentityPlayFab::GetUserPrivilege(const FUniqueNetId& LocalUserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
+void FOnlineIdentityPlayFab::GetUserPrivilege(const FUniqueNetId& LocalUserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate, EShowPrivilegeResolveUI ShowResolveUI)
 {
 	UE_LOG_ONLINE_IDENTITY(Verbose, TEXT("FOnlineIdentityPlayFab::GetUserPrivilege"));
 
 	OSS_PLAYFAB_GET_NATIVE_IDENTITY_INTERFACE
 	{
-		NativeIdentityInterface->GetUserPrivilege(LocalUserId, Privilege, Delegate);
+		NativeIdentityInterface->GetUserPrivilege(LocalUserId, Privilege, Delegate, ShowResolveUI);
 	}
 }
 
@@ -768,7 +768,8 @@ bool FOnlineIdentityPlayFab::IsUserLocal(const PFEntityKey& UserEntityKey)
 {
 	for (TSharedPtr<FPlayFabUser> LocalUser : LocalPlayFabUsers)
 	{
-		if ((FCStringAnsi::Strcmp(LocalUser->GetEntityKey().id, UserEntityKey.id) == 0) && (FCStringAnsi::Strcmp(LocalUser->GetEntityKey().type, UserEntityKey.type) == 0))
+		if ((FCString::Strcmp(UTF8_TO_TCHAR(LocalUser->GetEntityKey().id), UTF8_TO_TCHAR(UserEntityKey.id)) == 0) && 
+			(FCString::Strcmp(UTF8_TO_TCHAR(LocalUser->GetEntityKey().type), UTF8_TO_TCHAR(UserEntityKey.type)) == 0))
 		{
 			return true;
 		}

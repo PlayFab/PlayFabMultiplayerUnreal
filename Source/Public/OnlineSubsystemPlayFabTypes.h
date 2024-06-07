@@ -120,7 +120,7 @@ public:
 	*/
 	virtual const uint8* GetBytes() const override
 	{
-		return (uint8*)&UniqueNetId;
+		return (const uint8*)UniqueNetId.GetCharArray().GetData();
 	}
 
 	/**
@@ -130,7 +130,7 @@ public:
 	*/
 	virtual int32 GetSize() const override
 	{
-		return UniqueNetId.GetAllocatedSize();
+		return UniqueNetId.GetCharArray().GetTypeSize() * UniqueNetId.GetCharArray().Num();
 	}
 
 	/** Is our structure currently pointing to a valid EntityId? */

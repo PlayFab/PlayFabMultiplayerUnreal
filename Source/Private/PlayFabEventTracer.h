@@ -7,6 +7,11 @@
 #include "Dom/JsonObject.h"
 #include "OnlineSubsystemPlayFabPackage.h"
 
+#if defined(OSS_PLAYFAB_SWITCH) || defined(OSS_PLAYFAB_PLAYSTATION)
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#include <PFMultiplayerPal.h>
+#endif
+
 THIRD_PARTY_INCLUDES_START
 #include <PFEntityKey.h>
 THIRD_PARTY_INCLUDES_END

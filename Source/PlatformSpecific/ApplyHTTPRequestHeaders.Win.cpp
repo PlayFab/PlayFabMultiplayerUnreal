@@ -1,3 +1,7 @@
+//--------------------------------------------------------------------------------------
+// Copyright (C) Microsoft Corporation. All rights reserved.
+//--------------------------------------------------------------------------------------
+
 #if defined(OSS_PLAYFAB_WIN64)
 #include "OnlineSubsystem.h"
 #include "OnlineIdentityInterfacePlayFab.h"
@@ -28,24 +32,35 @@ bool FOnlineIdentityPlayFab::ApplyPlatformHTTPRequestData(const FString& Platfor
 {
     IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
     bool headersApplied = false;
-    TSharedPtr<FJsonObject> RequestBodyJson;
     if (NativeSubsystem)
     {
         IOnlineIdentityPtr NativeIdentityInterface = NativeSubsystem->GetIdentityInterface();
         if (NativeIdentityInterface && NativeIdentityInterface.IsValid())
         {
-            FString AuthToken = NativeIdentityInterface->GetAuthToken(0);
+            FOnGetLinkedAccountAuthTokenCompleteDelegate Delegate = FOnGetLinkedAccountAuthTokenCompleteDelegate::CreateLambda(
+                [this, InPlatformUserID = PlatformUserID](int32 LocalUserNum, bool bWasSuccessful, const FExternalAuthToken& AuthToken)
+                {
+                    if (bWasSuccessful && AuthToken.HasTokenString())
+                    {
+                        TSharedPtr<FJsonObject> RequestBodyJson;
+                        RequestBodyJson = MakeShareable(new FJsonObject());
+                        RequestBodyJson->SetStringField(TEXT("SteamTicket"), AuthToken.TokenString);
+                        RequestBodyJson->SetBoolField(TEXT("TicketIsServiceSpecific"), true);
 
-            RequestBodyJson = MakeShareable(new FJsonObject());
-            RequestBodyJson->SetStringField(TEXT("SteamTicket"), AuthToken);
+                        UserAuthRequestData MetaData;
+                        UserAuthRequestsInFlight.Add(InPlatformUserID, MetaData);
 
-            UserAuthRequestData MetaData;
-            UserAuthRequestsInFlight.Add(PlatformUserID, MetaData);
-
+                        FOnlineIdentityPlayFab::OnPopulatePlatformRequestDataCompleted(true, InPlatformUserID, TMap<FString, FString>(), RequestBodyJson);
+                    }
+                    else
+                    {
+                        FOnlineIdentityPlayFab::OnPopulatePlatformRequestDataCompleted(false, InPlatformUserID, TMap<FString, FString>(), nullptr);
+                    }
+            });
+            NativeIdentityInterface->GetLinkedAccountAuthToken(0, TEXT("WebAPI:AzurePlayFab"), Delegate);
             headersApplied = true;
         }
     }
-    FOnlineIdentityPlayFab::OnPopulatePlatformRequestDataCompleted(headersApplied, PlatformUserID, TMap<FString, FString>(), RequestBodyJson);
     return headersApplied;
 }
 #endif // OSS_PLAYFAB_WIN64

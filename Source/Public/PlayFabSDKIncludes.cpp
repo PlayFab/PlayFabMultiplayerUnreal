@@ -2,8 +2,6 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
 
-#pragma once
-
 #include "PlayFabSDKIncludes.h"
 
 THIRD_PARTY_INCLUDES_START

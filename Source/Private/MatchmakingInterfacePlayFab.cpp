@@ -90,7 +90,7 @@ bool FMatchmakingInterfacePlayFab::CreateMatchMakingTicket(const TArray< TShared
 	}
 
 	// Now convert the json to char** string to pass onto CreateMatchmakingTicket API
-	AnsiStringList UserAttributesStr;
+	UTF8StringList UserAttributesStr;
 	for (auto Iterator : LocalEntityKeys)
 	{
 		UserAttributesStr.Add(UserAttributes);

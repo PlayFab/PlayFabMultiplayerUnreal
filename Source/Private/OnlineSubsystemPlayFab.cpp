@@ -39,6 +39,9 @@ OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineChatPtr, GetChatInterface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineStatsPtr, GetStatsInterface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineTurnBasedPtr, GetTurnBasedInterface);
 OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineTournamentPtr, GetTournamentInterface);
+OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineGameActivityPtr, GetGameActivityInterface);
+OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineGameItemStatsPtr, GetGameItemStatsInterface);
+OSS_PLAYFAB_PASSTHROUGH_FUNCTION_DEFINITION(IOnlineGameMatchesPtr, GetGameMatchesInterface);
 
 namespace
 {
@@ -63,7 +66,11 @@ bool FOnlineSubsystemPlayFab::Init()
 	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::Init"));
 	
 	NativeOSS = IOnlineSubsystem::GetByPlatform();
-	check(NativeOSS);
+	if (!ensure(NativeOSS))
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSubsystemPlayFab::Init failed to get native platform OSS"));
+		return false;
+	}
 
 #ifdef OSS_PLAYFAB_PLAYSTATION
 	OnlineAsyncTaskThreadRunnable = new FOnlineAsyncTaskManagerPlayFab(this);
@@ -369,6 +376,36 @@ FString FOnlineSubsystemPlayFab::GetAppId() const
 FText FOnlineSubsystemPlayFab::GetOnlineServiceName() const
 {
 	return NSLOCTEXT("OnlineSubsystemPlayFab", "OnlineServiceName", "PlayFab");
+}
+
+void FOnlineSubsystemPlayFab::SetUsingMultiplayerFeatures(const FUniqueNetId& UniqueId, bool bUsingMP)
+{
+	if (!ensure(NativeOSS))
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSubsystemPlayFab::SetUsingMultiplayerFeatures failed to get native platform OSS"));
+		return;
+	}
+	NativeOSS->SetUsingMultiplayerFeatures(UniqueId, bUsingMP);
+}
+
+IMessageSanitizerPtr FOnlineSubsystemPlayFab::GetMessageSanitizer(int32 LocalUserNum, FString& OutAuthTypeToExclude) const
+{
+	if (!ensure(NativeOSS))
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSubsystemPlayFab::GetMessageSanitizer failed to get native platform OSS"));
+		return nullptr;
+	}
+	return NativeOSS->GetMessageSanitizer(LocalUserNum, OutAuthTypeToExclude);
+}
+
+FText FOnlineSubsystemPlayFab::GetSocialPlatformName() const
+{
+	if (!ensure(NativeOSS))
+	{
+		UE_LOG_ONLINE(Error, TEXT("FOnlineSubsystemPlayFab::GetSocialPlatformName() failed to get native platform OSS"));
+		return FText::GetEmpty();
+	}
+	return NativeOSS->GetSocialPlatformName();
 }
 
 void FOnlineSubsystemPlayFab::OnAppSuspend()
@@ -870,7 +907,7 @@ FString FOnlineSubsystemPlayFab::SerializeNetworkDescriptor(const PartyNetworkDe
 	}
 	else
 	{
-		NetworkDescriptorStr = ANSI_TO_TCHAR(Descriptor);
+		NetworkDescriptorStr = UTF8_TO_TCHAR(Descriptor);
 	}
 
 	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::SerializeNetworkDescriptor: NetworkDescriptor: %s"), *NetworkDescriptorStr);
@@ -888,19 +925,19 @@ FString GetPartyErrorMessage(PartyError InError)
 		return FString::Printf(TEXT("[ERROR] Failed to get error message %d.\n"), InError);
 	}
 
-	return ANSI_TO_TCHAR(ErrorString);
+	return UTF8_TO_TCHAR(ErrorString);
 }
 
 void LogMultiplayerErrorWithMessage(const FString& FuncName, HRESULT Hr)
 {
 	const char* ErrorString = PFMultiplayerGetErrorMessage(Hr);
-	UE_LOG_ONLINE(Warning, TEXT("%s() failed: Error code [0x%08x] - Error message: %s"), *FuncName, Hr, ANSI_TO_TCHAR(ErrorString));
+	UE_LOG_ONLINE(Warning, TEXT("%s() failed: Error code [0x%08x] - Error message: %s"), *FuncName, Hr, UTF8_TO_TCHAR(ErrorString));
 }
 
 FString GetMultiplayerErrorMessage(HRESULT InHresult)
 {
 	const char* ErrorString = PFMultiplayerGetErrorMessage(InHresult);
-	return ANSI_TO_TCHAR(ErrorString);
+	return UTF8_TO_TCHAR(ErrorString);
 }
 
 FString PartyStateChangeResultToReasonString(PartyStateChangeResult result)
@@ -1010,7 +1047,7 @@ void FOnlineSubsystemPlayFab::OnCreateNewNetworkCompleted(const PartyStateChange
 				PartyString EntityId;
 				Result->localUser->GetEntityId(&EntityId);
 
-				UE_LOG_ONLINE(Verbose, TEXT("CreateNewNetworkCompleted: EntityId: %s"), ANSI_TO_TCHAR(EntityId));
+				UE_LOG_ONLINE(Verbose, TEXT("CreateNewNetworkCompleted: EntityId: %s"), UTF8_TO_TCHAR(EntityId));
 			}
 		}
 		else

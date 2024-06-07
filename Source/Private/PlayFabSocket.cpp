@@ -104,8 +104,6 @@ bool FPlayFabSocket::SendTo(const uint8* Data, int32 Count, int32& BytesSent, co
 		SocketSubsystem->LastSocketError = SE_NO_ERROR;
 		return true;
 	}
-
-	return false;
 }
 
 bool FPlayFabSocket::Send(const uint8* Data, int32 Count, int32& BytesSent)

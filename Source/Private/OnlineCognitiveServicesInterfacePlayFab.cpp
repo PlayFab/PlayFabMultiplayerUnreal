@@ -104,7 +104,7 @@ void FOnlineCognitiveServicesPlayFab::SetTextToSpeechOptions(const FUniqueNetId&
 		return;
 	}
 
-	FString CurrentLanguageCode = ANSI_TO_TCHAR(LanguageCode);
+	FString CurrentLanguageCode = UTF8_TO_TCHAR(LanguageCode);
 	PartySynthesizeTextToSpeechType PartyTTSType = TextToSpeechType == ETextToSpeechType::VoiceChat ? PartySynthesizeTextToSpeechType::VoiceChat : PartySynthesizeTextToSpeechType::Narration;
 
 	// Get the profile list
@@ -137,7 +137,7 @@ void FOnlineCognitiveServicesPlayFab::SetTextToSpeechOptions(const FUniqueNetId&
 				continue;
 			}
 
-			if (CurrentLanguageCode == ANSI_TO_TCHAR(ProfileLanguageCode))
+			if (CurrentLanguageCode == UTF8_TO_TCHAR(ProfileLanguageCode))
 			{
 				// Get the profile name
 				PartyString ProfileName = nullptr;
@@ -154,7 +154,7 @@ void FOnlineCognitiveServicesPlayFab::SetTextToSpeechOptions(const FUniqueNetId&
 					UE_LOG_ONLINE(Warning, TEXT("FOnlineCognitiveServicesPlayFab::SetTextToSpeechOptions: SetTextToSpeechProfile failed:, %s"), *GetPartyErrorMessage(Err));
 				}
 
-				UE_LOG_ONLINE(Verbose, TEXT("FOnlineCognitiveServicesPlayFab::SetTextToSpeechOptions: Setting TTS profile to %s"), ANSI_TO_TCHAR(ProfileName));
+				UE_LOG_ONLINE(Verbose, TEXT("FOnlineCognitiveServicesPlayFab::SetTextToSpeechOptions: Setting TTS profile to %s"), UTF8_TO_TCHAR(ProfileName));
 
 				return;
 			}
@@ -282,7 +282,7 @@ void FOnlineCognitiveServicesPlayFab::OnChatTextReceived(const PartyStateChange*
 		}
 		else
 		{
-			FString EntityId = ANSI_TO_TCHAR(EntityIdStr);
+			FString EntityId = UTF8_TO_TCHAR(EntityIdStr);
 			FString ChatText = UTF8_TO_TCHAR(Result->chatText);
 
 			for (uint32 i = 0; i < Result->translationCount; i++)
@@ -332,7 +332,7 @@ void FOnlineCognitiveServicesPlayFab::OnVoiceChatTranscriptionReceived(const Par
 			}
 			else
 			{
-				FString EntityId = ANSI_TO_TCHAR(EntityIdStr);
+				FString EntityId = UTF8_TO_TCHAR(EntityIdStr);
 				EVoiceChatTranscriptionSource Source = Result->sourceType == PartyAudioSourceType::Microphone ? EVoiceChatTranscriptionSource::Microphone : EVoiceChatTranscriptionSource::TextToSpeech;
 				bool bFinalTranscription = Result->type == PartyVoiceChatTranscriptionPhraseType::Final ? true : false;
 				FString TranscriptionText = UTF8_TO_TCHAR(Result->transcription);
