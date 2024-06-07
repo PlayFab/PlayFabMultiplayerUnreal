@@ -1,7 +1,6 @@
 //--------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
-#pragma once
 
 #include "HAL/Platform.h"
 PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
@@ -468,7 +467,9 @@ void FOnlineVoicePlayFab::TickTalkerPermissionTracking()
 
 				if (PARTY_SUCCEEDED(err))
 				{
-					UE_LOG_ONLINE(Verbose, TEXT("CompleteGetTokenAndSignatureRequest succeeded.\n\tToken: %s\n\tSignature: %s"), data ? data->token : "nullptr", data ? data->signature : "nullptr");
+					UE_LOG_ONLINE(Verbose, TEXT("CompleteGetTokenAndSignatureRequest succeeded.\n\tToken: %s\n\tSignature: %s"),
+						data && data->token ? *FString(UTF8_TO_TCHAR(data->token)) : TEXT("nullptr"),
+						data && data->signature ? *FString(UTF8_TO_TCHAR(data->signature)) : TEXT("nullptr"));
 				}
 				else
 				{
@@ -486,7 +487,7 @@ void FOnlineVoicePlayFab::TickTalkerPermissionTracking()
 				break;
 			}
 
-			auto& GDKUserMgr = FGDKUserManager::Get();
+			auto& GDKUserMgr = IGDKRuntimeModule::Get();
 			const FGDKUserHandle userHandle = GDKUserMgr.GetUserHandleByXUserId(xuid);
 
 			// Start the auth call

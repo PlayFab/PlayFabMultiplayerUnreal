@@ -1,7 +1,6 @@
 //--------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
-#pragma once
 
 #include "HAL/Platform.h"
 PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS

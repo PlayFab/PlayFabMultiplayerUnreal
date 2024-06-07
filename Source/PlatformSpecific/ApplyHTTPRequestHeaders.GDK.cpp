@@ -1,7 +1,6 @@
 //--------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
-#pragma once
 
 #include "HAL/Platform.h"
 PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
@@ -121,7 +120,7 @@ bool FOnlineIdentityPlayFab::ApplyPlatformHTTPRequestData(const FString& Platfor
 		delete ab;
 	};
 
-	auto& GDKUserMgr = FGDKUserManager::Get();
+	auto& GDKUserMgr = IGDKRuntimeModule::Get();
 	const FGDKUserHandle userHandle = GDKUserMgr.GetUserHandleByXUserId(xuid);
 	HRESULT Result = XUserGetTokenAndSignatureUtf16Async(userHandle, XUserGetTokenAndSignatureOptions::None, L"POST", L"https://playfabapi.com/", 0, nullptr, 0, nullptr, pNewAsyncBlock);
 

@@ -352,8 +352,8 @@ struct PFMatchmakingServerBackfillTicketConfiguration
     /// game server.
     /// <para>
     /// The server details are optional. If no server details need to be provided to clients on match completion, this
-    /// value can be nullptr. Similarly, any of the fields in the server details don't need to be provided to
-    /// clients can be empty or nullptr.
+    /// value can be nullptr. Similarly, any of the fields in the server details don't need to be provided to clients
+    /// can be empty or nullptr.
     /// </para>
     /// </remarks>
     _Maybenull_ const PFMultiplayerServerDetails * serverDetails;
@@ -460,21 +460,22 @@ PFMultiplayerFinishProcessingMatchmakingStateChanges(
 /// Creates a matchmaking ticket for one or more local users.
 /// </summary>
 /// <remarks>
-/// The library automatically, and asynchronously, will submit all local users on a ticket to the matchmaking service.
-/// Each time the ticket status changes, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> will be provided.
-/// The ticket status can be queried at any time via <see cref="PFMatchmakingTicketGetStatus()" />. The ticket
+/// The library automatically, and asynchronously, submits all specified local users on a ticket to the matchmaking
+/// service. Each time the ticket status changes, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> is
+/// provided. The ticket status can be queried at any time via <see cref="PFMatchmakingTicketGetStatus()" />. The ticket
 /// immediately starts in the <c>PFMatchmakingTicketStatus::Creating</c> state.
 /// <para>
-/// When the ticket has completed, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> will be provided. At
-/// that point, a match will have been found or the ticket stopped due to failure. On success, the match that was found
-/// can be queried via <see cref="PFMatchmakingTicketGetMatch()" />.
+/// When the ticket completes, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> is provided. At that point,
+/// a match was found or the ticket stopped due to failure. On success, the match that was found can be queried via
+/// <see cref="PFMatchmakingTicketGetMatch()" />.
 /// </para>
 /// <para>
-/// All existing tickets in which a local user is a member will be canceled as part of this operation.
+/// If ticket creation fails because there are already too many tickets for the specified users, the library
+/// transparently cancels those outstanding tickets and then retries ticket creation.
 /// </para>
 /// <para>
 /// A match can't be found until all remote users specified in the <c>membersToMatchWith</c> field of the
-/// <c>configuration</c> parameter have joined the ticket via <see cref="PFMultiplayerJoinMatchmakingTicketFromId()" />.
+/// <c>configuration</c> parameter join the ticket via <see cref="PFMultiplayerJoinMatchmakingTicketFromId()" />.
 /// </para>
 /// </remarks>
 /// <param name="handle">
@@ -522,17 +523,19 @@ PFMultiplayerCreateMatchmakingTicket(
 /// Joins one or more multiple local users to a matchmaking ticket using a ticket ID and queue name.
 /// </summary>
 /// <remarks>
-/// The library automatically, and asynchronously, will submit all local users to join the ticket on the matchmaking
-/// service. Each time the ticket status changes, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> will be
-/// provided. The ticket status can be queried at any time via <see cref="PFMatchmakingTicketGetStatus()" />. The ticket
-/// immediately starts in the <c>PFMatchmakingTicketStatus::Joining</c> state.
+/// The library automatically, and asynchronously, submits all specified local users to join the ticket on the
+/// matchmaking service. Each time the ticket status changes, a
+/// <see cref="PFMatchmakingTicketStatusChangedStateChange" /> is provided. The ticket status can be queried at any time
+/// via <see cref="PFMatchmakingTicketGetStatus()" />. The ticket immediately starts in the
+/// <c>PFMatchmakingTicketStatus::Joining</c> state.
 /// <para>
-/// When the ticket has completed, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> will be provided. At
-/// that point, a match will have been found or the ticket stopped due to failure. On success, the match that was found
-/// can be queried via <see cref="PFMatchmakingTicketGetMatch()" />.
+/// When the ticket completes, a <see cref="PFMatchmakingTicketStatusChangedStateChange" /> is provided. At that point,
+/// a match was found or the ticket stopped due to failure. On success, the match that was found can be queried via
+/// <see cref="PFMatchmakingTicketGetMatch()" />.
 /// </para>
 /// <para>
-/// All existing tickets in which a local user is a member will be canceled as part of this operation.
+/// If ticket creation fails because there are already too many tickets for the specified users, the transparently
+/// cancels those outstanding tickets and then retries ticket creation.
 /// </para>
 /// </remarks>
 /// <param name="handle">
@@ -660,7 +663,7 @@ PFMatchmakingTicketCancel(
 /// conditions:
 /// ` * The ticket is in the <c>PFMatchmakingTicketStatus::Creating</c> state
 /// ` * The ticket is in the <c>PFMatchmakingTicketStatus::Failed</c> state due to failure to submit a ticket to the
-///     matchmaking service
+///         matchmaking service
 /// ` * The ticket was canceled before it could be submitted to the matchmaking service
 /// </remarks>
 /// <param name="ticket">
@@ -782,8 +785,8 @@ PFMatchmakingTicketSetCustomContext(
 /// located in.
 /// </para>
 /// <para>
-/// This function requires that a previous call to <see cref="PFMultiplayerSetEntityToken()" /> was made to set the
-/// game server entity token.
+/// This function requires that a previous call to <see cref="PFMultiplayerSetEntityToken()" /> was made to set the game
+/// server entity token.
 /// </para>
 /// </remarks>
 /// <param name="handle">
