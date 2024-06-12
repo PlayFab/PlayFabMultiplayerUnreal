@@ -1179,38 +1179,38 @@ void FPlayFabLobby::HandleJoinLobbyCompleted(const PFLobbyJoinLobbyCompletedStat
 		{
 			UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleJoinLobbyCompleted failed to GetOwner for the lobby. ErrorCode=[0x%08x], Error message:%s"), Hr, *GetMultiplayerErrorMessage(Hr));
 		}
-	}
 
-	auto SessionInterface = OSSPlayFab->GetSessionInterfacePlayFab();
-	FNamedOnlineSessionPtr ExistingNamedSession = SessionInterface->GetNamedSessionPtr(*SessionName);
-	ExistingNamedSession->bHosting = false; // you are never hosting when you join
+		auto SessionInterface = OSSPlayFab->GetSessionInterfacePlayFab();
+		FNamedOnlineSessionPtr ExistingNamedSession = SessionInterface->GetNamedSessionPtr(*SessionName);
+		ExistingNamedSession->bHosting = false; // you are never hosting when you join
 
-	const char* LobbyId;
-	HRESULT Hr = PFLobbyGetLobbyId(StateChange.lobby, &LobbyId);
-	if (FAILED(Hr))
-	{
-		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted failed to GetLobbyId: 0x%08x"), Hr);
-	}
+		const char* LobbyId;
+		Hr = PFLobbyGetLobbyId(StateChange.lobby, &LobbyId);
+		if (FAILED(Hr))
+		{
+			UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleJoinLobbyCompleted failed to GetLobbyId: 0x%08x"), Hr);
+		}
 
-	const char* ConnectionString;
-	Hr = PFLobbyGetConnectionString(StateChange.lobby, &ConnectionString);
-	if (FAILED(Hr))
-	{
-		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted failed to GetConnectionString: 0x%08x"), Hr);
-	}
+		const char* ConnectionString;
+		Hr = PFLobbyGetConnectionString(StateChange.lobby, &ConnectionString);
+		if (FAILED(Hr))
+		{
+			UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleJoinLobbyCompleted failed to GetConnectionString: 0x%08x"), Hr);
+		}
 
-	TSharedRef<FOnlineSessionInfoPlayFab> NewSessionInfo = MakeShared<FOnlineSessionInfoPlayFab>();
-	NewSessionInfo->SetSessionId(UTF8_TO_TCHAR(LobbyId));
-	NewSessionInfo->ConnectionString = UTF8_TO_TCHAR(ConnectionString);
-	NewSessionInfo->LobbyHandle = StateChange.lobby;
-	NewSessionInfo->SessionName = *SessionName;
+		TSharedRef<FOnlineSessionInfoPlayFab> NewSessionInfo = MakeShared<FOnlineSessionInfoPlayFab>();
+		NewSessionInfo->SetSessionId(UTF8_TO_TCHAR(LobbyId));
+		NewSessionInfo->ConnectionString = UTF8_TO_TCHAR(ConnectionString);
+		NewSessionInfo->LobbyHandle = StateChange.lobby;
+		NewSessionInfo->SessionName = *SessionName;
 
-	ExistingNamedSession->SessionInfo = NewSessionInfo;
-	ExistingNamedSession->SessionState = EOnlineSessionState::Pending;
+		ExistingNamedSession->SessionInfo = NewSessionInfo;
+		ExistingNamedSession->SessionState = EOnlineSessionState::Pending;
 
 #if defined(OSS_PLAYFAB_GDK)
-	SessionInterface->SetMultiplayerActivityForSession(ExistingNamedSession);
+		SessionInterface->SetMultiplayerActivityForSession(ExistingNamedSession);
 #endif
+	}
 
 	TriggerOnJoinLobbyCompletedDelegates(*SessionName, JoinResult);
 }
