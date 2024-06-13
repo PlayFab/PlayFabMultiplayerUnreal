@@ -110,6 +110,7 @@ private:
 	FString ComposeLobbySearchQueryFilter(const FSearchParams& SearchParams);
 	void BuildSearchKeyMappingTable();
 	bool GetSearchKeyFromSettingMappingTable(const FString& SettingKey, FString& SearchKey, EOnlineKeyValuePairDataType::Type& Type) const;
+	EOnJoinSessionCompleteResult::Type ConvertMultiplayerErrorToJoinSessionResult(HRESULT result);
 
 	// we can eliminate this map if we pass SessionName as asyncIdentifier to lobby calls
 	TMap<PFLobbyHandle, FName> LobbySessionMap;
