@@ -1156,6 +1156,7 @@ void FPlayFabLobby::HandleJoinLobbyCompleted(const PFLobbyJoinLobbyCompletedStat
 	if (FAILED(StateChange.result))
 	{
 		UE_LOG_ONLINE(Error, TEXT("Failed to join lobby. ErrorCode=[0x%08x]"), StateChange.result);
+		JoinResult = ConvertMultiplayerErrorToJoinSessionResult(StateChange.result);
 	}
 	else
 	{
@@ -1327,7 +1328,7 @@ void FPlayFabLobby::HandleOnAddMemberCompleted(const PFLobbyAddMemberCompletedSt
 	}
 	else
 	{
-		Result = EOnJoinSessionCompleteResult::UnknownError;
+		Result = ConvertMultiplayerErrorToJoinSessionResult(StateChange.result);
 		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleOnAddMemberCompleted failed with ErrorCode=[0x%08x], Error message:%s"), StateChange.result, *GetMultiplayerErrorMessage(StateChange.result));
 	}
 	AddLocalPlayerData.RegisterLocalPlayerCompleteDelegate.ExecuteIfBound(*FUniqueNetIdPlayFab::Create(AddLocalPlayerData.PlayerPlatformId), Result);
@@ -1906,4 +1907,19 @@ bool FPlayFabLobby::GetSearchKeyFromSettingMappingTable(const FString& SettingKe
 const TPair<FString, EOnlineKeyValuePairDataType::Type>* FPlayFabLobby::FindSearchKey(const FString& SearchKey) const
 {
 	return SearchKeyMappingTable.Find(SearchKey);
+}
+
+EOnJoinSessionCompleteResult::Type FPlayFabLobby::ConvertMultiplayerErrorToJoinSessionResult(
+	HRESULT result
+)
+{
+	switch (result)
+	{
+	case XBOX_E_LOBBY_NOT_JOINABLE:
+		return EOnJoinSessionCompleteResult::SessionIsFull;
+	case XBOX_E_LOBBY_DOES_NOT_EXIST:
+		return EOnJoinSessionCompleteResult::SessionDoesNotExist;
+	default:
+		return EOnJoinSessionCompleteResult::UnknownError;
+	}
 }
