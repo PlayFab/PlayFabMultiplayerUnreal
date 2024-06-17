@@ -1467,11 +1467,11 @@ bool FOnlineSessionPlayFab::JoinSession(const FUniqueNetId& UserId, FName Sessio
 					{
 						if (FUniqueNetIdPtr SessionId = NativeSessionInterface->CreateSessionIdFromString(SessionIdString))
 						{
-							NativeSessionInterface->FindSessionById(UserId, *SessionId, *CreateNativeNetIdPtr(), TEXT(""), FOnSingleSessionResultCompleteDelegate::CreateLambda([this, &UserId, SessionName, NativeSessionInterface, &bSuccess](int32, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult)
+							bSuccess = NativeSessionInterface->FindSessionById(UserId, *SessionId, *CreateNativeNetIdPtr(), TEXT(""), FOnSingleSessionResultCompleteDelegate::CreateLambda([this, &UserId, SessionName, NativeSessionInterface](int32, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult)
 								{
 									if (bWasSuccessful)
 									{
-										bSuccess = NativeSessionInterface->JoinSession(UserId, NativeSessionName, SearchResult);
+										bool bSuccess = NativeSessionInterface->JoinSession(UserId, NativeSessionName, SearchResult);
 										if (!bSuccess)
 										{
 											UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::JoinSession: Found Playstation native session but failed to join it"));
@@ -1480,7 +1480,6 @@ bool FOnlineSessionPlayFab::JoinSession(const FUniqueNetId& UserId, FName Sessio
 									else
 									{
 										UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::JoinSession: Failed to find native session"));
-										bSuccess = false;
 									}
 								}));
 						}
@@ -2119,7 +2118,7 @@ void FOnlineSessionPlayFab::OnCreateSessionCompleted(FName SessionName, bool bPl
 								OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
 								{
 									OnNativeCreateSessionCompleteDelegateHandle = NativeSessionInterface->AddOnCreateSessionCompleteDelegate_Handle(
-										FOnCreateSessionCompleteDelegate::CreateLambda([this, NativeSessionInterface, &bSuccess, ExistingNamedSession, SessionName](FName CallbackNativeSessionName, bool bNativeSessionCreated)
+										FOnCreateSessionCompleteDelegate::CreateLambda([this, NativeSessionInterface, ExistingNamedSession, SessionName](FName CallbackNativeSessionName, bool bNativeSessionCreated)
 										{
 											if (bNativeSessionCreated == false)
 											{
