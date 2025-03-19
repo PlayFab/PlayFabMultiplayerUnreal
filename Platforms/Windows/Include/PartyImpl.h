@@ -27,13 +27,22 @@ PartyError PartyLocalUser::GetEntityId(
         entityId);
 }
 
+PartyError PartyLocalUser::GetEntityType(
+    _Outptr_ PartyString * entityType
+    ) const party_no_throw
+{
+    return PartyLocalUserGetEntityType(
+        reinterpret_cast<PARTY_LOCAL_USER_HANDLE>(this),
+        entityType);
+}
+
 PartyError PartyLocalUser::UpdateEntityToken(
-    PartyString titlePlayerEntityToken
+    PartyString entityToken
     ) party_no_throw
 {
     return PartyLocalUserUpdateEntityToken(
         reinterpret_cast<PARTY_LOCAL_USER_HANDLE>(this),
-        titlePlayerEntityToken);
+        entityToken);
 }
 
 PartyError PartyLocalUser::GetCustomContext(
@@ -184,6 +193,15 @@ PartyError PartyEndpoint::GetEntityId(
     return PartyEndpointGetEntityId(
         reinterpret_cast<PARTY_ENDPOINT_HANDLE>(this),
         entityId);
+}
+
+PartyError PartyEndpoint::GetEntityType(
+    _Outptr_result_maybenull_ PartyString * entityType
+    ) const party_no_throw
+{
+    return PartyEndpointGetEntityType(
+        reinterpret_cast<PARTY_ENDPOINT_HANDLE>(this),
+        entityType);
 }
 
 PartyError PartyEndpoint::GetSharedProperty(
@@ -529,6 +547,21 @@ PartyError PartyNetwork::GetEndpoints(
 {
     return PartyNetworkGetEndpoints(
         reinterpret_cast<PARTY_NETWORK_HANDLE>(this),
+        endpointCount,
+        const_cast<const PARTY_ENDPOINT_HANDLE **>(reinterpret_cast<const PARTY_ENDPOINT_HANDLE *const*>(endpoints)));
+}
+
+PartyError PartyNetwork::GetEndpointsByUserType(
+    PartyEndpointUserTypeFilter endpointUserTypeFilter,
+    PartyEndpointLocationFilter endpointLocationFilter,
+    _Out_ uint32_t * endpointCount,
+    _Outptr_result_buffer_(*endpointCount) PartyEndpointArray * endpoints
+    ) const party_no_throw
+{
+    return PartyNetworkGetEndpointsByUserType(
+        reinterpret_cast<PARTY_NETWORK_HANDLE>(this),
+        static_cast<PARTY_ENDPOINT_USER_TYPE_FILTER>(endpointUserTypeFilter),
+        static_cast<PARTY_ENDPOINT_LOCATION_FILTER>(endpointLocationFilter),
         endpointCount,
         const_cast<const PARTY_ENDPOINT_HANDLE **>(reinterpret_cast<const PARTY_ENDPOINT_HANDLE *const*>(endpoints)));
 }
@@ -1180,6 +1213,15 @@ PartyError PartyChatControl::GetEntityId(
         entityId);
 }
 
+PartyError PartyChatControl::GetEntityType(
+    _Outptr_ PartyString * entityType
+    ) const party_no_throw
+{
+    return PartyChatControlGetEntityType(
+        reinterpret_cast<PARTY_CHAT_CONTROL_HANDLE>(this),
+        entityType);
+}
+
 PartyError PartyChatControl::GetSharedProperty(
     PartyString key,
     _Out_ PartyDataBuffer * value
@@ -1588,7 +1630,6 @@ PartyError PartyManager::Initialize(
 
     return error;
 }
-
 PartyError PartyManager::Cleanup() party_no_throw
 {
     PartyError error = PartyCleanup(reinterpret_cast<PARTY_HANDLE>(_handle));
@@ -1712,6 +1753,20 @@ PartyError PartyManager::CreateLocalUser(
         const_cast<PARTY_LOCAL_USER_HANDLE *>(reinterpret_cast<const PARTY_LOCAL_USER_HANDLE *>(localUser)));
 }
 
+PartyError PartyManager::CreateLocalUserWithEntityType(
+    PartyString entityId,
+    PartyString entityType,
+    PartyString entityToken,
+    _Outptr_ PartyLocalUser ** localUser
+    ) party_no_throw
+{
+    return PartyCreateLocalUserWithEntityType(
+        reinterpret_cast<PARTY_HANDLE>(_handle),
+        entityId,
+        entityType,
+        entityToken,
+        const_cast<PARTY_LOCAL_USER_HANDLE *>(reinterpret_cast<const PARTY_LOCAL_USER_HANDLE *>(localUser)));
+}
 PartyError PartyManager::DestroyLocalUser(
     const PartyLocalUser * localUser,
     _In_opt_ void * asyncIdentifier
@@ -2031,6 +2086,7 @@ PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_ANY_PLATFORM_TYPE == stati
 PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_SAME_ENTITY_LOGIN_PROVIDER == static_cast<uint32_t>(PartyDirectPeerConnectivityOptions::SameEntityLoginProvider));
 PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_DIFFERENT_ENTITY_LOGIN_PROVIDER == static_cast<uint32_t>(PartyDirectPeerConnectivityOptions::DifferentEntityLoginProvider));
 PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_ANY_ENTITY_LOGIN_PROVIDER == static_cast<uint32_t>(PartyDirectPeerConnectivityOptions::AnyEntityLoginProvider));
+PARTY_C_ASSERT(PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_ONLY_SERVERS == static_cast<uint32_t>(PartyDirectPeerConnectivityOptions::OnlyServers));
 
 PARTY_C_ASSERT(PARTY_DEVICE_CONNECTION_TYPE_RELAY_SERVER == static_cast<uint32_t>(PartyDeviceConnectionType::RelayServer));
 PARTY_C_ASSERT(PARTY_DEVICE_CONNECTION_TYPE_DIRECT_PEER_CONNECTION == static_cast<uint32_t>(PartyDeviceConnectionType::DirectPeerConnection));
@@ -2042,6 +2098,14 @@ PARTY_C_ASSERT(PARTY_CHAT_TEXT_RECEIVED_OPTIONS_FILTERED_DUE_TO_ERROR == static_
 
 PARTY_C_ASSERT(PARTY_REGION_UPDATE_MODE_IMMEDIATE == static_cast<uint32_t>(PartyRegionUpdateMode::Immediate));
 PARTY_C_ASSERT(PARTY_REGION_UPDATE_MODE_DEFERRED == static_cast<uint32_t>(PartyRegionUpdateMode::Deferred));
+
+PARTY_C_ASSERT(PARTY_ENDPOINT_USER_TYPE_FILTER_NO_USER_FILTER == static_cast<uint32_t>(PartyEndpointUserTypeFilter::NoUserFilter));
+PARTY_C_ASSERT(PARTY_ENDPOINT_USER_TYPE_FILTER_PLAYERS == static_cast<uint32_t>(PartyEndpointUserTypeFilter::Players));
+PARTY_C_ASSERT(PARTY_ENDPOINT_USER_TYPE_FILTER_SERVERS == static_cast<uint32_t>(PartyEndpointUserTypeFilter::Servers));
+
+PARTY_C_ASSERT(PARTY_ENDPOINT_LOCATION_FILTER_NO_LOCATION_FILTER == static_cast<uint32_t>(PartyEndpointLocationFilter::NoLocationFilter));
+PARTY_C_ASSERT(PARTY_ENDPOINT_LOCATION_FILTER_LOCAL_ONLY == static_cast<uint32_t>(PartyEndpointLocationFilter::LocalOnly));
+PARTY_C_ASSERT(PARTY_ENDPOINT_LOCATION_FILTER_REMOTE_ONLY == static_cast<uint32_t>(PartyEndpointLocationFilter::RemoteOnly));
 
 PARTY_C_ASSERT(sizeof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION) == sizeof(PartyLocalUdpSocketBindAddressConfiguration));
 PARTY_C_ASSERT(sizeof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION::options) == sizeof(PartyLocalUdpSocketBindAddressConfiguration::options));

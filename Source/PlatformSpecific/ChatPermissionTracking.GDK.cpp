@@ -11,8 +11,6 @@ PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
 #include "OnlineVoiceInterfacePlayFab.h"
 #include "OnlineSessionInterfacePlayFab.h"
 
-#include <GDKUserManager.h>
-
 namespace
 {
 	bool bPartyXblManagerInitialized = false;

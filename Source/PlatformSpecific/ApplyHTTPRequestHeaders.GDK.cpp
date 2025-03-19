@@ -6,7 +6,6 @@
 PRAGMA_DISABLE_UNDEFINED_IDENTIFIER_WARNINGS
 
 #if defined(OSS_PLAYFAB_GDK)
-#include "GDKUserManager.h"
 #include "GDKTaskQueueHelpers.h"
 
 #include "Windows/AllowWindowsPlatformTypes.h"

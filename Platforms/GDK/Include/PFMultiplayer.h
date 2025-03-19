@@ -1,7 +1,6 @@
 #pragma once
 
 #include <PFEntityKey.h>
-
 #ifndef __cplusplus
 #error "This header requires C++"
 #endif // end if not defined __cplusplus
@@ -162,8 +161,7 @@ PFMULTIPLAYER_API
 PFMultiplayerSetMemoryCallbacks(
     _In_ PFMultiplayerAllocateMemoryCallback allocateMemoryCallback,
     _In_ PFMultiplayerFreeMemoryCallback freeMemoryCallback
-    ) noexcept;
-
+) noexcept;
 /// <summary>
 /// Optionally configures the processor on which internal Multiplayer library threads will run.
 /// </summary>
@@ -242,7 +240,6 @@ PFMultiplayerInitialize(
     _Null_terminated_ const char * playFabTitleId,
     _Outptr_ PFMultiplayerHandle * handle
     ) noexcept;
-
 /// <summary>
 /// Immediately reclaims all resources associated with all Multiplayer library objects.
 /// </summary>

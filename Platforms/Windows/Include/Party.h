@@ -101,10 +101,10 @@ typedef class PartyLocalUser * const * PartyLocalUserArray;
 /// The maximum allowed value for <see cref="PartyNetworkConfiguration::maxDeviceCount" />.
 /// </summary>
 /// <seealso cref="PartyNetworkConfiguration" />
-constexpr uint32_t c_maxNetworkConfigurationMaxDeviceCount = 32;
+constexpr uint32_t c_maxNetworkConfigurationMaxDeviceCount = 128;
 
 /// <summary>
-/// The default maximum number of direct peer connections that individual devices attempt to establish.
+/// The default maximum number of direct peer connections that individual player devices attempt to establish.
 /// </summary>
 /// <remarks>
 /// When successfully authenticating an initial local user into a network with a
@@ -116,13 +116,18 @@ constexpr uint32_t c_maxNetworkConfigurationMaxDeviceCount = 32;
 /// remote devices, it simply defines the number of opportunities for endpoint messages and chat data between the
 /// devices to be transmitted using those direct connections instead of via transparent cloud relay servers.
 /// <para>
-/// You can determine whether the local device actually established a direct peer-to-peer connection to a specific
-/// remote device in a network by calling <see cref="PartyNetwork::GetDeviceConnectionType()" />.
+/// This is the default maximum value for devices that are authenticating a local user representing a
+/// `title_player_account` PlayFab entity type. Devices authenticating a local user representing a `game_server` PlayFab
+/// entity type do not have a direct peer connection limit when using default settings.
 /// </para>
 /// <para>
-/// To override this value, call <see cref="PartyManager::SetOption" /> passing null for the object parameter,
-/// <see cref="PartyOption::LocalDeviceMaxDirectPeerConnections" /> value for the option parameter, and an optional
-/// pointer to a uint32_t variable for the value.
+/// To override this value regardless of PlayFab entity type, call <see cref="PartyManager::SetOption" /> passing null
+/// for the object parameter, <see cref="PartyOption::LocalDeviceMaxDirectPeerConnections" /> value for the option
+/// parameter, and an optional pointer to a uint32_t variable for the value.
+/// </para>
+/// <para>
+/// You can determine whether the local device actually established a direct peer-to-peer connection to a specific
+/// remote device in a network by calling <see cref="PartyNetwork::GetDeviceConnectionType()" />.
 /// </para>
 /// </remarks>
 /// <seealso cref="PartyDirectPeerConnectivityOptions" />
@@ -137,9 +142,11 @@ constexpr uint32_t c_maxDirectPeerConnectionsPerDevice = 7;
 constexpr uint32_t c_maxNetworkConfigurationMaxEndpointsPerDeviceCount = 32;
 
 /// <summary>
-/// The maximum number of local users that can be created with <see cref="PartyManager::CreateLocalUser()" />.
+/// The maximum number of local users that can be created with <see cref="PartyManager::CreateLocalUser()" /> or
+/// <see cref="PartyManager::CreateLocalUserWithEntityType()" />.
 /// </summary>
 /// <seealso cref="PartyManager::CreateLocalUser" />
+/// <seealso cref="PartyManager::CreateLocalUserWithEntityType" />
 constexpr uint32_t c_maxLocalUsersPerDeviceCount = 8;
 
 /// <summary>
@@ -1024,13 +1031,14 @@ enum class PartyOption : uint32_t
     /// of the relevant form, either device can unilaterally opt out of the IP address disclosure and direct connection
     /// attempts between them by not enabling the flag when overriding this option.
     /// <para>
-    /// Direct peer connectivity is supported for the Windows 10 and Microsoft Game Core versions of the library. On
-    /// those platforms, the default value for the local device mask when not yet set is
-    /// <c>PartyDirectPeerConnectivityOptions::AnyPlatformType |
-    /// PartyDirectPeerConnectivityOptions::AnyEntityLoginProvider</c>. This means that such devices don't restrict any
-    /// direct peer connectivity permitted by a network's <see cref="PartyNetworkConfiguration" /> until explicitly
-    /// overridden to be less permissive. For all other versions of the library, the default value for the local device
-    /// mask is <c>PartyDirectPeerConnectivityOptions::None</c> and cannot be changed; attempting to change it via
+    /// Direct peer connectivity is supported for the Windows, Microsoft Game Core, PlayStationÂ®, Switch, Linux, and
+    /// macOS versions of the library. On those platforms, the default value for the local device mask when not yet set
+    /// is <c>PartyDirectPeerConnectivityOptions::AnyPlatformType |
+    /// PartyDirectPeerConnectivityOptions::AnyEntityLoginProvider |
+    /// PartyDirectPeerConnectivityOptions::OnlyServers</c>. This means that such devices don't restrict any direct peer
+    /// connectivity permitted by a network's <see cref="PartyNetworkConfiguration" /> until explicitly overridden to be
+    /// less permissive. For all other versions of the library, the default value for the local device mask is
+    /// <c>PartyDirectPeerConnectivityOptions::None</c> and cannot be changed; attempting to change it via
     /// <see cref="PartyManager::SetOption" /> will fail. This means that such devices will never attempt direct peer
     /// connectivity.
     /// </para>
@@ -1049,7 +1057,7 @@ enum class PartyOption : uint32_t
     /// It's recommended to override or query this option when not connected to any networks. The configured value takes
     /// effect the next time this device authenticates an initial user into a new network. It doesn't alter the settings
     /// already being used to participate in any existing networks. Similarly, querying retrieves the currently
-    /// configured value that will be used with future networks, and not the value used with existing networks.
+    /// configured value that will be used with future networks, and not the value(s) used with existing networks.
     /// </para>
     /// <para>
     /// It's also safe to override or query for this option prior to initializing the Party library.
@@ -1105,9 +1113,15 @@ enum class PartyOption : uint32_t
     /// remote device in a network by calling <see cref="PartyNetwork::GetDeviceConnectionType()" />.
     /// </para>
     /// <para>
-    /// To override this value, call <see cref="PartyManager::SetOption" /> passing null for the object parameter,
-    /// this value for the option parameter, and an optional pointer to a uint32_t variable for the value. If a null
-    /// uint32_t pointer is provided, the default value is restored.
+    /// The default value for this option is <c>c_maxDirectPeerConnectionsPerDevice</c>, though when using the default
+    /// settings, the value only applies when authenticating a local user with a PlayFab entity type of
+    /// `title_player_account`. When instead authenticating a local user with a PlayFab entity type of `game_server`
+    /// with the default option configuration, there is no maximum number of direct peer connections.
+    /// </para>
+    /// <para>
+    /// To override this value regardless of PlayFab entity type, call <see cref="PartyManager::SetOption" /> passing
+    /// null for the object parameter, this value for the option parameter, and an optional pointer to a uint32_t
+    /// variable for the value. If a null uint32_t pointer is provided, the default value and behavior is restored.
     /// </para>
     /// <para>
     /// To query this option, call <see cref="PartyManager::GetOption" /> passing null for the object parameter, this
@@ -1637,10 +1651,10 @@ enum class PartyNetworkStatistic
     /// calls but doesn't necessarily have a one-to-one correspondence with them because multiple small messages may be
     /// coalesced together into a single packet, or a large message may be fragmented into multiple packets depending on
     /// configuration and environmental factors. Further, packets may be used to carry chat or other internal library
-    /// functionality (e.g., API operation support messages, protocol acknowledgements or retries) on behalf of the
-    /// application without an explicit PartyLocalEndpoint::SendMessage() call.
+    /// functionality (for example, API operation support messages, protocol acknowledgments or retries) on behalf of
+    /// the application without an explicit PartyLocalEndpoint::SendMessage() call.
     /// <para>
-    /// This statistic does not include any packets generated for HTTP web client operations that are used internally by
+    /// This statistic doesn't include any packets generated for HTTP web client operations that are used internally by
     /// the Party library for some aspects of authentication, management transactions, speech-to-text transcription, and
     /// text-to-speech synthesis.
     /// </para>
@@ -1653,15 +1667,15 @@ enum class PartyNetworkStatistic
     /// <remarks>
     /// This statistic represents the total number of bytes in internal protocol packets transmitted by the local device
     /// for any network reason. This size includes <see cref="PartyLocalEndpoint::SendMessage()" /> payloads but also
-    /// their internal protocol overhead, as well as any chat or other internal library functionality needed (e.g., API
-    /// operation support messages, protocol acknowledgements or retries) on behalf of the application without an
-    /// explicit PartyLocalEndpoint::SendMessage() call.
+    /// their internal protocol overhead, as well as any chat or other internal library functionality needed (for
+    /// example, API operation support messages, protocol acknowledgments or retries) on behalf of the application
+    /// without an explicit PartyLocalEndpoint::SendMessage() call.
     /// <para>
-    /// The reported value does not include the packet overhead for Internet protocols (e.g., UDP, IP) or that of lower
-    /// level media over which the Party library internal protocol operates.
+    /// The reported value doesn't include the packet overhead for Internet protocols (for example, UDP, IP) or that of
+    /// lower level media over which the Party library internal protocol operates.
     /// </para>
     /// <para>
-    /// This statistic does not include the sizes of any packets generated for HTTP web client operations that are used
+    /// This statistic doesn't include the sizes of any packets generated for HTTP web client operations that are used
     /// internally by the Party library for some aspects of authentication, management transactions, speech-to-text
     /// transcription, and text-to-speech synthesis.
     /// </para>
@@ -1669,7 +1683,7 @@ enum class PartyNetworkStatistic
     SentProtocolBytes = 2,
 
     /// <summary>
-    /// The total number of internal protocol packets ever re-transmitted to remote devices as part of this network.
+    /// The total number of internal protocol packets ever retransmitted to remote devices as part of this network.
     /// </summary>
     /// <remarks>
     /// This statistic represents the total number of internal protocol packet retransmissions by the local device due
@@ -1677,7 +1691,7 @@ enum class PartyNetworkStatistic
     /// contain application messages sent with <see cref="PartySendMessageOptions::GuaranteedDelivery" /> or internal
     /// library messages with similar delivery requirements.
     /// <para>
-    /// This statistic does not include any retries of packets generated for HTTP web client operations that are used
+    /// This statistic doesn't include any retries of packets generated for HTTP web client operations that are used
     /// internally by the Party library for some aspects of authentication, management transactions, speech-to-text
     /// transcription, and text-to-speech synthesis.
     /// </para>
@@ -1685,7 +1699,7 @@ enum class PartyNetworkStatistic
     RetriedProtocolPackets = 3,
 
     /// <summary>
-    /// The total number of internal protocol bytes ever re-transmitted to remote devices as part of this network.
+    /// The total number of internal protocol bytes ever retransmitted to remote devices as part of this network.
     /// </summary>
     /// <remarks>
     /// This statistic represents the total number of bytes in internal protocol packet retransmissions by the local
@@ -1693,11 +1707,11 @@ enum class PartyNetworkStatistic
     /// messages sent with <see cref="PartySendMessageOptions::GuaranteedDelivery" /> or internal library messages with
     /// similar delivery requirements.
     /// <para>
-    /// The reported value does not include the retried packet overhead for Internet protocols (e.g., UDP, IP) or that
-    /// of lower level media over which the Party library internal protocol operates.
+    /// The reported value doesn't include the retried packet overhead for Internet protocols (for example, UDP, IP) or
+    /// that of lower level media over which the Party library internal protocol operates.
     /// </para>
     /// <para>
-    /// This statistic does not include the sizes of any retried packets generated for HTTP web client operations that
+    /// This statistic doesn't include the sizes of any retried packets generated for HTTP web client operations that
     /// are used internally by the Party library for some aspects of authentication, management transactions,
     /// speech-to-text transcription, and text-to-speech synthesis.
     /// </para>
@@ -1715,7 +1729,7 @@ enum class PartyNetworkStatistic
     /// <em>RetriedProtocolPackets</em>).
     /// </para>
     /// <para>
-    /// This statistic does not include any dropped packets that were generated for HTTP web client operations used
+    /// This statistic doesn't include any dropped packets that were generated for HTTP web client operations used
     /// internally by the Party library for some aspects of authentication, management transactions, speech-to-text
     /// transcription, and text-to-speech synthesis.
     /// </para>
@@ -1727,14 +1741,14 @@ enum class PartyNetworkStatistic
     /// </summary>
     /// <remarks>
     /// This statistic represents the total number of internal protocol packets received by the local device for any
-    /// network reason, which does not have a one-to-one correspondence with
+    /// network reason, which doesn't have a one-to-one correspondence with
     /// <see cref="PartyEndpointMessageReceivedStateChange" />s. Multiple small messages may be coalesced together into
     /// a single packet, or a large message may be fragmented into multiple packets depending on configuration and
-    /// environmental factors. Further, packets may be used to carry chat or other internal library functionality (e.g.,
-    /// API operation support messages, protocol acknowledgements or retries) on behalf of the application without an
-    /// explicit <see cref="PartyLocalEndpoint::SendMessage()" /> call.
+    /// environmental factors. Further, packets may be used to carry chat or other internal library functionality (for
+    /// example, API operation support messages, protocol acknowledgments or retries) on behalf of the application
+    /// without an explicit <see cref="PartyLocalEndpoint::SendMessage()" /> call.
     /// <para>
-    /// This statistic does not include any packets received as part of HTTP web client operations that are used
+    /// This statistic doesn't include any packets received as part of HTTP web client operations that are used
     /// internally by the Party library for some aspects of authentication, management transactions, speech-to-text
     /// transcription, and text-to-speech synthesis.
     /// </para>
@@ -1747,11 +1761,11 @@ enum class PartyNetworkStatistic
     /// <remarks>
     /// This statistic represents the total number of bytes in internal protocol packets received by the local device
     /// for any network reason. This size includes <see cref="PartyEndpointMessageReceivedStateChange" /> payloads but
-    /// also their internal protocol overhead, as well as any chat or other internal library functionality needed (e.g.,
-    /// API operation support messages, protocol acknowledgements or retries).
+    /// also their internal protocol overhead, as well as any chat or other internal library functionality needed (for
+    /// example, API operation support messages, protocol acknowledgments or retries).
     /// <para>
-    /// The reported value does not include the packet overhead for Internet protocols (e.g., UDP, IP) or that of lower
-    /// level media over which the Party library internal protocol operates.
+    /// The reported value does not include the packet overhead for Internet protocols (for example, UDP, IP) or that of
+    /// lower level media over which the Party library internal protocol operates.
     /// </para>
     /// <para>
     /// This statistic does not include the sizes of any packets received as part of HTTP web client operations that are
@@ -2716,8 +2730,8 @@ enum class PartyVoiceAudioOptions : uint32_t
     /// <remarks>
     /// This option is only supported on iOS and Android. Using this option on any other platform will fail.
     /// <para>
-    /// Enabling noise suppression eliminates noise captured from the local chat control
-    /// to be transmitted to remote chat controls.
+    /// Enabling noise suppression eliminates noise captured from the local chat control to be transmitted to remote
+    /// chat controls.
     /// </para>
     /// <para>
     /// Using this option requires packaging inside your application the model file named
@@ -2785,24 +2799,25 @@ DEFINE_ENUM_FLAG_OPERATORS(PartyLocalUdpSocketBindAddressOptions);
 /// flags may optionally be further constrained by a device for all networks into which it authenticates by using
 /// <see cref="PartyManager::SetOption()" /> to set
 /// <see cref="PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask" />. All flags are evaluated using a bitwise
-/// AND operation. That is, a particular flag is actually only in effect for a given network's pair of devices if it's
-/// enabled in three places: the network's <see cref="PartyNetworkConfiguration" /> structure, and <em>both</em>
-/// devices' respective local mask options. Even if the Party network permits direct peer connectivity of the relevant
-/// form, either device can unilaterally opt out of the IP address disclosure and direct connection attempts between
-/// them by not enabling the flag. The <see cref="PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask" /> value
-/// defaults to permitting all direct peer connections enabled by networks, so you only need to configure it if you have
+/// AND operation. That is, a particular flag is only in effect for a given network's pair of devices if it's enabled in
+/// three places: the network's <see cref="PartyNetworkConfiguration" /> structure, and <em>both</em> devices'
+/// respective local mask options. Even if the Party network permits direct peer connectivity of the relevant form,
+/// either device can unilaterally opt out of the IP address disclosure and direct connection attempts between them by
+/// not enabling the flag. The <see cref="PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask" /> value defaults
+/// to permitting all direct peer connections enabled by networks, so you only need to configure it if you have
 /// device-specific requirements to prevent some or all direct peer connectivity involving it.
 /// </para>
 /// <para>
 /// To avoid excessive resource consumption, the Party library will also internally prevent any given device from
-/// attempting to establish more than <c>c_maxDirectPeerConnectionsPerDevice</c> direct peer connections across all
-/// networks in which it's currently participating, even if permitted by these flags. This doesn't affect the device's
-/// ability to participate in large or multiple networks with additional remote devices. Communication with additional
-/// devices will simply be transmitted via transparent cloud relay servers.
+/// attempting to establish more than a configured maximum number of direct peer connections across all networks in
+/// which it's currently participating, even if permitted by these flags. This doesn't affect the device's ability to
+/// participate in large or multiple networks with more remote devices. Communication with extra devices will simply be
+/// transmitted via transparent cloud relay servers. To modify that maximum number of direct peer connections, use
+/// <see cref="PartyManager::SetOption()" /> to set <see cref="PartyOption::LocalDeviceMaxDirectPeerConnections" />.
 /// </para>
 /// <para>
 /// It's recommended that you don't actively enforce the availability of a direct peer-to-peer connection for any given
-/// pair of devices (i.e., don't call <see cref="PartyNetwork::LeaveNetwork()" /> if
+/// pair of devices (that is, don't call <see cref="PartyNetwork::LeaveNetwork()" /> if
 /// <see cref="PartyNetwork::GetDeviceConnectionType()" /> reports a value other than
 /// <see cref="PartyDeviceConnectionType::DirectPeerConnection" />) since the specific underlying transmission method in
 /// use doesn't alter the overall logical ability to communicate. If your game design has stringent requirements for
@@ -2836,12 +2851,17 @@ enum class PartyDirectPeerConnectivityOptions : int32_t
     /// </summary>
     /// <remarks>
     /// A pair of devices will attempt to establish direct peer-to-peer connections if they're identified as having the
-    /// same type of hardware and/or OS platform (e.g., Windows PCs, Xbox gaming consoles, iOS-based mobile devices)
-    /// associated with the specific Party library they use.
+    /// same type of hardware and/or OS platform (for example, Windows PCs, Xbox gaming consoles, iOS-based mobile
+    /// devices) associated with the specific Party library they use.
     /// <para>
-    /// Note that this flag does not permit any direct peer-to-peer connectivity attempts by itself. It must be combined
+    /// Note that this flag doesn't permit any direct peer-to-peer connectivity attempts by itself. It must be combined
     /// with one or both of the <c>SameEntityLoginProvider</c> and <c>DifferentEntityLoginProvider</c> flags.
+    /// </para>
     /// <para>
+    /// This flag can't be combined with the <c>OnlyServers</c> flag in the <see cref="PartyNetworkConfiguration" />
+    /// structure. It may be combined with <c>OnlyServers</c> as part of the
+    /// <see cref="PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask" /> value.
+    /// </para>
     /// </remarks>
     SamePlatformType = 0x1,
 
@@ -2850,12 +2870,17 @@ enum class PartyDirectPeerConnectivityOptions : int32_t
     /// </summary>
     /// <remarks>
     /// A pair of devices will attempt to establish direct peer-to-peer connections if they're identified as having
-    /// different types of hardware and/or OS platforms (e.g., Windows PCs, Xbox gaming consoles, iOS-based mobile
-    /// devices) associated with the specific Party libraries each device uses.
+    /// different types of hardware and/or OS platforms (for example, Windows PCs, Xbox gaming consoles, iOS-based
+    /// mobile devices) associated with the specific Party libraries each device uses.
     /// <para>
-    /// Note that this flag does not permit any direct peer-to-peer connectivity attempts by itself. It must be combined
+    /// Note that this flag doesn't permit any direct peer-to-peer connectivity attempts by itself. It must be combined
     /// with one or both of the <c>SameEntityLoginProvider</c> and <c>DifferentEntityLoginProvider</c> flags.
+    /// </para>
     /// <para>
+    /// This flag can't be combined with the <c>OnlyServers</c> flag in the <see cref="PartyNetworkConfiguration" />
+    /// structure. It may be combined with <c>OnlyServers</c> as part of the
+    /// <see cref="PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask" /> value.
+    /// </para>
     /// </remarks>
     DifferentPlatformType = 0x2,
 
@@ -2874,10 +2899,15 @@ enum class PartyDirectPeerConnectivityOptions : int32_t
     /// <remarks>
     /// A device that's initially authenticating a local user into the network will attempt to establish direct peer-to-
     /// peer connections with remote devices that have at least one authenticated user PlayFab Entity ID that was logged
-    /// in using the same provider (e.g., Xbox Live, Facebook, iOS, Google) as the newly authenticating user.
+    /// in using the same provider (for example, Xbox Live, Facebook, iOS, Google) as the newly authenticating user.
     /// <para>
-    /// Note that this flag does not permit any direct peer-to-peer connectivity attempts by itself. It must be combined
+    /// Note that this flag doesn't permit any direct peer-to-peer connectivity attempts by itself. It must be combined
     /// with one or both of the <c>SamePlatformType</c> and <c>DifferentPlatformType</c> flags.
+    /// </para>
+    /// <para>
+    /// This flag can't be combined with the <c>OnlyServers</c> flag in the <see cref="PartyNetworkConfiguration" />
+    /// structure. It may be combined with <c>OnlyServers</c> as part of the
+    /// <see cref="PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask" /> value.
     /// <para>
     /// </remarks>
     SameEntityLoginProvider = 0x4,
@@ -2888,12 +2918,17 @@ enum class PartyDirectPeerConnectivityOptions : int32_t
     /// </summary>
     /// <remarks>
     /// A device that's initially authenticating a local user into the network will attempt to establish direct peer-to-
-    /// peer connections with remote devices that do not have any authenticated user PlayFab Entity IDs that were logged
-    /// in using the same provider (e.g., Xbox Live, Facebook, iOS, Google) as the newly authenticating user.
+    /// peer connections with remote devices that don't have any authenticated user PlayFab Entity IDs that were logged
+    /// in using the same provider (for example, Xbox Live, Facebook, iOS, Google) as the newly authenticating user.
     /// <para>
-    /// Note that this flag does not permit any direct peer-to-peer connectivity attempts by itself. It must be combined
+    /// Note that this flag doesn't permit any direct peer-to-peer connectivity attempts by itself. It must be combined
     /// with one or both of the <c>SamePlatformType</c> and <c>DifferentPlatformType</c> flags.
+    /// </para>
     /// <para>
+    /// This flag can't be combined with the <c>OnlyServers</c> flag in the <see cref="PartyNetworkConfiguration" />
+    /// structure. It may be combined with <c>OnlyServers</c> as part of the
+    /// <see cref="PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask" /> value.
+    /// </para>
     /// </remarks>
     DifferentEntityLoginProvider = 0x8,
 
@@ -2905,6 +2940,25 @@ enum class PartyDirectPeerConnectivityOptions : int32_t
     /// This flag is equivalent to <c>SameEntityLoginProvider | DifferentEntityLoginProvider</c>.
     /// </remarks>
     AnyEntityLoginProvider = SameEntityLoginProvider | DifferentEntityLoginProvider,
+
+    /// <summary>
+    /// Direct peer-to-peer connections may be attempted between devices if at least one of the devices has an
+    /// authenticated user with a PlayFab Entity type of `game_server`.
+    /// </summary>
+    /// <remarks>
+    /// A device that's initially authenticating a local user into the network will attempt to establish direct peer-to-
+    /// peer connections with remote devices if either the local user or a user on the remote device is a `game_server`
+    /// PlayFab Entity type, as specified to <see cref="PartyManager::CreateLocalUserWithEntityType()" />. In other
+    /// words, players' devices will never connect directly to one another, only to server devices. Server devices will
+    /// attempt to connect directly to all player and other server devices.
+    /// <para>
+    /// This flag can't be combined with any of the <c>SamePlatformType</c>, <c>DifferentPlatformType</c>,
+    /// <c>SameEntityLoginProvider</c>, or <c>DifferentEntityLoginProvider</c> flags in the
+    /// <see cref="PartyNetworkConfiguration" /> structure. It may be combined with those flags as part of the
+    /// <see cref="PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask" /> value.
+    /// </para>
+    /// </remarks>
+    OnlyServers = 0x10,
 };
 
 DEFINE_ENUM_FLAG_OPERATORS(PartyDirectPeerConnectivityOptions);
@@ -2969,8 +3023,8 @@ enum class PartyChatTextReceivedOptions
 DEFINE_ENUM_FLAG_OPERATORS(PartyChatTextReceivedOptions);
 
 /// <summary>
-/// Configuration modes representing how the Party library performs automatic region discovery and connection
-/// quality measurement as part of the <see cref="PartyRegionUpdateConfiguration" /> structure.
+/// Configuration modes representing how the Party library performs automatic region discovery and connection quality
+/// measurement as part of the <see cref="PartyRegionUpdateConfiguration" /> structure.
 /// </summary>
 /// <seealso cref="PartyOption::RegionUpdateConfiguration" />
 /// <seealso cref="PartyRegionUpdateConfiguration" />
@@ -2994,9 +3048,9 @@ enum class PartyRegionUpdateMode
     /// The Party library automatically discovers the available regions and measures connection quality to them when
     /// PartyManager::Initialize() is first invoked.
     /// <para>
-    /// The Party library also periodically refreshes the list and quality measurements until PartyManager::Cleanup()
-    /// is called. If already connected or in the process of connecting to an existing Party network, then refreshing
-    /// is delayed until disconnected from all Party networks. The periodic refresh interval can be configured using the
+    /// The Party library also periodically refreshes the list and quality measurements until PartyManager::Cleanup() is
+    /// called. If already connected or in the process of connecting to an existing Party network, then refreshing is
+    /// delayed until disconnected from all Party networks. The periodic refresh interval can be configured using the
     /// <em>refreshIntervalInSeconds</em> field in the containing <see cref="PartyRegionUpdateConfiguration" />
     /// structure.
     /// </para>
@@ -3047,6 +3101,60 @@ enum class PartyRegionUpdateMode
 };
 
 /// <summary>
+/// Categories of users associated with endpoints that can be used to filter the results returned by
+/// PartyNetwork::GetEndpointsByUserType().
+/// </summary>
+/// <seealso cref="PartyNetwork::GetEndpointsByUserType" />
+enum class PartyEndpointUserTypeFilter
+{
+    /// <summary>
+    /// Retrieve all endpoints, regardless of associated user.
+    /// </summary>
+    NoUserFilter = 0,
+
+    /// <summary>
+    /// Retrieve only endpoints created by "title_player_account" entity type users.
+    /// </summary>
+    /// <remarks>
+    /// Endpoints created by users of other entity types and endpoints with no associated user are not included in the
+    /// retrieved array.
+    /// </remarks>
+    Players = 1,
+
+    /// <summary>
+    /// Retrieve only endpoints created by "game_server" entity type users.
+    /// </summary>
+    /// <remarks>
+    /// Endpoints created by users of other entity types and endpoints with no associated user are not included in the
+    /// retrieved array.
+    /// </remarks>
+    Servers = 2,
+};
+
+/// <summary>
+/// Categories of owning device locations of endpoints that can be used to filter the results returned by
+/// PartyNetwork::GetEndpointsByUserType().
+/// </summary>
+/// <seealso cref="PartyNetwork::GetEndpointsByUserType" />
+enum class PartyEndpointLocationFilter
+{
+    /// <summary>
+    /// Retrieve matching endpoints created by any device, whether local or remote.
+    /// </summary>
+    NoLocationFilter = 0,
+
+    /// <summary>
+    /// Retrieve only matching endpoints created by the local device.
+    /// </summary>
+    LocalOnly = 1,
+
+    /// <summary>
+    /// Retrieve only matching endpoints created by remote devices.
+    /// </summary>
+    RemoteOnly = 2,
+};
+
+/// <summary>
 /// The configuration used by the Party library to bind to a UDP socket.
 /// </summary>
 /// <remarks>
@@ -3076,8 +3184,8 @@ struct PartyLocalUdpSocketBindAddressConfiguration
     /// library lets the system dynamically select a port that's available on all local IP address interfaces.
     /// <para>
     /// If this port value can't be bound when the Party library is initialized,
-    /// <see cref="PartyManager::Initialize()" /> synchronously returns an error. The human-readable form of the
-    /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
+    /// <see cref="PartyManager::Initialize()" /> synchronously returns an error. The human-readable form of the error
+    /// code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
     /// </para>
     /// <para>
     /// The port should be specified in native host byte order. If your application also directly uses or is porting
@@ -3096,8 +3204,8 @@ struct PartyLocalUdpSocketBindAddressConfiguration
 /// quality measurement updates.
 /// </summary>
 /// <remarks>
-/// This structure can be used together with <see cref="PartyOption::RegionUpdateConfiguration" /> to either override
-/// or query the Party library's current configuration via <see cref="PartyManager::SetOption()" /> or
+/// This structure can be used together with <see cref="PartyOption::RegionUpdateConfiguration" /> to either override or
+/// query the Party library's current configuration via <see cref="PartyManager::SetOption()" /> or
 /// <see cref="PartyManager::GetOption()" /> respectively. It configures the behavior of the region discovery and
 /// connection quality measurement process that produces <see cref="PartyRegionsChangedStateChange" /> state changes.
 /// </remarks>
@@ -3129,8 +3237,8 @@ struct PartyRegionUpdateConfiguration
     /// Becoming eligible for a refresh doesn't guarantee that the refresh begins at that exact time. If the
     /// <em>mode</em> field is set to <see cref="PartyRegionUpdateMode::Deferred" />, the next refresh doesn't happen
     /// until one of the applicable methods is called to trigger a region update. The library also waits until the local
-    /// device is no longer in any Party networks and applies a small amount of randomized delay to try to avoid
-    /// PlayFab service load from multiple, unintentionally synchronized devices.
+    /// device is no longer in any Party networks and applies a small amount of randomized delay to try to avoid PlayFab
+    /// service load from multiple, unintentionally synchronized devices.
     /// </para>
     /// <para>
     /// The default value is 28800 (8 hours) when <see cref="PartyOption::RegionUpdateConfiguration" /> hasn't been
@@ -3176,8 +3284,8 @@ struct PartyRegionQualityMeasurementConfiguration
     /// <para>
     /// Applications should typically define this timeout in terms of user experience goals/worst cases rather than
     /// attempting to derive some number based on technical assumptions. The exact amount of time required to measure
-    /// any given region or all regions can vary greatly depending on factors like the number of available regions,
-    /// the current networking environment conditions, the Party library's dynamically tuned timeouts based on observed
+    /// any given region or all regions can vary greatly depending on factors like the number of available regions, the
+    /// current networking environment conditions, the Party library's dynamically tuned timeouts based on observed
     /// latency, and more.
     /// </para>
     /// <para>
@@ -3189,8 +3297,8 @@ struct PartyRegionQualityMeasurementConfiguration
     /// to increase slightly over time as more regions are introduced.
     /// </para>
     /// <para>
-    /// The default value is 15000 (15 seconds) when
-    /// <see cref="PartyOption::RegionQualityMeasurementConfiguration" /> hasn't been configured.
+    /// The default value is 15000 (15 seconds) when <see cref="PartyOption::RegionQualityMeasurementConfiguration" />
+    /// hasn't been configured.
     /// </para>
     /// <para>
     /// A value of zero means there's no timeout, and all measurements are therefore allowed to complete regardless of
@@ -3257,9 +3365,9 @@ struct PartyRegionQualityMeasurementConfiguration
     /// the <em>minRequiredSuccessfulResponses</em> field. The Party library only attempts to obtain the additional
     /// response count difference between the minimum and this ideal value for a region if that region was already
     /// measured to have a median latency less than or equal to the threshold configured in the
-    /// <em>highLatencyHintInMilliseconds</em> field. This field's ideal number of responses allows continuing to
-    /// refine measurement accuracy for regions likely to be of more value to the local device without also spending
-    /// that additional time for the higher latency regions.
+    /// <em>highLatencyHintInMilliseconds</em> field. This field's ideal number of responses allows continuing to refine
+    /// measurement accuracy for regions likely to be of more value to the local device without also spending that
+    /// additional time for the higher latency regions.
     /// <para>
     /// If the minimum number of responses for a region wasn't obtained, then this additional ideal target isn't
     /// attempted. Otherwise, if the <em>maxTimeoutsAfterResponse</em> limit for the region is reached or the overall
@@ -3374,7 +3482,10 @@ struct PartyNetworkConfiguration
     /// The maximum number of devices allowed to connect to the network.
     /// </summary>
     /// <remarks>
-    /// This value must be between 1 and <c>c_maxNetworkConfigurationMaxDeviceCount</c> inclusive.
+    /// PlayFab Party networks can scale to support anywhere between 2 and 128 devices. The service will choose 
+    /// a network relay configuration optimized for your scenario, so it's important to configure the 
+    /// <c>maxDeviceCount</c> in <c>PartyNetworkConfiguration</c> to match the max expected number of devices
+    /// in your network.
     /// <para>
     /// If a client would violate this limit by calling <see cref="PartyManager::ConnectToNetwork()" />, the operation
     /// will fail asynchronously and <see cref="PartyConnectToNetworkCompletedStateChange::result" /> will be set to
@@ -3461,10 +3572,12 @@ struct PartyNetworkConfiguration
     /// </para>
     /// <para>
     /// To avoid excessive resource consumption, the Party library will also internally prevent any given device from
-    /// attempting to establish more than <c>c_maxDirectPeerConnectionsPerDevice</c> direct peer connections across all
-    /// networks in which it's currently participating, even if permitted by these flags. This doesn't affect the
-    /// device's ability to participate in large or multiple networks with additional remote devices. Communication with
-    /// additional devices will simply be transmitted via transparent cloud relay servers.
+    /// attempting to establish more than a configured maximum number of direct peer connections across all networks in
+    /// which it's currently participating, even if permitted by these flags. This doesn't affect the device's ability
+    /// to participate in large or multiple networks with additional remote devices. Communication with additional
+    /// devices will simply be transmitted via transparent cloud relay servers. To modify that maximum number of direct
+    /// peer connections, use <see cref="PartyManager::SetOption()" /> to set
+    /// <see cref="PartyOption::LocalDeviceMaxDirectPeerConnections" />.
     /// </para>
     /// <para>
     /// It's recommended that you don't actively enforce the availability of a direct peer-to-peer connection for any
@@ -3699,8 +3812,8 @@ struct PartyTranslation
     /// Indicates whether the translation operation succeeded.
     /// </summary>
     /// <remarks>
-    /// On success, <c>translation</c> is a string of nonzero length containing the translated text. On failure,
-    /// the string is empty.
+    /// On success, <c>translation</c> is a string of nonzero length containing the translated text. On failure, the
+    /// string is empty.
     /// </remarks>
     PartyStateChangeResult result;
 
@@ -3717,8 +3830,8 @@ struct PartyTranslation
     /// The language code of the translation.
     /// </summary>
     /// <remarks>
-    /// The language code is in BCP 47 format, such as en-US for English (United States). Supported language codes
-    /// are enumerated in
+    /// The language code is in BCP 47 format, such as en-US for English (United States). Supported language codes are
+    /// enumerated in
     /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />.
     /// </remarks>
     PartyString languageCode;
@@ -3889,8 +4002,8 @@ struct PartyStateChange
 /// <see cref="PartyLocalChatControl::SetTextToSpeechProfile()" />, or
 /// <see cref="PartyLocalChatControl::SetTranscriptionOptions()" /> with option flags that include
 /// <see cref="PartyVoiceChatTranscriptionOptions::TranscribeSelfRegardlessOfNetworkState" />. The
-/// <see cref="PartyOption::RegionUpdateConfiguration" /> option can also be used to configure the interval after
-/// which the regions are refreshed.
+/// <see cref="PartyOption::RegionUpdateConfiguration" /> option can also be used to configure the interval after which
+/// the regions are refreshed.
 /// <para>
 /// The amount of time it takes to retrieve the list of available regions and measure connection quality to them is
 /// dependent on many environmental or dynamic factors, and whether the
@@ -5138,11 +5251,11 @@ struct PartyChatTextReceivedStateChange : PartyStateChange
     /// The language of the chat text.
     /// </summary>
     /// <remarks>
-    /// The language is only provided when translation to the local language is enabled. If translation isn't
-    /// enabled, or failure is encountered during translation, the language code is an empty string.
+    /// The language is only provided when translation to the local language is enabled. If translation isn't enabled,
+    /// or failure is encountered during translation, the language code is an empty string.
     /// <para>
-    /// The language code is in BCP 47 format, such as en-US for English (United States). Supported language codes
-    /// are enumerated in
+    /// The language code is in BCP 47 format, such as en-US for English (United States). Supported language codes are
+    /// enumerated in
     /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />.
     /// </para>
     /// </remarks>
@@ -5174,11 +5287,11 @@ struct PartyChatTextReceivedStateChange : PartyStateChange
     /// The number of translations associated with the chat text.
     /// </summary>
     /// <remarks>
-    /// Translations are provided if <see cref="PartyTextChatOptions::TranslateToLocalLanguage" /> has previously
-    /// been specified via <see cref="PartyLocalChatControl::SetTextChatOptions()" /> on a chat control local to this
-    /// device. There may be more than one translation if multiple local chat controls have enabled translation and the
-    /// local chat controls have specified different languages via <see cref="PartyLocalDevice::CreateChatControl()" />.
-    /// In that case, the app can compare the <c>languageCode</c> field of each PartyTranslation in <c>translations</c>
+    /// Translations are provided if <see cref="PartyTextChatOptions::TranslateToLocalLanguage" /> has previously been
+    /// specified via <see cref="PartyLocalChatControl::SetTextChatOptions()" /> on a chat control local to this device.
+    /// There may be more than one translation if multiple local chat controls have enabled translation and the local
+    /// chat controls have specified different languages via <see cref="PartyLocalDevice::CreateChatControl()" />. In
+    /// that case, the app can compare the <c>languageCode</c> field of each PartyTranslation in <c>translations</c>
     /// against the language code, obtained via <see cref="PartyLocalChatControl::GetLanguage()" />, for each local chat
     /// control in <c>receiverChatControls</c> to determine the target local chat control for each translation.
     /// </remarks>
@@ -5188,11 +5301,11 @@ struct PartyChatTextReceivedStateChange : PartyStateChange
     /// An array containing the translations of the chat text string.
     /// </summary>
     /// <remarks>
-    /// Translations are provided if <see cref="PartyTextChatOptions::TranslateToLocalLanguage" /> has previously
-    /// been specified via <see cref="PartyLocalChatControl::SetTextChatOptions()" /> on a chat control local to this
-    /// device. There may be more than one translation if multiple local chat controls have enabled translation and the
-    /// local chat controls have specified different languages via <see cref="PartyLocalDevice::CreateChatControl()" />.
-    /// In that case, the app can compare the <c>languageCode</c> field of each PartyTranslation in <c>translations</c>
+    /// Translations are provided if <see cref="PartyTextChatOptions::TranslateToLocalLanguage" /> has previously been
+    /// specified via <see cref="PartyLocalChatControl::SetTextChatOptions()" /> on a chat control local to this device.
+    /// There may be more than one translation if multiple local chat controls have enabled translation and the local
+    /// chat controls have specified different languages via <see cref="PartyLocalDevice::CreateChatControl()" />. In
+    /// that case, the app can compare the <c>languageCode</c> field of each PartyTranslation in <c>translations</c>
     /// against the language code, obtained via <see cref="PartyLocalChatControl::GetLanguage()" />, for each local chat
     /// control in <c>receiverChatControls</c> to determine the target local chat control for each translation.
     /// </remarks>
@@ -5241,11 +5354,11 @@ struct PartyVoiceChatTranscriptionReceivedStateChange : PartyStateChange
     /// Indicates that the transcription operation Succeeded or provides the reason that it failed.
     /// </summary>
     /// <remarks>
-    /// On success, the <c>transcription</c> field is a string of non-zero length. On failure, the string is
-    /// empty. Failure indicates that a transcription operation was attempted for the speaker but could not be
-    /// completed. If transcription is enabled at the request of the user associated with the chat control, and the
-    /// transcription messages are shown via UI, it is recommended that failures also be indicated to the user in order
-    /// to provide feedback as to whether transcriptions are pending or have failed.
+    /// On success, the <c>transcription</c> field is a string of non-zero length. On failure, the string is empty.
+    /// Failure indicates that a transcription operation was attempted for the speaker but could not be completed. If
+    /// transcription is enabled at the request of the user associated with the chat control, and the transcription
+    /// messages are shown via UI, it is recommended that failures also be indicated to the user in order to provide
+    /// feedback as to whether transcriptions are pending or have failed.
     /// </remarks>
     PartyStateChangeResult result;
 
@@ -5287,11 +5400,11 @@ struct PartyVoiceChatTranscriptionReceivedStateChange : PartyStateChange
     /// The language code of the transcription.
     /// </summary>
     /// <remarks>
-    /// The language code is always provided when the <c>result</c> field indicates success. Otherwise, the
-    /// language code is an empty string.
+    /// The language code is always provided when the <c>result</c> field indicates success. Otherwise, the language
+    /// code is an empty string.
     /// <para>
-    /// The language code is in BCP 47 format, such as en-US for English (United States). Supported language codes
-    /// are enumerated in
+    /// The language code is in BCP 47 format, such as en-US for English (United States). Supported language codes are
+    /// enumerated in
     /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />.
     /// </para>
     /// </remarks>
@@ -6027,19 +6140,19 @@ struct PartyProfilingMethodExitEventData
 #pragma pack(pop)
 
 /// <summary>
-/// A callback invoked every time a new memory buffer must be dynamically allocated by the Party library.
+/// A callback invoked every time the Party Library dynamically allocates a new memory buffer.
 /// </summary>
 /// <remarks>
 /// This callback is optionally installed using the <see cref="PartyManager::SetMemoryCallbacks()" /> method.
 /// <para>
-/// The callback must allocate and return a pointer to a contiguous block of memory of the specified size that will
-/// remain valid until the title's corresponding <see cref="PartyFreeMemoryCallback" /> is invoked to release it. If
-/// this is not possible, the callback must return nullptr to fail the allocation. Memory allocation failures are
-/// sometimes considered benign but will usually cause current Party library operation(s) to fail.
+/// The callback must allocate and return a pointer to a contiguous block of memory of the specified size that remains
+/// valid until the title's corresponding <see cref="PartyFreeMemoryCallback" /> is invoked to release it. If this isn't
+/// possible, the callback must return nullptr to fail the allocation. Memory allocation failures are sometimes
+/// considered benign but usually cause current Party library operations to fail.
 /// </para>
 /// <para>
-/// Every non-nullptr returned by this method will be subsequently passed to the corresponding
-/// <see cref="PartyFreeMemoryCallback" /> once the memory is no longer needed.
+/// Every non-nullptr returned by this method is then passed to the corresponding <see cref="PartyFreeMemoryCallback" />
+/// once the memory is no longer needed.
 /// </para>
 /// </remarks>
 /// <param name="size">
@@ -6145,6 +6258,7 @@ void
 /// Represents a local user.
 /// </summary>
 /// <seealso cref="PartyManager::CreateLocalUser" />
+/// <seealso cref="PartyManager::CreateLocalUserWithEntityType" />
 /// <seealso cref="PartyManager::GetLocalUsers" />
 /// <seealso cref="PartyManager::DestroyLocalUser" />
 /// <seealso cref="PartyManager::CreateNewNetwork" />
@@ -6158,11 +6272,14 @@ class PartyLocalUser
 {
 public:
     /// <summary>
-    /// Gets the Entity ID associated with this local user.
+    /// Gets the PlayFab Entity ID associated with this local user.
     /// </summary>
     /// <remarks>
-    /// The retrieved Entity ID is identical to the Entity ID provided by the title via
-    /// <see cref="PartyManager::CreateLocalUser()" />.
+    /// The retrieved PlayFab Entity ID is identical to the Entity ID provided by the title via
+    /// <see cref="PartyManager::CreateLocalUser()" /> or <see cref="PartyManager::CreateLocalUserWithEntityType()" />.
+    /// This is also the same value as the one found in the <em>id</em> field of a <c>PFEntityKey</c> structure
+    /// representing the entity. The value returned from <see cref="GetEntityType()" /> would represent the other half
+    /// of a <c>PFEntityKey</c>.
     /// <para>
     /// The memory for the Entity ID string remains valid for the life of the local user, which is until its
     /// <see cref="PartyDestroyLocalUserCompletedStateChange" /> has been provided via
@@ -6171,35 +6288,68 @@ public:
     /// </para>
     /// </remarks>
     /// <param name="entityId">
-    /// The output Entity ID.
+    /// The output Entity ID of the user.
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
     /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
     /// </returns>
+    /// <seealso cref="PartyLocalUser::GetEntityType" />
     /// <seealso cref="PartyManager::CreateLocalUser" />
+    /// <seealso cref="PartyManager::CreateLocalUserWithEntityType" />
     PartyError GetEntityId(
         _Outptr_ PartyString * entityId
+        ) const party_no_throw;
+
+    /// <summary>
+    /// Gets the PlayFab entity type associated with this local user.
+    /// </summary>
+    /// <remarks>
+    /// The retrieved PlayFab entity type string will be "title_player_account" for users created via
+    /// <see cref="PartyManager::CreateLocalUser()" />, or the entity type provided by the caller for users created via
+    /// <see cref="PartyManager::CreateLocalUserWithEntityType()" />. This is also the same value as the one found in
+    /// the <em>type</em> field of a <c>PFEntityKey</c> structure representing the entity. The value returned from
+    /// <see cref="GetEntityId()" /> would represent the other half of a <c>PFEntityKey</c>.
+    /// <para>
+    /// The memory for the entity type string remains valid for the life of the local user, which is until its
+    /// <see cref="PartyDestroyLocalUserCompletedStateChange" /> has been provided via
+    /// <see cref="PartyManager::StartProcessingStateChanges()" /> and all state changes referencing the local user have
+    /// been returned to <see cref="PartyManager::FinishProcessingStateChanges()" />.
+    /// </para>
+    /// </remarks>
+    /// <param name="entityType">
+    /// The output entity type name string of the user.
+    /// </param>
+    /// <returns>
+    /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
+    /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
+    /// </returns>
+    /// <seealso cref="PartyLocalUser::GetEntityId" />
+    /// <seealso cref="PartyManager::CreateLocalUser" />
+    /// <seealso cref="PartyManager::CreateLocalUserWithEntityType" />
+    PartyError GetEntityType(
+        _Outptr_ PartyString * entityType
         ) const party_no_throw;
 
     /// <summary>
     /// Updates the PlayFab Entity Token associated with this local user, for use in future authenticated operations.
     /// </summary>
     /// <remarks>
-    /// This method takes a PlayFab Entity Token as <paramref name="titlePlayerEntityToken" />. No synchronous
-    /// validation is performed on this value. When the library performs operations that require user authentication or
-    /// authorization, such as creating a network, authenticating into a network, or performing speech-to-text
-    /// transcription, the Party service will validate that the token is valid, is not expired, is associated with the
-    /// same Entity ID that was provided to the <see cref="PartyManager::CreateLocalUser()" /> call, and is authorized
-    /// to perform the operation. If these conditions aren't met, the operation will fail.
+    /// This method takes a PlayFab Entity Token as <paramref name="entityToken" />. No synchronous validation is
+    /// performed on this value. When the library performs operations that require user authentication or authorization,
+    /// such as creating a network, authenticating into a network, or performing speech-to-text transcription, the Party
+    /// service will validate that the token is valid, is not expired, is associated with the same Entity ID that was
+    /// provided to the <see cref="PartyManager::CreateLocalUser()" /> or
+    /// <see cref="PartyManager::CreateLocalUserWithEntityType()" /> call, and is authorized to perform the operation.
+    /// If these conditions aren't met, the operation will fail.
     /// <para>
     /// A PlayFab Entity Token can be obtained from the output of a PlayFab login operation and then provided as input
-    /// to this method. The token must be associated with a PlayFab Entity of type `title_player_account`, which, for
-    /// most developers, represents the "player" in the most traditional way.
+    /// to this method. The token must be associated with the same PlayFab Entity ID and type as originally specified to
+    /// <see cref="PartyManager::CreateLocalUser()" /> or <see cref="PartyManager::CreateLocalUserWithEntityType()" />.
     /// </para>
     /// <para>
-    /// The provided <paramref name="titlePlayerEntityToken" /> must have been acquired using the same Title ID that was
-    /// passed to <see cref="PartyManager::Initialize()" />.
+    /// The provided <paramref name="entityToken" /> must have been acquired using the same Title ID that was passed to
+    /// <see cref="PartyManager::Initialize()" />.
     /// </para>
     /// <para>
     /// The Party library makes a copy of the supplied PlayFab Entity Token for use in subsequent operations that
@@ -6210,16 +6360,16 @@ public:
     /// </para>
     /// <para>
     /// The caller is responsible for monitoring the expiration of the entity token provided to this method and
-    /// <see cref="PartyManager::CreateLocalUser()" />. When the token is nearing or past the expiration time a new
-    /// token should be obtained by performing a PlayFab login operation and provided to the Party library by calling
-    /// this method. It is recommended to acquire a new token when the previously supplied token is halfway through its
-    /// validity period. On platforms that may enter a low power state or otherwise cause the application to pause
-    /// execution for a long time, preventing the token from being refreshed before it expires, the token should be
-    /// checked for expiration once execution resumes.
+    /// <see cref="PartyManager::CreateLocalUser()" /> or <see cref="PartyManager::CreateLocalUserWithEntityType()" />.
+    /// When the token is nearing or past the expiration time a new token should be obtained by performing a PlayFab
+    /// login operation and provided to the Party library by calling this method. We recommend acquiring a new token
+    /// when the previously supplied token is halfway through its validity period. On platforms that may enter a low
+    /// power state or otherwise cause the application to pause execution for a long time, preventing the token from
+    /// being refreshed before it expires, the token should be checked for expiration once execution resumes.
     /// </para>
     /// </remarks>
-    /// <param name="titlePlayerEntityToken">
-    /// The PlayFab Entity Token to associate with the local user.
+    /// <param name="entityToken">
+    /// The new PlayFab Entity Token to associate with the local user.
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
@@ -6227,10 +6377,11 @@ public:
     /// </returns>
     /// <seealso cref="PartyManager::GetErrorMessage" />
     /// <seealso cref="PartyManager::CreateLocalUser" />
+    /// <seealso cref="PartyManager::CreateLocalUserWithEntityType" />
     /// <seealso cref="PartyManager::CreateNewNetwork" />
     /// <seealso cref="PartyNetwork::AuthenticateLocalUser" />
     PartyError UpdateEntityToken(
-        PartyString titlePlayerEntityToken
+        PartyString entityToken
         ) party_no_throw;
 
     /// <summary>
@@ -6311,7 +6462,12 @@ public:
     /// Gets the PlayFab Entity ID of the user associated with this endpoint.
     /// </summary>
     /// <remarks>
-    /// If this endpoint is not associated with a user, <paramref name="entityId" /> is set to nullptr.
+    /// The returned string is the same value as the one found in the <em>ID</em> field of a <c>PFEntityKey</c>
+    /// structure representing the entity. The value returned from <see cref="GetEntityType()" /> would represent the
+    /// other half of a <c>PFEntityKey</c>.
+    /// <para>
+    /// If this endpoint isn't associated with a user, <paramref name="entityId" /> is set to nullptr.
+    /// </para>
     /// <para>
     /// The memory for the Entity ID string remains valid for the life of the endpoint, which is until its
     /// <see cref="PartyEndpointDestroyedStateChange" /> and/or <see cref="PartyDestroyEndpointCompletedStateChange" />,
@@ -6321,14 +6477,45 @@ public:
     /// </para>
     /// </remarks>
     /// <param name="entityId">
-    /// The output Entity ID of ther user associated with this endpoint, or nullptr.
+    /// The output Entity ID of the user associated with this endpoint, or nullptr.
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
     /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
     /// </returns>
+    /// <seealso cref="PartyEndpoint::GetEntityType" />
     PartyError GetEntityId(
         _Outptr_result_maybenull_ PartyString * entityId
+        ) const party_no_throw;
+
+    /// <summary>
+    /// Gets the PlayFab entity type of the user associated with this endpoint.
+    /// </summary>
+    /// <remarks>
+    /// This returned string is the same value as the one found in the <em>type</em> field of a <c>PFEntityKey</c>
+    /// structure representing the entity. The value returned from <see cref="GetEntityId()" /> would represent the
+    /// other half of a <c>PFEntityKey</c>.
+    /// <para>
+    /// If this endpoint isn't associated with a user, <paramref name="entityType" /> is set to nullptr.
+    /// </para>
+    /// <para>
+    /// The memory for the entity type string remains valid for the life of the endpoint, which is until its
+    /// <see cref="PartyEndpointDestroyedStateChange" /> and/or <see cref="PartyDestroyEndpointCompletedStateChange" />,
+    /// depending on the type of destruction that occurred, has been provided via
+    /// <see cref="PartyManager::StartProcessingStateChanges()" /> and all state changes referencing the endpoint have
+    /// been returned to <see cref="PartyManager::FinishProcessingStateChanges()" />.
+    /// </para>
+    /// </remarks>
+    /// <param name="entityType">
+    /// The output entity type name string of the user associated with this endpoint, or nullptr.
+    /// </param>
+    /// <returns>
+    /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
+    /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
+    /// </returns>
+    /// <seealso cref="PartyEndpoint::GetEntityId" />
+    PartyError GetEntityType(
+        _Outptr_result_maybenull_ PartyString * entityType
         ) const party_no_throw;
 
     /// <summary>
@@ -6509,7 +6696,7 @@ public:
     /// Gets the local user associated with this local endpoint.
     /// </summary>
     /// <remarks>
-    /// If this endpoint is not associated with a user, <paramref name="localUser" /> is set to nullptr.
+    /// If this endpoint isn't associated with a user, <paramref name="localUser" /> is set to nullptr.
     /// </remarks>
     /// <param name="localUser">
     /// The output local user associated with this local endpoint, or nullptr.
@@ -7053,10 +7240,10 @@ public:
     /// </para>
     /// <para>
     /// The language code should be in BCP 47 format; supported language codes are enumerated in
-    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />. Specifying
-    /// an unsupported or invalid language code will not cause this method to fail, but will result in failure to
-    /// generate transcriptions associated with this chat control. The language code used with this method can be
-    /// queried via <see cref="PartyLocalChatControl::GetLanguage()" />.
+    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />.
+    /// Specifying an unsupported or invalid language code will not cause this method to fail, but will result in
+    /// failure to generate transcriptions associated with this chat control. The language code used with this method
+    /// can be queried via <see cref="PartyLocalChatControl::GetLanguage()" />.
     /// </para>
     /// </remarks>
     /// <param name="localUser">
@@ -7290,7 +7477,7 @@ public:
     /// operation fails, the PartyAuthenticateLocalUserCompletedStateChange will provide a diagnostic result and error
     /// detail, and a <see cref="PartyLocalUserRemovedStateChange" /> will be generated. Because being connected to a
     /// network with no authenticated users is not a useful state outside of transition periods, the Party library will
-    /// automatically disconnect a device that does not have an authenticated user for an extended period.
+    /// automatically disconnect a device that doesn't have an authenticated user for an extended period.
     /// </para>
     /// <para>
     /// Users need an <paramref name="invitationIdentifier" /> to call this method and authenticate into the network.
@@ -7302,8 +7489,8 @@ public:
     /// User authentication also determines device authentication. A device is considered authenticated into the network
     /// if at least one local user is authenticated into the network. If a device is authenticated into the network, it
     /// will be visible to all other authenticated devices. If a device is connected to the network but not
-    /// authenticated, no remote devices, endpoints, or chat controls, will be visible. Similarly, the device will not
-    /// be visible to any other devices connected to the network.
+    /// authenticated, no remote devices, endpoints, or chat controls, will be visible. Similarly, the device won't be
+    /// visible to any other devices connected to the network.
     /// </para>
     /// <para>
     /// Once this method is called, all other methods that queue asynchronous operations but require the local user or
@@ -7314,7 +7501,7 @@ public:
     /// </para>
     /// <para>
     /// If the local device enters a state in which there are no authenticated users and no authentication operations in
-    /// progress, then all endpoints, including those that are not fully created, will be destroyed automatically. This
+    /// progress, then all endpoints, including those that aren't fully created, will be destroyed automatically. This
     /// will be signaled by <see cref="PartyEndpointDestroyedStateChange" />s.
     /// </para>
     /// <para>
@@ -7342,13 +7529,13 @@ public:
     /// ` | PartyServiceError | Retry with an exponential backoff. Start with a minimum delay of no less than 10
     ///         seconds, doubling the delay with each retry. |
     /// ` | UserNotAuthorized | This result can mean that the user's entity token was invalid, expired, or that the user
-    ///         was not authorized for other reasons. It could also mean that specified invitation is no longer valid,
-    ///         or the invitation does not contain this user. Retry no more than one time, and only after getting a new
+    ///         wasn't authorized for other reasons. It could also mean that specified invitation is no longer valid, or
+    ///         the invitation doesn't contain this user. Retry no more than one time, and only after getting a new
     ///         entity token for the user and calling <see cref="PartyLocalUser::UpdateEntityToken()" />.|
     /// ` | FailedToBindToLocalUdpSocket | This result means that the library couldn't bind to the local UDP socket
     ///         specified in the <see cref="PartyOption::LocalUdpSocketBindAddress" /> option. The title must clean up
     ///         its instance of the library, update the <see cref="PartyOption::LocalUdpSocketBindAddress" /> option to
-    ///         a valid, available bind address, and re-initialize the library.
+    ///         a valid, available bind address, and reinitialize the library.
     /// </para>
     /// </remarks>
     /// <param name="localUser">
@@ -7371,6 +7558,7 @@ public:
     /// <seealso cref="PartyLocalUserRemovedStateChange" />
     /// <seealso cref="PartyNetworkConfiguration" />
     /// <seealso cref="PartyManager::CreateLocalUser" />
+    /// <seealso cref="PartyManager::CreateLocalUserWithEntityType" />
     /// <seealso cref="PartyNetwork::RemoveLocalUser" />
     /// <seealso cref="PartyNetwork::GetLocalUsers" />
     /// <seealso cref="PartyManager::CreateNewNetwork" />
@@ -7394,16 +7582,16 @@ public:
     /// disconnected from the network (each indicated by a <see cref="PartyChatControlLeftNetworkStateChange" />).
     /// <para>
     /// When all local users are removed from the network, the device is no longer considered authenticated. All
-    /// endpoints are destroyed and all remote devices will appear to leave the network, because they are no longer
+    /// endpoints are destroyed and all remote devices will appear to leave the network, because they're no longer
     /// visible to the local device. Similarly, all remote devices will see the local device as having left the network.
-    /// The device will not immediately be disconnected and can again be authenticated by a new call to
+    /// The device won't immediately be disconnected and can again be authenticated by a new call to
     /// <see cref="AuthenticateLocalUser()" />. However, because being connected to a network with no authenticated
-    /// users is not a useful state outside of transition periods, the Party library will automatically disconnect a
+    /// users isn't a useful state outside of transition periods, the Party library will automatically disconnect a
     /// device that is unauthenticated for more than one minute.
     /// </para>
     /// <para>
-    /// This method will fail if the specified <paramref name="localUser" /> is already in the process of being removed
-    /// from the network due to a previous call to this method.
+    /// This method fails if the specified <paramref name="localUser" /> is already in the process of being removed from
+    /// the network due to a previous call to this method.
     /// </para>
     /// </remarks>
     /// <param name="localUser">
@@ -7628,14 +7816,14 @@ public:
     /// <para>
     /// A local user may optionally be provided as the owner of an endpoint. If an owning local user is provided, it
     /// must be authenticated into the network or in the process of authenticating into the network. If its
-    /// authentication fails, the endpoint creation will fail as well. If the owning local user is removed
-    /// from the network while this endpoint exists, the endpoint will be automatically destroyed. This will be signaled
-    /// via a PartyEndpointDestroyedStateChange.
+    /// authentication fails, the endpoint creation will fail as well. If the owning local user is removed from the
+    /// network while this endpoint exists, the endpoint will be automatically destroyed. This will be signaled via a
+    /// PartyEndpointDestroyedStateChange.
     /// </para>
     /// <para>
     /// If the local device enters a state in which there are no authenticated users and no authentication operations in
-    /// progress, then all endpoints, including those that are not fully created, are destroyed automatically. This
-    /// will be signaled by PartyEndpointDestroyedStateChanges.
+    /// progress, then all endpoints, including those that are not fully created, are destroyed automatically. This will
+    /// be signaled by PartyEndpointDestroyedStateChanges.
     /// </para>
     /// <para>
     /// On successful return, this method invalidates the memory for any array previously returned by
@@ -7651,10 +7839,10 @@ public:
     /// </para>
     /// <para>
     /// If a client would violate the <see cref="PartyNetworkConfiguration::maxEndpointsPerDeviceCount" /> limit by
-    /// calling this method after the network configuration was made available, this operation fails synchronously.
-    /// If the client queues a violating number of endpoint creations before the network configuration becomes
-    /// available, the client will be kicked from the network and a <see cref="PartyNetworkDestroyedStateChange" /> will
-    /// be generated when the network configuration becomes available.
+    /// calling this method after the network configuration was made available, this operation fails synchronously. If
+    /// the client queues a violating number of endpoint creations before the network configuration becomes available,
+    /// the client will be kicked from the network and a <see cref="PartyNetworkDestroyedStateChange" /> will be
+    /// generated when the network configuration becomes available.
     /// </para>
     /// </remarks>
     /// <param name="localUser">
@@ -7685,8 +7873,8 @@ public:
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the asynchronous operation to create the endpoint began, or an error code
-    /// otherwise. If this method fails, no related state changes are generated. The human-readable form of the
-    /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
+    /// otherwise. If this method fails, no related state changes are generated. The human-readable form of the error
+    /// code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
     /// </returns>
     /// <seealso cref="PartyCreateEndpointCompletedStateChange" />
     /// <seealso cref="PartyEndpointCreatedStateChange" />
@@ -7837,7 +8025,62 @@ public:
     /// <seealso cref="PartyEndpointCreatedStateChange" />
     /// <seealso cref="PartyEndpointDestroyedStateChange" />
     /// <seealso cref="PartyNetwork::CreateEndpoint" />
+    /// <seealso cref="PartyNetwork::GetEndpointsByUserType" />
     PartyError GetEndpoints(
+        _Out_ uint32_t * endpointCount,
+        _Outptr_result_buffer_(*endpointCount) PartyEndpointArray * endpoints
+        ) const party_no_throw;
+
+    /// <summary>
+    /// Gets a subset of endpoints in this network filtered by user type and owning device location.
+    /// </summary>
+    /// <remarks>
+    /// This method gets the subset of endpoints that are currently associated with the network, visible to the local
+    /// device, and that match specified user type and owning device location filters.
+    /// <para>
+    /// If <paramref name="endpointLocationFilter" /> is PartyEndpointLocationFilter::LocalOrRemote or
+    /// PartyEndpointLocationFilter::LocalOnly, then all matching local endpoints that have successfully been created or
+    /// are in the process of being created will be present in <paramref name="endpoints" />. If
+    /// <paramref name="endpointLocationFilter" /> is PartyEndpointLocationFilter::LocalOrRemote or
+    /// PartyEndpointLocationFilter::RemoteOnly, then all matching remote endpoints that have been successfully created
+    /// will be present.
+    /// </para>
+    /// <para>
+    /// Once a <see cref="PartyEndpointDestroyedStateChange" /> has been provided by
+    /// <see cref="PartyManager::StartProcessingStateChanges()" />, the endpoint will no longer be present in the array
+    /// returned by this method with applicable filters.
+    /// </para>
+    /// <para>
+    /// The memory for the returned array is invalidated whenever the title calls
+    /// <see cref="PartyManager::StartProcessingStateChanges()" /> or <see cref="CreateEndpoint()" /> returns success.
+    /// </para>
+    /// </remarks>
+    /// <param name="endpointUserTypeFilter">
+    /// The specific type of users whose PartyEndpoints should be included in the output array.
+    /// </param>
+    /// <param name="endpointLocationFilter">
+    /// Specifies whether to include PartyEndpoints created by the local device, remote devices, or both in the output
+    /// array.
+    /// </param>
+    /// <param name="endpointCount">
+    /// The output number of PartyEndpoint entries in the <paramref name="endpoints" /> array.
+    /// </param>
+    /// <param name="endpoints">
+    /// A library-allocated output array containing the endpoints in this network.
+    /// </param>
+    /// <returns>
+    /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
+    /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
+    /// </returns>
+    /// <seealso cref="PartyEndpointUserTypeFilter" />
+    /// <seealso cref="PartyEndpointLocationFilter" />
+    /// <seealso cref="PartyEndpointCreatedStateChange" />
+    /// <seealso cref="PartyEndpointDestroyedStateChange" />
+    /// <seealso cref="PartyNetwork::CreateEndpoint" />
+    /// <seealso cref="PartyNetwork::GetEndpoints" />
+    PartyError GetEndpointsByUserType(
+        PartyEndpointUserTypeFilter endpointUserTypeFilter,
+        PartyEndpointLocationFilter endpointLocationFilter,
         _Out_ uint32_t * endpointCount,
         _Outptr_result_buffer_(*endpointCount) PartyEndpointArray * endpoints
         ) const party_no_throw;
@@ -8307,20 +8550,20 @@ public:
     /// connectivity via the <see cref="PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask" /> option, and a
     /// direct peer connection was successfully established at that time, then this function will report a value of
     /// <see cref="PartyDeviceConnectionType::DirectPeerConnection" />. Otherwise it will report
-    /// <see cref="PartyDeviceConnectionType::RelayServer" />. The value will not change for as long as the target
+    /// <see cref="PartyDeviceConnectionType::RelayServer" />. The value won't change for as long as the target
     /// PartyDevice object remains in this network, even if <see cref="PartyNetwork::RemoveLocalUser()" /> is called for
     /// that initially authenticating user.
     /// <para>
-    /// If the target device is the local device, <see cref="PartyDeviceConnectionType::DirectPeerConnection" /> will
-    /// always be reported regardless of <see cref="PartyNetworkConfiguration" /> settings or
+    /// If the target device is the local device, <see cref="PartyDeviceConnectionType::RelayServer" /> will always be
+    /// reported regardless of <see cref="PartyNetworkConfiguration" /> settings or
     /// <see cref="PartyOption::LocalDeviceDirectPeerConnectivityOptionsMask" /> option.
     /// </para>
     /// <para>
-    /// If the target device object is not participating in this network, an error is returned.
+    /// If the target device object isn't participating in this network, an error is returned.
     /// </para>
     /// <para>
-    /// If the local device is participating in additional networks with the target device object, you should not assume
-    /// that calling this same function on those other network objects will report the same value.
+    /// If the local device is participating in more networks with the target device object, you shouldn't assume that
+    /// calling this same function on those other network objects will report the same value.
     /// </para>
     /// </remarks>
     /// <param name="targetDevice">
@@ -8425,24 +8668,24 @@ public:
     /// Gets the next buffer available in the stream.
     /// </summary>
     /// <remarks>
-    /// When voice activity is detected, a new buffer will be available every 40 ms. Otherwise, no buffers will be
-    /// available. Buffers retrieved by this method must be returned to the library via
-    /// <see cref="PartyAudioManipulationSourceStream::ReturnBuffer()" /> when they are done being used.
+    /// When voice activity is detected, a new buffer is available every 40 ms. Otherwise, no buffers are available.
+    /// Buffers retrieved by this method must be returned to the library via
+    /// <see cref="PartyAudioManipulationSourceStream::ReturnBuffer()" /> when they're done being used.
     /// <para>
     /// The total number of buffers instantaneously available can be retrieved via
     /// <see cref="PartyAudioManipulationSourceStream::GetAvailableBufferCount()" />. Multiple buffers can be retrieved
     /// in succession before any are returned.
     /// </para>
     /// <para>
-    /// Each buffer will be in the format specified by <see cref="PartyAudioManipulationSourceStream::GetFormat()" />.
+    /// Each buffer is in the format specified by <see cref="PartyAudioManipulationSourceStream::GetFormat()" />.
     /// </para>
     /// <para>
     /// A mutable data buffer is provided so that the app can optionally modify the audio in place.
     /// </para>
     /// </remarks>
     /// <param name="buffer">
-    /// The output buffer. If no buffer is available, the PartyMutableDataBuffer's <em>bufferByteCount</em> field will
-    /// be 0 and its <em>buffer</em> field will be nullptr.
+    /// The output buffer. If no buffer is available, the PartyMutableDataBuffer's <em>bufferByteCount</em> field is 0,
+    /// and its <em>buffer</em> field is nullptr.
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
@@ -8579,8 +8822,8 @@ public:
     /// other chat controls or rendered to the audio output.
     /// </summary>
     /// <remarks>
-    /// Every 40ms, the next 40 ms of audio from this stream will be processed. To prevent audio hiccups, buffers for
-    /// audio that should be heard continuously should be submitted to this stream at a constant rate.
+    /// Every 40 ms, the next 40 ms of audio from this stream is processed. To prevent audio hiccups, buffers for audio
+    /// that should be heard continuously should be submitted to this stream at a constant rate.
     /// <para>
     /// The buffer is copied to an allocated buffer before PartyAudioManipulationSinkStream::SubmitBuffer() returns and
     /// can be immediately freed afterwards.
@@ -8592,7 +8835,7 @@ public:
     /// <param name="buffer">
     /// The audio buffer. Typically this audio buffer is generated by retrieving the next buffer available from each
     /// incoming source stream, and then processing and mixing each buffer based on game logic. This buffer must have
-    /// the format format specified by <see cref="PartyAudioManipulationSinkStream::GetFormat()" />.
+    /// the format specified by <see cref="PartyAudioManipulationSinkStream::GetFormat()" />.
     /// </param>
     /// <returns>
     /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
@@ -8695,11 +8938,16 @@ public:
     /// Gets the PlayFab Entity ID of the user associated with this chat control.
     /// </summary>
     /// <remarks>
+    /// The returned string is the same value as the one found in the <em>id</em> field of a <c>PFEntityKey</c>
+    /// structure representing the entity. The value returned from <see cref="GetEntityType()" /> would represent the
+    /// other half of a <c>PFEntityKey</c>.
+    /// <para>
     /// The memory for the Entity ID string remains valid for the life of the chat control, which is until its
     /// <see cref="PartyChatControlDestroyedStateChange" /> and/or
     /// <see cref="PartyDestroyChatControlCompletedStateChange" />, depending on the type of destruction that occurred,
     /// has been provided via <see cref="PartyManager::StartProcessingStateChanges()" /> and all state changes
     /// referencing the chat control have been returned to <see cref="PartyManager::FinishProcessingStateChanges()" />.
+    /// </para>
     /// </remarks>
     /// <param name="entityId">
     /// The output Entity ID.
@@ -8708,8 +8956,36 @@ public:
     /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
     /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
     /// </returns>
+    /// <seealso cref="PartyChatControl::GetEntityType" />
     PartyError GetEntityId(
         _Outptr_ PartyString * entityId
+        ) const party_no_throw;
+
+    /// <summary>
+    /// Gets the PlayFab entity type of the user associated with this chat control.
+    /// </summary>
+    /// <remarks>
+    /// This returned string is the same value as the one found in the <em>type</em> field of a <c>PFEntityKey</c>
+    /// structure representing the entity. The value returned from <see cref="GetEntityId()" /> would represent the
+    /// other half of a <c>PFEntityKey</c>.
+    /// <para>
+    /// The memory for the entity type string remains valid for the life of the chat control, which is until its
+    /// <see cref="PartyChatControlDestroyedStateChange" /> and/or
+    /// <see cref="PartyDestroyChatControlCompletedStateChange" />, depending on the type of destruction that occurred,
+    /// has been provided via <see cref="PartyManager::StartProcessingStateChanges()" /> and all state changes
+    /// referencing the chat control have been returned to <see cref="PartyManager::FinishProcessingStateChanges()" />.
+    /// </para>
+    /// </remarks>
+    /// <param name="entityType">
+    /// The output entity type name string of the user associated with this chat control, or nullptr.
+    /// </param>
+    /// <returns>
+    /// <c>c_partyErrorSuccess</c> if the call succeeded or an error code otherwise. The human-readable form of the
+    /// error code can be retrieved via <see cref="PartyManager::GetErrorMessage()" />.
+    /// </returns>
+    /// <seealso cref="PartyChatControl::GetEntityId" />
+    PartyError GetEntityType(
+        _Outptr_ PartyString * entityType
         ) const party_no_throw;
 
     /// <summary>
@@ -8857,7 +9133,7 @@ public:
     /// </para>
     /// <h>Platform support and supported formats</h>
     /// <para>
-    /// This function is only supported on Windows, Xbox, and PlayStation® 5. Calls on other platforms will fail.
+    /// This function is only supported on Windows, Xbox, and PlayStationÂ® 5. Calls on other platforms will fail.
     /// </para>
     /// <para>
     /// The following format options are supported for Windows and Xbox.
@@ -8873,8 +9149,8 @@ public:
     /// ` | Interleaved | false | false |
     /// </para>
     /// <para>
-    /// For a list of supported format options for PlayStation® 5, please refer to the README-RealTimeAudioManipulation.md
-    /// document distributed with the Party library package.
+    /// For a list of supported format options for PlayStationÂ® 5, please refer to the
+    /// README-RealTimeAudioManipulation.md document distributed with the Party library package.
     /// </para>
     /// </remarks>
     /// <param name="configuration">
@@ -8897,31 +9173,30 @@ public:
     /// Retrieves the audio manipulation voice stream associated with this chat control.
     /// </summary>
     /// <remarks>
-    /// If this is a local chat control, the stream represents the voice audio detected by the local audio input. Audio
-    /// provided by this stream will have already been preprocessed with Voice Activity Detection (VAD) and Automatic
-    /// Gain Control (AGC). Audio will only be provided when voice activity is detected. Typically, the app will
-    /// retrieve audio from this stream via PartyAudioManipulationSourceStream::GetNextBuffer(), process the audio using
-    /// app logic, and then submit the audio back to the library. The audio is submitted back to the library by
-    /// retrieving the voice sink stream via PartyLocalChatControl::GetAudioManipulationCaptureStream() and then
-    /// submitting the buffer via <see cref="PartyAudioManipulationSinkStream::SubmitBuffer()" />.
+    /// In a local chat control, the stream represents the voice audio detected by the local audio input. Audio provided
+    /// by this stream has already been preprocessed with Voice Activity Detection (VAD) and Automatic Gain Control
+    /// (AGC). Audio is only provided when voice activity is detected. Typically, the app retrieves audio from this
+    /// stream via PartyAudioManipulationSourceStream::GetNextBuffer(), process the audio using app logic, and then
+    /// submits the audio back to the library. The audio is submitted back to the library by retrieving the voice sink
+    /// stream via PartyLocalChatControl::GetAudioManipulationCaptureStream() and then submitting the buffer via
+    /// <see cref="PartyAudioManipulationSinkStream::SubmitBuffer()" />.
     /// <para>
     /// Audio generated via <see cref="PartyLocalChatControl::SynthesizeTextToSpeech()" /> of type
-    /// <see cref="PartySynthesizeTextToSpeechType::VoiceChat" /> will be provided via this source stream, because such
-    /// audio acts as the associated user's voice.
+    /// <see cref="PartySynthesizeTextToSpeechType::VoiceChat" /> is provided via this source stream, because such audio
+    /// acts as the associated user's voice.
     /// </para>
     /// <para>
-    /// Audio retrieved via this stream will not have been transcribed via speech-to-text for voice chat transcription.
-    /// Audio that is submitted to a sink stream via PartyAudioManipulationSinkStream::SubmitBuffer() will be
-    /// transcribed, if transcription options configured via
-    /// <see cref="PartyLocalChatControl::SetTranscriptionOptions" /> indicates that audio associated the sink's chat
-    /// control should be.
+    /// Audio retrieved via this stream hasn't been transcribed via speech-to-text for voice chat transcription. Audio
+    /// that is submitted to a sink stream via PartyAudioManipulationSinkStream::SubmitBuffer() is transcribed, if
+    /// transcription options configured via <see cref="PartyLocalChatControl::SetTranscriptionOptions" /> indicates
+    /// that audio associated the sink's chat control should be.
     /// </para>
     /// <para>
-    /// If this a remote chat control, the stream represents the chat control's incoming voice audio. Typically, the app
-    /// will retrieve audio from the voice streams associated with all remote chat controls via
+    /// In a remote chat control, the stream represents the chat control's incoming voice audio. Typically, the app
+    /// retrieves audio from the voice streams associated with all remote chat controls via
     /// PartyAudioManipulationSourceStream::GetNextBuffer(), process and mix each buffer into a single audio stream, and
-    /// then submit the mixed stream to be rendered by each appropriate sink stream. Each render stream can be retrieved
-    /// via PartyLocalChatControl::GetAudioManipulationRenderStream().
+    /// then submits the mixed stream to be rendered by each appropriate sink stream. Each render stream can be
+    /// retrieved via PartyLocalChatControl::GetAudioManipulationRenderStream().
     /// </para>
     /// </remarks>
     /// <param name="sourceStream">
@@ -9294,11 +9569,11 @@ public:
     /// <para>
     /// Text-to-speech synthesis functionality internally uses available region and latency measurement estimates to
     /// optimize service usage. If the <see cref="PartyOption::RegionUpdateConfiguration" /> option was used to
-    /// configure an update mode of <see cref="PartyRegionUpdateMode::Deferred" />, then retrieving the
-    /// set of available regions and measuring connection quality to them may not have started yet, or the last update
-    /// may have exceeded the configured refresh interval age. If the local device isn't currently connecting or
-    /// connected to any networks, PopulateAvailableTextToSpeechProfiles() ensures any deferred region update has
-    /// started and the associated <see cref="PartyRegionsChangedStateChange" /> is provided prior to this call's
+    /// configure an update mode of <see cref="PartyRegionUpdateMode::Deferred" />, then retrieving the set of available
+    /// regions and measuring connection quality to them may not have started yet, or the last update may have exceeded
+    /// the configured refresh interval age. If the local device isn't currently connecting or connected to any
+    /// networks, PopulateAvailableTextToSpeechProfiles() ensures any deferred region update has started and the
+    /// associated <see cref="PartyRegionsChangedStateChange" /> is provided prior to this call's
     /// <see cref="PartyPopulateAvailableTextToSpeechProfilesCompletedStateChange" /> completion.
     /// </para>
     /// </remarks>
@@ -9369,11 +9644,11 @@ public:
     /// <para>
     /// Text-to-speech synthesis functionality internally uses available region and latency measurement estimates to
     /// optimize service usage. If the <see cref="PartyOption::RegionUpdateConfiguration" /> option was used to
-    /// configure an update mode of <see cref="PartyRegionUpdateMode::Deferred" />, then retrieving the
-    /// set of available regions and measuring connection quality to them may not have started yet, or the last update
-    /// may have exceeded the configured refresh interval age. If the local device isn't currently connecting or
-    /// connected to any networks, SetTextToSpeechProfile() ensures any deferred region update has started and the
-    /// associated <see cref="PartyRegionsChangedStateChange" /> is provided prior to this call's
+    /// configure an update mode of <see cref="PartyRegionUpdateMode::Deferred" />, then retrieving the set of available
+    /// regions and measuring connection quality to them may not have started yet, or the last update may have exceeded
+    /// the configured refresh interval age. If the local device isn't currently connecting or connected to any
+    /// networks, SetTextToSpeechProfile() ensures any deferred region update has started and the associated
+    /// <see cref="PartyRegionsChangedStateChange" /> is provided prior to this call's
     /// <see cref="PartySetTextToSpeechProfileCompletedStateChange" /> completion.
     /// </para>
     /// </remarks>
@@ -9477,9 +9752,9 @@ public:
     /// voice chat transcriptions and/or text chat will be translated to English (United States).
     /// <para>
     /// The language code should be in BCP 47 format; supported language codes are enumerated in
-    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />. Specifying
-    /// an unsupported or invalid language code will not cause this method to fail, but will result in failure to
-    /// generate transcriptions associated with this chat control. The language code can be queried via
+    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />.
+    /// Specifying an unsupported or invalid language code will not cause this method to fail, but will result in
+    /// failure to generate transcriptions associated with this chat control. The language code can be queried via
     /// <see cref="GetLanguage()" />.
     /// </para>
     /// </remarks>
@@ -9516,9 +9791,10 @@ public:
     /// to English (United States).
     /// <para>
     /// The language code should be in BCP 47 format; supported language codes are enumerated in
-    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />. Specifying
-    /// an unsupported or invalid language code will not cause this method to fail, but will result in failure to
-    /// generate transcriptions associated with this chat control. The language code can be queried via GetLanguage().
+    /// <see xref="https://learn.microsoft.com/azure/ai-services/speech-service/language-support" name="Language support" />.
+    /// Specifying an unsupported or invalid language code will not cause this method to fail, but will result in
+    /// failure to generate transcriptions associated with this chat control. The language code can be queried via
+    /// GetLanguage().
     /// </para>
     /// </remarks>
     /// <param name="languageCode">
@@ -9552,10 +9828,10 @@ public:
     /// <para>
     /// Speech-to-text transcription functionality internally uses available region and latency measurement estimates to
     /// optimize service usage. If the <see cref="PartyOption::RegionUpdateConfiguration" /> option was used to
-    /// configure an update mode of <see cref="PartyRegionUpdateMode::Deferred" />, then retrieving the
-    /// set of available regions and measuring connection quality to them may not have started yet, or the last update
-    /// may have exceeded the configured refresh interval age. If the local device isn't currently connecting or
-    /// connected to any networks, and the application specifies option flags that include
+    /// configure an update mode of <see cref="PartyRegionUpdateMode::Deferred" />, then retrieving the set of available
+    /// regions and measuring connection quality to them may not have started yet, or the last update may have exceeded
+    /// the configured refresh interval age. If the local device isn't currently connecting or connected to any
+    /// networks, and the application specifies option flags that include
     /// <see cref="PartyVoiceChatTranscriptionOptions::TranscribeSelfRegardlessOfNetworkState" />, then
     /// SetTranscriptionOptions() ensures any deferred region update has started and the associated
     /// <see cref="PartyRegionsChangedStateChange" /> is provided prior to this call's
@@ -9994,7 +10270,7 @@ public:
     /// </para>
     /// <h>Platform support and supported formats</h>
     /// <para>
-    /// This function is only supported on Windows, Xbox, and PlayStation® 5. Calls on other platforms will fail.
+    /// This function is only supported on Windows, Xbox, and PlayStationÂ® 5. Calls on other platforms will fail.
     /// </para>
     /// <para>
     /// The following format options are supported for Windows and Xbox.
@@ -10010,8 +10286,8 @@ public:
     /// ` | Interleaved | false |
     /// </para>
     /// <para>
-    /// For a list of supported format options for PlayStation® 5, please refer to the README-RealTimeAudioManipulation.md
-    /// document distributed with the Party library package.
+    /// For a list of supported format options for PlayStationÂ® 5, please refer to the
+    /// README-RealTimeAudioManipulation.md document distributed with the Party library package.
     /// </para>
     /// </remarks>
     /// <param name="configuration">
@@ -10070,7 +10346,7 @@ public:
     /// </para>
     /// <h>Platform support and supported formats</h>
     /// <para>
-    /// This function is only supported on Windows, Xbox, and PlayStation® 5. Calls on other platforms will fail.
+    /// This function is only supported on Windows, Xbox, and PlayStationÂ® 5. Calls on other platforms will fail.
     /// </para>
     /// <para>
     /// The following format options are supported for Windows and Xbox.
@@ -10087,8 +10363,8 @@ public:
     /// ` | Interleaved | true or false |
     /// </para>
     /// <para>
-    /// For a list of supported format options for PlayStation® 5, please refer to the README-RealTimeAudioManipulation.md
-    /// document distributed with the Party library package.
+    /// For a list of supported format options for PlayStationÂ® 5, please refer to the
+    /// README-RealTimeAudioManipulation.md document distributed with the Party library package.
     /// </para>
     /// </remarks>
     /// <param name="configuration">
@@ -10518,8 +10794,8 @@ public:
     /// lightweight as possible, as they are expected to fire hundreds or thousands of times per second.
     /// </para>
     /// <para>
-    /// This method is only supported on the Windows, Xbox One XDK, and Microsoft Game Core versions of the library.
-    /// Calls on other platforms will fail.
+    /// This method is only supported on the Windows and Microsoft Game Core versions of the library. Calls on other
+    /// platforms will fail.
     /// </para>
     /// </remarks>
     /// <param name="profilingMethodEntranceCallback">
@@ -10553,8 +10829,8 @@ public:
     /// that event type.
     /// </para>
     /// <para>
-    /// This method is only supported on the Windows, Xbox One XDK, and Microsoft Game Core versions of the library.
-    /// Calls on other platforms will fail.
+    /// This method is only supported on the Windows and Microsoft Game Core versions of the library. Calls on other
+    /// platforms will fail.
     /// </para>
     /// </remarks>
     /// <param name="profilingMethodEntranceCallback">
@@ -10582,21 +10858,22 @@ public:
     /// </summary>
     /// <remarks>
     /// This method enables the title to configure the processor affinity for internal Party library threads of a given
-    /// type. On Windows, the <c>Audio</c> type affects both the PlayFab Party library owned threads and threads owned by
-    /// XAudio2. For more information, see <see cref="PartyThreadId" />.
+    /// type. On Windows, the <c>Audio</c> type affects both the PlayFab Party library owned threads and threads owned
+    /// by XAudio2. For more information, see <see cref="PartyThreadId" />.
     /// <para>
-    /// For all platforms, <b><i>except PlayStation®</i></b>, this method may be called at any time before or after
-    /// <see cref="Initialize()" /> and takes effect immediately. <b>On PlayStation®, attempting to set the
-    /// processor affinity for the <see cref="PartyThreadId" /> Audio thread after calling Initialize()
-    /// can result in audio rendering failures</b>. It's currently recommended to call this method prior to calling Initialize().
+    /// For all platforms, <b><i>except PlayStationÂ®</i></b>, this method may be called at any time before or after
+    /// <see cref="Initialize()" /> and takes effect immediately. <b>On PlayStationÂ®, attempting to set the processor
+    /// affinity for the <see cref="PartyThreadId" /> Audio thread after calling Initialize() can result in audio
+    /// rendering failures</b>. It's currently recommended to call this method prior to calling Initialize().
     /// </para>
     /// <para>
-    /// Thread processor settings are persisted across calls to <see cref="Cleanup()" /> and Initialize().
-    /// When there are more than 64 cores present, this method always applies to processor group 0.
+    /// Thread processor settings are persisted across calls to <see cref="Cleanup()" /> and Initialize(). When there
+    /// are more than 64 cores present, this method always applies to processor group 0.
     /// </para>
     /// <para>
     /// In order to specify any processor, pass <c>c_anyProcessor</c> as the <paramref name="threadAffinityMask" />
-    /// parameter. <c>c_anyProcessor</c> is also the default value the Party library uses if this method is never called.
+    /// parameter. <c>c_anyProcessor</c> is also the default value the Party library uses if this method is never
+    /// called.
     /// </para>
     /// </remarks>
     /// <param name="threadId">
@@ -10709,15 +10986,10 @@ public:
     /// <see cref="SetMemoryCallbacks()" />, <see cref="GetMemoryCallbacks()" />,
     /// <see cref="SetThreadAffinityMask()" />, <see cref="GetThreadAffinityMask()" />,
     /// <see cref="SerializeNetworkDescriptor()" />, <see cref="DeserializeNetworkDescriptor()" />,
-    /// <see cref="SetWorkMode()" />, and <see cref="GetWorkMode()" />. Initialize() cannot be called again without a
+    /// <see cref="SetWorkMode()" />, and <see cref="GetWorkMode()" />. Initialize() can't be called again without a
     /// subsequent <see cref="Cleanup()" /> call.
     /// <para>
     /// Every call to Initialize() should have a corresponding Cleanup() call.
-    /// </para>
-    /// <para>
-    /// It is recommended for apps using the Xbox One XDK version of the Party library to wait until the platform is
-    /// ready for networking operations before calling this method. Please refer to the XDK documentation about
-    /// networking and secure device associations best practices for more information.
     /// </para>
     /// <para>
     /// Apps using the Microsoft Game Core version of the Party library will need to wait for the Game Core Networking
@@ -10727,12 +10999,13 @@ public:
     /// <para>
     /// Apps using the Microsoft Game Core version of the Party library must listen for app state notifications via the
     /// RegisterAppStateChangeNotification API. When the app is suspended, the app must call PartyManager::Cleanup().
-    /// When the app is resumed, the title must wait for the Game Core networking stack to ready and then re-initialize
+    /// When the app is resumed, the title must wait for the Game Core networking stack to ready and then reinitialize
     /// the Party library by calling PartyManager::Initialize().
     /// </para>
     /// <para>
     /// The provided <paramref name="titleId" /> must be the same Title ID used to acquire the PlayFab Entity IDs and
-    /// Entity Tokens that will be passed to <see cref="CreateLocalUser()" />.
+    /// Entity Tokens that will be passed to <see cref="CreateLocalUser()" />,
+    /// <see cref="CreateLocalUserWithEntityType()" />, and <see cref="PartyLocalUser::UpdateEntityToken()" />.
     /// </para>
     /// </remarks>
     /// <param name="titleId">
@@ -10743,6 +11016,7 @@ public:
     /// error code can be retrieved via <see cref="GetErrorMessage()" />.
     /// </returns>
     /// <seealso cref="PartyManager::CreateLocalUser" />
+    /// <seealso cref="PartyManager::CreateLocalUserWithEntityType" />
     /// <seealso cref="PartyManager::Cleanup" />
     /// <seealso cref="PartyManager::GetSingleton" />
     /// <seealso cref="PartyManager::SetMemoryCallbacks" />
@@ -10751,28 +11025,28 @@ public:
     /// <seealso cref="PartyManager::GetThreadAffinityMask" />
     /// <seealso cref="PartyManager::SerializeNetworkDescriptor" />
     /// <seealso cref="PartyManager::DeserializeNetworkDescriptor" />
+    /// <seealso cref="PartyLocalUser::UpdateEntityToken" />
     PartyError Initialize(
         PartyString titleId
         ) party_no_throw;
-
     /// <summary>
     /// Immediately reclaims all resources associated with all Party library objects.
     /// </summary>
     /// <remarks>
-    /// If local users were participating in a PartyNetwork, they are removed ungracefully (it appears to remote devices
-    /// as if network connectivity to this device has been lost), so best practice is to call
+    /// If local users were participating in a PartyNetwork, they're removed ungracefully (it appears to remote devices
+    /// as if network connectivity to this device is lost), so best practice is to call
     /// <see cref="PartyNetwork::LeaveNetwork()" /> first on all networks returned from a call to
     /// <see cref="GetNetworks()" /> and wait for the corresponding <see cref="PartyLeaveNetworkCompletedStateChange" />
     /// to have the local users exit any existing PartyNetworks gracefully.
     /// <para>
-    /// This method is not thread-safe and may not be called concurrently with other non-static Party library methods.
+    /// This method isn't thread-safe and may not be called concurrently with other non-static Party library methods.
     /// After calling this method, all Party library state is invalidated.
     /// </para>
     /// <para>
     /// Titles using the Microsoft Game Core version of the Party library must listen for app state notifications via
     /// the RegisterAppStateChangeNotification API. When the app is suspended, the title must call
     /// PartyManager::Cleanup(). When the app is resumed, the title must wait for the Game Core networking stack to be
-    /// ready and then re-initialize the Party library by calling PartyManager::Initialize().
+    /// ready and then reinitialize the Party library by calling PartyManager::Initialize().
     /// </para>
     /// <para>
     /// Every call to <see cref="Initialize()" /> should have a corresponding Cleanup() call.
@@ -10876,11 +11150,11 @@ public:
     /// Synchronously performs the processing task associated with <paramref name="threadId" />.
     /// </summary>
     /// <remarks>
-    /// This method will fail and return an error if the work mode of <paramref name="threadId" /> has not previously
-    /// been set to <see cref="PartyWorkMode::Manual" /> via a call to <see cref="SetWorkMode()" />. Additionally, on
-    /// the Windows, Xbox One XDK, and Microsoft Game Core versions of the library, this method will fail and return an
-    /// error if the title thread calling this method does not exist in a COM multithreaded apartment when
-    /// <paramref name="threadId" /> is <see cref="PartyThreadId::Networking" />.
+    /// This method fails and returns an error if the work mode of <paramref name="threadId" /> hasn't previously been
+    /// set to <see cref="PartyWorkMode::Manual" /> via a call to <see cref="SetWorkMode()" />. Additionally, on the
+    /// Windows and Microsoft Game Core versions of the library, this method fails and returns an error if the title
+    /// thread calling this method doesn't exist in a COM multithreaded apartment when <paramref name="threadId" /> is
+    /// <see cref="PartyThreadId::Networking" />.
     /// <para>
     /// By default, the Party library will internally manage the processing task associated with
     /// <paramref name="threadId" />. However, if the work mode of <paramref name="threadId" /> is configured as
@@ -10890,9 +11164,9 @@ public:
     /// <para>
     /// The processing task associated with <paramref name="threadId" /> dictates the frequency at which this method
     /// should be called. The processing task associated with <see cref="PartyThreadId::Audio" /> should be performed
-    /// every 40ms, while the processing task associated with <see cref="PartyThreadId::Networking" /> should be
-    /// performed every 50 to 100ms. Internally, processing tasks will attempt to handle small variations in timing, but
-    /// issues will arise if timing strays too far from what is expected (e.g. audio stutter, network state
+    /// every 40 ms, while the processing task associated with <see cref="PartyThreadId::Networking" /> should be
+    /// performed every 50 ms to 100 ms. Internally, processing tasks attempt to handle small variations in timing, but
+    /// issues arise if timing strays too far from what is expected (for example, audio stutter, network state
     /// desynchronization).
     /// </para>
     /// <para>
@@ -10919,11 +11193,11 @@ public:
     /// <remarks>
     /// The array provided by this method isn't populated until the first <see cref="PartyRegionsChangedStateChange" />
     /// is provided. Each subsequent PartyRegionsChangedStateChange indicates an update to this set of regions.
-    /// Background operations populating this set begin when <see cref="Initialize()" /> is called, unless
-    /// the <see cref="PartyOption::RegionUpdateConfiguration" /> option was used to configure an update mode of
+    /// Background operations populating this set begin when <see cref="Initialize()" /> is called, unless the
+    /// <see cref="PartyOption::RegionUpdateConfiguration" /> option was used to configure an update mode of
     /// <see cref="PartyRegionUpdateMode::Deferred" />. The deferred mode means region retrieval and connection quality
-    /// measurement doesn't begin until the application calls <see cref="CreateNewNetwork()" /> with a zero
-    /// entry region array, or isn't connected to any network and calls
+    /// measurement doesn't begin until the application calls <see cref="CreateNewNetwork()" /> with a zero entry region
+    /// array, or isn't connected to any network and calls
     /// <see cref="PartyLocalChatControl::PopulateAvailableTextToSpeechProfiles()" />,
     /// <see cref="PartyLocalChatControl::SetTextToSpeechProfile()" />, or
     /// <see cref="PartyLocalChatControl::SetTranscriptionOptions()" /> with option flags that include
@@ -11149,8 +11423,8 @@ public:
     /// provided upon completion of the asynchronous operation, indicating success or failure. On success, the local
     /// device will have established a connection to the transparent cloud relay server. On failure, a
     /// <see cref="PartyNetworkDestroyedStateChange" /> will be generated. No other devices will become visible, and the
-    /// local device will not be visible to any remote devices, until at least one local user is successfully
-    /// authenticated via <see cref="PartyNetwork::AuthenticateLocalUser()" />.
+    /// local device won't be visible to any remote devices, until at least one local user is successfully authenticated
+    /// via <see cref="PartyNetwork::AuthenticateLocalUser()" />.
     /// <para>
     /// After the device successfully connects to the network, it must authenticate into the network via
     /// PartyNetwork::AuthenticateLocalUser(). If the device is connected to the network but unauthenticated for more
@@ -11162,7 +11436,7 @@ public:
     /// This method optionally provides <paramref name="network" /> as output that can immediately be used to perform
     /// asynchronous network operations, such as <see cref="PartyNetwork::CreateInvitation()" /> and
     /// <see cref="PartyNetwork::CreateEndpoint()" />. These asynchronous operations will be internally queued until the
-    /// connection completes, at which point they will be processed. This <paramref name="network" /> will also be
+    /// connection completes, at which point they'll be processed. This <paramref name="network" /> will also be
     /// provided on the resulting PartyConnectToNetworkCompletedStateChange where it will be fully connected and
     /// associated with the provided <paramref name="asyncIdentifier" />.
     /// </para>
@@ -11191,14 +11465,14 @@ public:
     /// ` | --- | --- |
     /// ` | InternetConnectivityError | Retry with a small delay of no less than 10 seconds. For your app, it may be
     ///         more appropriate to display the error to the user immediately, rather than retrying automatically. |
-    /// ` | NetworkLimitReached | Do not retry automatically. Instead, display a message to the user and wait for the
+    /// ` | NetworkLimitReached | Don't retry automatically. Instead, display a message to the user and wait for the
     ///         user to initiate another attempt. |
-    /// ` | NetworkNoLongerExists | Do not retry. |
-    /// ` | VersionMismatch | Do not retry. |
+    /// ` | NetworkNoLongerExists | Don't retry. |
+    /// ` | VersionMismatch | Don't retry. |
     /// ` | FailedToBindToLocalUdpSocket | This result means that the library couldn't bind to the local UDP socket
     ///         specified in the <see cref="PartyOption::LocalUdpSocketBindAddress" /> option. The title must clean up
     ///         its instance of the library, update the <see cref="PartyOption::LocalUdpSocketBindAddress" /> option to
-    ///         a valid, available bind address, and re-initialize the library.
+    ///         a valid, available bind address, and reinitialize the library.
     /// </para>
     /// </remarks>
     /// <param name="networkDescriptor">
@@ -11290,7 +11564,7 @@ public:
         ) const party_no_throw;
 
     /// <summary>
-    /// Creates a local user object that is used to represent a local user when performing networking and chat
+    /// Creates a local user object that is used to represent a local player when performing networking and chat
     /// operations.
     /// </summary>
     /// <remarks>
@@ -11304,7 +11578,8 @@ public:
     /// <para>
     /// A PlayFab Entity ID and Entity Token can be obtained from the output of a PlayFab login operation and then
     /// provided as input to this method. The PlayFab Entity ID must be of type `title_player_account`, which, for most
-    /// developers, represents the "player" in the most traditional way.
+    /// developers, represents the "player" in the most traditional way. To create users representing other supported
+    /// types of entities, use <see cref="CreateLocalUserWithEntityType()" /> instead.
     /// </para>
     /// <para>
     /// The provided <paramref name="entityId" /> and <paramref name="titlePlayerEntityToken" /> must have been acquired
@@ -11321,8 +11596,8 @@ public:
     /// The caller is responsible for monitoring the expiration of the entity token provided to this method and
     /// PartyLocalUser::UpdateEntityToken(). When the token is nearing or past the expiration time a new token should be
     /// obtained by performing a PlayFab login operation and provided to the Party library by calling
-    /// PartyLocalUser::UpdateEntityToken(). It is recommended to acquire a new token when the previously supplied token
-    /// is halfway through its validity period. On platforms that may enter a low power state or otherwise cause the
+    /// PartyLocalUser::UpdateEntityToken(). We recommend acquiring a new token when the previously supplied token is
+    /// halfway through its validity period. On platforms that may enter a low power state or otherwise cause the
     /// application to pause execution for a long time, preventing the token from being refreshed before it expires, the
     /// token should be checked for expiration once execution resumes.
     /// </para>
@@ -11355,6 +11630,7 @@ public:
     /// <seealso cref="PartyDestroyLocalUserCompletedStateChange" />
     /// <seealso cref="PartyManager::Initialize" />
     /// <seealso cref="PartyManager::GetLocalUsers" />
+    /// <seealso cref="PartyManager::CreateLocalUserWithEntityType" />
     /// <seealso cref="PartyManager::DestroyLocalUser" />
     /// <seealso cref="PartyManager::CreateNewNetwork" />
     /// <seealso cref="PartyNetwork::AuthenticateLocalUser" />
@@ -11370,6 +11646,92 @@ public:
         _Outptr_ PartyLocalUser ** localUser
         ) party_no_throw;
 
+    /// <summary>
+    /// Creates a local user object that is used to represent a supported PlayFab Entity ID and type when performing
+    /// networking and chat operations.
+    /// </summary>
+    /// <remarks>
+    /// This method takes a PlayFab Entity ID and type as <paramref name="entityId" /> and
+    /// <paramref name="entityType" /> respectively, and a PlayFab Entity Token as <paramref name="entityToken" />. No
+    /// synchronous validation is performed on these values except that the length of <paramref name="entityId" /> is
+    /// less than or equal to <c>c_maxEntityIdStringLength</c>, and that <paramref name="entityType" /> is either
+    /// "title_player_account" or "game_server". When the library performs operations that require user authentication
+    /// or authorization, such as creating or authenticating into a network, the Party service will validate that the
+    /// token is valid, is not expired, is associated with the Entity ID and type provided, and is authorized to perform
+    /// the operation. If these conditions aren't met, the operation will fail.
+    /// <para>
+    /// A PlayFab Entity ID, type, and token can be obtained from the output of a PlayFab login operation and then
+    /// provided as input to this method.
+    /// </para>
+    /// <para>
+    /// The provided <paramref name="entityId" />, <paramref name="entityType" /> and <paramref name="entityToken" />
+    /// must have been acquired using the same Title ID that was passed to <see cref="Initialize()" />.
+    /// </para>
+    /// <para>
+    /// The Party library makes a copy of the supplied PlayFab Entity Token for use in subsequent operations that
+    /// require authentication or authorization of the local user, such as <see cref="CreateNewNetwork()" /> or
+    /// <see cref="PartyNetwork::AuthenticateLocalUser()" />. If the token provided to this call is expired or otherwise
+    /// invalid, operations that require a valid token will fail. A new, valid token can be provided to the Party
+    /// library via a call to <see cref="PartyLocalUser::UpdateEntityToken()" />.
+    /// </para>
+    /// <para>
+    /// The caller is responsible for monitoring the expiration of the entity token provided to this method and
+    /// PartyLocalUser::UpdateEntityToken(). When the token is nearing or past the expiration time a new token should be
+    /// obtained by performing a PlayFab login operation and provided to the Party library by calling
+    /// PartyLocalUser::UpdateEntityToken(). We recommend acquiring a new token when the previously supplied token is
+    /// halfway through its validity period. On platforms that may enter a low power state or otherwise cause the
+    /// application to pause execution for a long time, preventing the token from being refreshed before it expires, the
+    /// token should be checked for expiration once execution resumes.
+    /// </para>
+    /// <para>
+    /// Only <c>c_maxLocalUsersPerDeviceCount</c> PartyLocalUser objects may exist simultaneously at any given time.
+    /// This method will synchronously fail if creating another local user would exceed that limit.
+    /// </para>
+    /// <para>
+    /// On successful return, this method invalidates the memory for any array previously returned by
+    /// <see cref="GetLocalUsers()" />, as it synchronously adds the new user to the array.
+    /// <see cref="StartProcessingStateChanges()" /> also invalidates the memory for the array. The returned
+    /// <paramref name="localUser" /> object will be valid until a
+    /// <see cref="PartyDestroyLocalUserCompletedStateChange" /> has been generated and all state changes referencing
+    /// the object have been returned to <see cref="FinishProcessingStateChanges()" />.
+    /// </para>
+    /// </remarks>
+    /// <param name="entityId">
+    /// The PlayFab Entity ID to associate with the local user.
+    /// </param>
+    /// <param name="entityType">
+    /// The PlayFab entity type to associate with the local user. Only "title_player_account" or "game_server" entity
+    /// types are supported.
+    /// </param>
+    /// <param name="entityToken">
+    /// The PlayFab Entity Token to associate with the local user.
+    /// </param>
+    /// <param name="localUser">
+    /// The output local user object.
+    /// </param>
+    /// <returns>
+    /// <c>c_partyErrorSuccess</c> if creating the local user succeeded or an error code otherwise. The human-readable
+    /// form of the error code can be retrieved via <see cref="GetErrorMessage()" />.
+    /// </returns>
+    /// <seealso cref="PartyDestroyLocalUserCompletedStateChange" />
+    /// <seealso cref="PartyManager::Initialize" />
+    /// <seealso cref="PartyManager::GetLocalUsers" />
+    /// <seealso cref="PartyManager::CreateLocalUser" />
+    /// <seealso cref="PartyManager::DestroyLocalUser" />
+    /// <seealso cref="PartyManager::CreateNewNetwork" />
+    /// <seealso cref="PartyNetwork::AuthenticateLocalUser" />
+    /// <seealso cref="PartyNetwork::RemoveLocalUser" />
+    /// <seealso cref="PartyNetwork::CreateInvitation" />
+    /// <seealso cref="PartyNetwork::RevokeInvitation" />
+    /// <seealso cref="PartyNetwork::CreateEndpoint" />
+    /// <seealso cref="PartyLocalUser::UpdateEntityToken" />
+    /// <seealso cref="PartyLocalDevice::CreateChatControl" />
+    PartyError CreateLocalUserWithEntityType(
+        PartyString entityId,
+        PartyString entityType,
+        PartyString entityToken,
+        _Outptr_ PartyLocalUser ** localUser
+        ) party_no_throw;
     /// <summary>
     /// Starts an asynchronous operation to destroy a local user.
     /// </summary>
@@ -11405,7 +11767,8 @@ public:
         ) party_no_throw;
 
     /// <summary>
-    /// Gets an array containing all local users created by <see cref="CreateLocalUser()" />.
+    /// Gets an array containing all local users created by <see cref="CreateLocalUser()" /> or
+    /// <see cref="CreateLocalUserWithEntityType()" />.
     /// </summary>
     /// <remarks>
     /// Once a <see cref="PartyDestroyLocalUserCompletedStateChange" /> has been provided by
@@ -11413,7 +11776,8 @@ public:
     /// array returned by this method.
     /// <para>
     /// The memory for the returned array is invalidated whenever the title calls
-    /// PartyManager::StartProcessingStateChanges() or CreateLocalUser() returns success.
+    /// PartyManager::StartProcessingStateChanges(), or when CreateLocalUser() or CreateLocalUserWithEntityType()
+    /// returns success.
     /// </para>
     /// </remarks>
     /// <param name="userCount">
@@ -11427,6 +11791,7 @@ public:
     /// error code can be retrieved via <see cref="GetErrorMessage()" />.
     /// </returns>
     /// <seealso cref="PartyManager::CreateLocalUser" />
+    /// <seealso cref="PartyManager::CreateLocalUserWithEntityType" />
     /// <seealso cref="PartyManager::DestroyLocalUser" />
     /// <seealso cref="PartyDestroyLocalUserCompletedStateChange" />
     PartyError GetLocalUsers(
