@@ -1203,7 +1203,7 @@ void FOnlineSessionPlayFab::OnLobbyMemberAdded(FName SessionName, const PFLobbyM
 #endif
 
 	const TSharedRef<const FUniqueNetId> MemberAddedNetId = FUniqueNetIdPlayFab::Create(PlatformIdStr);
-	TriggerOnSessionParticipantsChangeDelegates(SessionName, *MemberAddedNetId, true);
+	TriggerOnSessionParticipantJoinedDelegates(SessionName, *MemberAddedNetId);
 }
 
 void FOnlineSessionPlayFab::OnLobbyMemberRemoved(FName SessionName, const PFLobbyMemberRemovedStateChange& StateChange)
@@ -1226,7 +1226,7 @@ void FOnlineSessionPlayFab::OnLobbyMemberRemoved(FName SessionName, const PFLobb
 		UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyMemberRemoved Id:%s, Type:%s PlatformId:%s"), *MemberRemovedEntityIdStr, *MemberRemovedEntityTypeStr, **PlatformId);
 		const TSharedRef<const FUniqueNetId> MemberRemovedNetId = FUniqueNetIdPlayFab::Create(**PlatformId);
 		EntityPlatformIdMapping.Remove(MemberRemovedEntityIdStr);
-		TriggerOnSessionParticipantsChangeDelegates(SessionName, *MemberRemovedNetId, false);
+		TriggerOnSessionParticipantLeftDelegates(SessionName, *MemberRemovedNetId, EOnSessionParticipantLeftReason::Left);
 	}
 	else
 	{
@@ -1467,7 +1467,7 @@ bool FOnlineSessionPlayFab::JoinSession(const FUniqueNetId& UserId, FName Sessio
 					{
 						if (FUniqueNetIdPtr SessionId = NativeSessionInterface->CreateSessionIdFromString(SessionIdString))
 						{
-							NativeSessionInterface->FindSessionById(UserId, *SessionId, *CreateNativeNetIdPtr(), TEXT(""), FOnSingleSessionResultCompleteDelegate::CreateLambda([this, &UserId, SessionName, NativeSessionInterface, &bSuccess](int32, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult)
+							bSuccess = NativeSessionInterface->FindSessionById(UserId, *SessionId, *CreateNativeNetIdPtr(), TEXT(""), FOnSingleSessionResultCompleteDelegate::CreateLambda([this, &UserId, SessionName, NativeSessionInterface, &bSuccess](int32, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult)
 								{
 									if (bWasSuccessful)
 									{
@@ -1854,7 +1854,7 @@ bool FOnlineSessionPlayFab::UnregisterPlayers(FName SessionName, const TArray< T
 					UnregisterVoice(*PlayerId);
 					// The unetdriver cleanup triggers this unregister before the OnSessionChanged event so trigger this delegate here.
 					// the test in OnSessionChanged will remain as different underlying net systems will rely on it.
-					TriggerOnSessionParticipantsChangeDelegates(SessionName, *PlayerId, false);
+					TriggerOnSessionParticipantLeftDelegates(SessionName, *PlayerId, EOnSessionParticipantLeftReason::Left);
 				}
 				else
 				{
@@ -2119,7 +2119,7 @@ void FOnlineSessionPlayFab::OnCreateSessionCompleted(FName SessionName, bool bPl
 								OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
 								{
 									OnNativeCreateSessionCompleteDelegateHandle = NativeSessionInterface->AddOnCreateSessionCompleteDelegate_Handle(
-										FOnCreateSessionCompleteDelegate::CreateLambda([this, NativeSessionInterface, &bSuccess, ExistingNamedSession, SessionName](FName CallbackNativeSessionName, bool bNativeSessionCreated)
+										FOnCreateSessionCompleteDelegate::CreateLambda([this, NativeSessionInterface, ExistingNamedSession, SessionName](FName CallbackNativeSessionName, bool bNativeSessionCreated)
 										{
 											if (bNativeSessionCreated == false)
 											{

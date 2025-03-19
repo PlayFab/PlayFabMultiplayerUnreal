@@ -1099,8 +1099,21 @@ void FOnlineSubsystemPlayFab::OnLeaveNetworkCompleted(const PartyStateChange* Ch
 	const PartyLeaveNetworkCompletedStateChange* Result = static_cast<const PartyLeaveNetworkCompletedStateChange*>(Change);
 	if (Result)
 	{
-		NetworkState = EPlayFabPartyNetworkState::NoNetwork;
-		Network = nullptr;
+		if (Result->result == PartyStateChangeResult::Succeeded)
+		{
+			if (ensure(NetworkState != EPlayFabPartyNetworkState::NoNetwork || Network != nullptr))
+			{
+				UE_LOG_ONLINE(Verbose, TEXT("OnLeaveNetworkCompleted: SUCCESS"));
+
+				NetworkState = EPlayFabPartyNetworkState::NoNetwork;
+				Network = nullptr;
+			}
+		}
+		else
+		{
+			UE_LOG_ONLINE(Warning, TEXT("OnLeaveNetworkCompleted: FAIL:  %s"), *PartyStateChangeResultToReasonString(Result->result));
+			UE_LOG_ONLINE(Warning, TEXT("ErrorDetail: %s"), *GetPartyErrorMessage(Result->errorDetail));
+		}
 	}
 }
 
@@ -1112,6 +1125,9 @@ void FOnlineSubsystemPlayFab::OnNetworkDestroyed(const PartyStateChange* Change)
 	if (Result)
 	{
 		UE_LOG_ONLINE(Warning, TEXT("FOnlineSubsystemPlayFab::OnNetworkDestroyed: PlayFab Party network was destroyed with reason code %d"), Result->reason);
+
+		NetworkState = EPlayFabPartyNetworkState::NoNetwork;
+		Network = nullptr;
 
 		FPlayFabSocketSubsystem* SocketSubsystem = static_cast<FPlayFabSocketSubsystem*>(ISocketSubsystem::Get(PLAYFAB_SOCKET_SUBSYSTEM));
 		if (SocketSubsystem == nullptr)

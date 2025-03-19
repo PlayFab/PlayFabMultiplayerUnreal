@@ -1,7 +1,6 @@
 #pragma once
 
 #include <PFEntityKey.h>
-
 #ifndef __cplusplus
 #error "This header requires C++"
 #endif // end if not defined __cplusplus
@@ -785,6 +784,10 @@ PFMatchmakingTicketSetCustomContext(
 /// located in.
 /// </para>
 /// <para>
+/// If ticket creation fails because there are already too many tickets for the users specified in the configuration,
+/// the library transparently cancels those outstanding tickets and then retries ticket creation.
+/// </para>
+/// <para>
 /// This function requires that a previous call to <see cref="PFMultiplayerSetEntityToken()" /> was made to set the game
 /// server entity token.
 /// </para>
@@ -818,7 +821,8 @@ PFMultiplayerCreateServerBackfillTicket(
     const PFMatchmakingServerBackfillTicketConfiguration * configuration,
     _In_opt_ void* asyncContext,
     _Outptr_ PFMatchmakingTicketHandle* ticket
-) noexcept;
+    ) noexcept;
+
 #endif // PFMULTIPLAYER_INCLUDE_SERVER_APIS
 
 #ifdef __cplusplus

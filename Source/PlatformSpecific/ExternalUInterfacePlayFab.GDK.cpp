@@ -6,7 +6,6 @@
 #include "OnlineExternalUIInterfacePlayFab.h"
 #include "Interfaces/OnlineFriendsInterface.h"
 #include "GDKTaskQueueHelpers.h"
-#include "GDKUserManager.h"
 #include "OnlineSessionInterfacePlayFab.h"
 
 #include "Windows/AllowWindowsPlatformTypes.h"

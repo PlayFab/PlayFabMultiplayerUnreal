@@ -1,7 +1,6 @@
 #pragma once
 
 #include <PFEntityKey.h>
-
 #ifndef __cplusplus
 #error "This header requires C++"
 #endif // end if not defined __cplusplus

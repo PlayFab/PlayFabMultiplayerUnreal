@@ -106,13 +106,16 @@ public class OnlineSubsystemPlayFab : ModuleRules
 		// Because platform determination relies on types that only exist in builds that have the platform enabled, we use reflection to dynamically 
 		// look for the existence of the platform's field on the UnrealPlatformGroup type.
 
-		//GDK
-		FieldInfo Field = typeof(UnrealPlatformGroup).GetField("GDK", BindingFlags.Public | BindingFlags.Static);
-		if (Field != null)
+		System.Console.WriteLine("[OSS PlayFab] Configuring for Target Platform: " + Target.Platform.ToString());
+
+		// GDK
+		bool bFound = UnrealPlatformGroup.TryParse("GDK", out UnrealPlatformGroup Group);
+		if (bFound)
 		{
-			UnrealPlatformGroup Group = (UnrealPlatformGroup)Field.GetValue(null);
+			System.Console.WriteLine("[OSS PlayFab] Found UnrealPlatformGroup: " + Group.ToString());
 			if (Target.Platform.IsInGroup(Group))
 			{
+				System.Console.WriteLine("[OSS PlayFab] Target Platform: " + Target.Platform.ToString() + " is in UnrealPlatformGroup " + Group.ToString());
 				ConfigureForGDKPlatform();
 				return;
 			}

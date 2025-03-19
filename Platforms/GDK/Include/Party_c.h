@@ -8,7 +8,6 @@ extern "C"
 #endif
 
 #define PARTY_API __stdcall
-#define PARTY_API_ATTRIBUTES
 
 typedef const struct PARTY_LOCAL_USER* PARTY_LOCAL_USER_HANDLE;
 typedef const struct PARTY_ENDPOINT* PARTY_ENDPOINT_HANDLE;
@@ -41,7 +40,7 @@ void
 
 // BEGIN GENERATED SECTION: DO NOT EDIT
 
-#define PARTY_MAX_NETWORK_CONFIGURATION_MAX_DEVICE_COUNT 32
+#define PARTY_MAX_NETWORK_CONFIGURATION_MAX_DEVICE_COUNT 128
 #define PARTY_MAX_DIRECT_PEER_CONNECTIONS_PER_DEVICE 7
 #define PARTY_MAX_NETWORK_CONFIGURATION_MAX_ENDPOINTS_PER_DEVICE_COUNT 32
 #define PARTY_MAX_LOCAL_USERS_PER_DEVICE_COUNT 8
@@ -402,6 +401,7 @@ typedef enum PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS
     PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_SAME_ENTITY_LOGIN_PROVIDER = 0x0004,
     PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_DIFFERENT_ENTITY_LOGIN_PROVIDER = 0x0008,
     PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_ANY_ENTITY_LOGIN_PROVIDER = 0x000c,
+    PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS_ONLY_SERVERS = 0x0010,
 } PARTY_DIRECT_PEER_CONNECTIVITY_OPTIONS;
 
 typedef enum PARTY_DEVICE_CONNECTION_TYPE
@@ -423,6 +423,20 @@ typedef enum PARTY_REGION_UPDATE_MODE
     PARTY_REGION_UPDATE_MODE_IMMEDIATE = 0,
     PARTY_REGION_UPDATE_MODE_DEFERRED = 1,
 } PARTY_REGION_UPDATE_MODE;
+
+typedef enum PARTY_ENDPOINT_USER_TYPE_FILTER
+{
+    PARTY_ENDPOINT_USER_TYPE_FILTER_NO_USER_FILTER = 0,
+    PARTY_ENDPOINT_USER_TYPE_FILTER_PLAYERS = 1,
+    PARTY_ENDPOINT_USER_TYPE_FILTER_SERVERS = 2,
+} PARTY_ENDPOINT_USER_TYPE_FILTER;
+
+typedef enum PARTY_ENDPOINT_LOCATION_FILTER
+{
+    PARTY_ENDPOINT_LOCATION_FILTER_NO_LOCATION_FILTER = 0,
+    PARTY_ENDPOINT_LOCATION_FILTER_LOCAL_ONLY = 1,
+    PARTY_ENDPOINT_LOCATION_FILTER_REMOTE_ONLY = 2,
+} PARTY_ENDPOINT_LOCATION_FILTER;
 
 typedef struct PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION
 {
@@ -1094,7 +1108,6 @@ void
     const PARTY_PROFILING_METHOD_EXIT_EVENT_DATA* eventData
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyLocalUserGetEntityId(
@@ -1102,15 +1115,20 @@ PartyLocalUserGetEntityId(
     _Outptr_ PartyString* entityId
     );
 
-PARTY_API_ATTRIBUTES
+PartyError
+PARTY_API
+PartyLocalUserGetEntityType(
+    PARTY_LOCAL_USER_HANDLE localUser,
+    _Outptr_ PartyString * entityType
+    );
+
 PartyError
 PARTY_API
 PartyLocalUserUpdateEntityToken(
     PARTY_LOCAL_USER_HANDLE localUser,
-    PartyString titlePlayerEntityToken
+    PartyString entityToken
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyLocalUserGetCustomContext(
@@ -1118,7 +1136,6 @@ PartyLocalUserGetCustomContext(
     _Outptr_result_maybenull_ void** customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyLocalUserSetCustomContext(
@@ -1126,7 +1143,6 @@ PartyLocalUserSetCustomContext(
     _In_opt_ void* customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointGetLocalUser(
@@ -1134,7 +1150,6 @@ PartyEndpointGetLocalUser(
     _Outptr_result_maybenull_ PARTY_LOCAL_USER_HANDLE* localUser
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointSendMessage(
@@ -1148,7 +1163,6 @@ PartyEndpointSendMessage(
     _In_opt_ void* messageIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointCancelMessages(
@@ -1161,7 +1175,6 @@ PartyEndpointCancelMessages(
     _Out_opt_ uint32_t* canceledMessagesCount
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointFlushMessages(
@@ -1170,7 +1183,6 @@ PartyEndpointFlushMessages(
     _In_reads_(targetEndpointCount) const PARTY_ENDPOINT_HANDLE* targetEndpoints
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointGetEndpointStatistics(
@@ -1182,7 +1194,6 @@ PartyEndpointGetEndpointStatistics(
     _Out_writes_all_(statisticCount) uint64_t* statisticValues
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointIsLocal(
@@ -1190,7 +1201,6 @@ PartyEndpointIsLocal(
     _Out_ PartyBool* isLocal
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointGetEntityId(
@@ -1198,7 +1208,13 @@ PartyEndpointGetEntityId(
     _Outptr_result_maybenull_ PartyString* entityId
     );
 
-PARTY_API_ATTRIBUTES
+PartyError
+PARTY_API
+PartyEndpointGetEntityType(
+    PARTY_ENDPOINT_HANDLE endpoint,
+    _Outptr_result_maybenull_ PartyString* entityType
+    );
+
 PartyError
 PARTY_API
 PartyEndpointGetNetwork(
@@ -1206,7 +1222,6 @@ PartyEndpointGetNetwork(
     _Outptr_ PARTY_NETWORK_HANDLE* network
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointGetDevice(
@@ -1214,7 +1229,6 @@ PartyEndpointGetDevice(
     _Outptr_ PARTY_DEVICE_HANDLE* device
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointGetUniqueIdentifier(
@@ -1222,7 +1236,6 @@ PartyEndpointGetUniqueIdentifier(
     _Out_ uint16_t* uniqueIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointGetSharedProperty(
@@ -1231,7 +1244,6 @@ PartyEndpointGetSharedProperty(
     _Out_ PARTY_DATA_BUFFER* value
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointGetSharedPropertyKeys(
@@ -1240,7 +1252,6 @@ PartyEndpointGetSharedPropertyKeys(
     _Outptr_result_buffer_(*propertyCount) const PartyString** keys
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointSetSharedProperties(
@@ -1250,7 +1261,6 @@ PartyEndpointSetSharedProperties(
     _In_reads_(propertyCount) const PARTY_DATA_BUFFER* values
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointGetCustomContext(
@@ -1258,7 +1268,6 @@ PartyEndpointGetCustomContext(
     _Outptr_result_maybenull_ void** customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyEndpointSetCustomContext(
@@ -1266,7 +1275,6 @@ PartyEndpointSetCustomContext(
     _In_opt_ void* customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyDeviceCreateChatControl(
@@ -1277,7 +1285,6 @@ PartyDeviceCreateChatControl(
     _Outptr_opt_ PARTY_CHAT_CONTROL_HANDLE* chatControl
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyDeviceDestroyChatControl(
@@ -1286,7 +1293,6 @@ PartyDeviceDestroyChatControl(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyDeviceIsLocal(
@@ -1294,7 +1300,6 @@ PartyDeviceIsLocal(
     _Out_ PartyBool* isLocal
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyDeviceGetChatControls(
@@ -1303,7 +1308,6 @@ PartyDeviceGetChatControls(
     _Outptr_result_buffer_(*chatControlCount) const PARTY_CHAT_CONTROL_HANDLE** chatControls
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyDeviceGetSharedProperty(
@@ -1312,7 +1316,6 @@ PartyDeviceGetSharedProperty(
     _Out_ PARTY_DATA_BUFFER* value
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyDeviceGetSharedPropertyKeys(
@@ -1321,7 +1324,6 @@ PartyDeviceGetSharedPropertyKeys(
     _Outptr_result_buffer_(*propertyCount) const PartyString** keys
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyDeviceSetSharedProperties(
@@ -1331,7 +1333,6 @@ PartyDeviceSetSharedProperties(
     _In_reads_(propertyCount) const PARTY_DATA_BUFFER* values
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyDeviceGetCustomContext(
@@ -1339,7 +1340,6 @@ PartyDeviceGetCustomContext(
      _Outptr_result_maybenull_ void** customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyDeviceSetCustomContext(
@@ -1347,7 +1347,6 @@ PartyDeviceSetCustomContext(
     _In_opt_ void* customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyInvitationGetCreatorEntityId(
@@ -1355,7 +1354,6 @@ PartyInvitationGetCreatorEntityId(
     _Outptr_result_maybenull_ PartyString * entityId
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyInvitationGetInvitationConfiguration(
@@ -1363,7 +1361,6 @@ PartyInvitationGetInvitationConfiguration(
     _Outptr_ const PARTY_INVITATION_CONFIGURATION ** configuration
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyInvitationGetCustomContext(
@@ -1371,7 +1368,6 @@ PartyInvitationGetCustomContext(
     _Outptr_result_maybenull_ void ** customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyInvitationSetCustomContext(
@@ -1379,7 +1375,6 @@ PartyInvitationSetCustomContext(
     _In_opt_ void * customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkAuthenticateLocalUser(
@@ -1389,7 +1384,6 @@ PartyNetworkAuthenticateLocalUser(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkRemoveLocalUser(
@@ -1398,7 +1392,6 @@ PartyNetworkRemoveLocalUser(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkCreateInvitation(
@@ -1409,7 +1402,6 @@ PartyNetworkCreateInvitation(
     _Outptr_opt_ PARTY_INVITATION_HANDLE* invitation
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkRevokeInvitation(
@@ -1419,7 +1411,6 @@ PartyNetworkRevokeInvitation(
     void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetInvitations(
@@ -1428,7 +1419,6 @@ PartyNetworkGetInvitations(
     _Outptr_result_buffer_(*invitationCount) const PARTY_INVITATION_HANDLE** invitations
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkCreateEndpoint(
@@ -1441,7 +1431,6 @@ PartyNetworkCreateEndpoint(
     _Outptr_opt_ PARTY_ENDPOINT_HANDLE* endpoint
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkDestroyEndpoint(
@@ -1450,7 +1439,6 @@ PartyNetworkDestroyEndpoint(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkLeaveNetwork(
@@ -1458,7 +1446,6 @@ PartyNetworkLeaveNetwork(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetEndpoints(
@@ -1467,7 +1454,16 @@ PartyNetworkGetEndpoints(
     _Outptr_result_buffer_(*endpointCount) const PARTY_ENDPOINT_HANDLE** endpoints
     );
 
-PARTY_API_ATTRIBUTES
+PartyError
+PARTY_API
+PartyNetworkGetEndpointsByUserType(
+    PARTY_NETWORK_HANDLE network,
+    PARTY_ENDPOINT_USER_TYPE_FILTER endpointUserTypeFilter,
+    PARTY_ENDPOINT_LOCATION_FILTER endpointLocationFilter,
+    _Out_ uint32_t* endpointCount,
+    _Outptr_result_buffer_(*endpointCount) const PARTY_ENDPOINT_HANDLE** endpoints
+    );
+
 PartyError
 PARTY_API
 PartyNetworkFindEndpointByUniqueIdentifier(
@@ -1476,7 +1472,6 @@ PartyNetworkFindEndpointByUniqueIdentifier(
     _Outptr_ PARTY_ENDPOINT_HANDLE* endpoint
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetDevices(
@@ -1485,7 +1480,6 @@ PartyNetworkGetDevices(
     _Outptr_result_buffer_(*deviceCount) const PARTY_DEVICE_HANDLE** devices
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetLocalUsers(
@@ -1494,7 +1488,6 @@ PartyNetworkGetLocalUsers(
     _Outptr_result_buffer_(*userCount) const PARTY_LOCAL_USER_HANDLE** users
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetNetworkDescriptor(
@@ -1502,7 +1495,6 @@ PartyNetworkGetNetworkDescriptor(
      _Out_ PARTY_NETWORK_DESCRIPTOR* networkDescriptor
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetNetworkConfiguration(
@@ -1510,7 +1502,6 @@ PartyNetworkGetNetworkConfiguration(
     _Outptr_ const PARTY_NETWORK_CONFIGURATION** networkConfiguration
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkKickDevice(
@@ -1519,7 +1510,6 @@ PartyNetworkKickDevice(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkKickUser(
@@ -1528,7 +1518,6 @@ PartyNetworkKickUser(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetSharedProperty(
@@ -1537,7 +1526,6 @@ PartyNetworkGetSharedProperty(
     _Out_ PARTY_DATA_BUFFER* value
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetSharedPropertyKeys(
@@ -1546,7 +1534,6 @@ PartyNetworkGetSharedPropertyKeys(
     _Outptr_result_buffer_(*propertyCount) const PartyString** keys
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkSetSharedProperties(
@@ -1556,7 +1543,6 @@ PartyNetworkSetSharedProperties(
     _In_reads_(propertyCount) const PARTY_DATA_BUFFER* values
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkConnectChatControl(
@@ -1565,7 +1551,6 @@ PartyNetworkConnectChatControl(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkDisconnectChatControl(
@@ -1574,7 +1559,6 @@ PartyNetworkDisconnectChatControl(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetChatControls(
@@ -1583,7 +1567,6 @@ PartyNetworkGetChatControls(
     _Outptr_result_buffer_(*chatControlCount) const PARTY_CHAT_CONTROL_HANDLE** chatControls
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetNetworkStatistics(
@@ -1593,7 +1576,6 @@ PartyNetworkGetNetworkStatistics(
     _Out_writes_all_(statisticCount) uint64_t* statisticValues
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetCustomContext(
@@ -1601,7 +1583,6 @@ PartyNetworkGetCustomContext(
     _Outptr_result_maybenull_ void** customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkSetCustomContext(
@@ -1609,7 +1590,6 @@ PartyNetworkSetCustomContext(
     _In_opt_ void* customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyNetworkGetDeviceConnectionType(
@@ -1618,7 +1598,6 @@ PartyNetworkGetDeviceConnectionType(
     _Out_ PARTY_DEVICE_CONNECTION_TYPE* deviceConnectionType
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetLocalUser(
@@ -1626,7 +1605,6 @@ PartyChatControlGetLocalUser(
     _Outptr_ PARTY_LOCAL_USER_HANDLE* localUser
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetPermissions(
@@ -1635,7 +1613,6 @@ PartyChatControlSetPermissions(
     PARTY_CHAT_PERMISSION_OPTIONS chatPermissionOptions
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetPermissions(
@@ -1644,7 +1621,6 @@ PartyChatControlGetPermissions(
     _Out_ PARTY_CHAT_PERMISSION_OPTIONS* chatPermissionOptions
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSendText(
@@ -1656,7 +1632,6 @@ PartyChatControlSendText(
     _In_reads_(dataBufferCount) const PARTY_DATA_BUFFER* dataBuffers
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetAudioInput(
@@ -1666,7 +1641,6 @@ PartyChatControlSetAudioInput(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetAudioInput(
@@ -1676,7 +1650,6 @@ PartyChatControlGetAudioInput(
     _Outptr_ PartyString* deviceId
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetAudioOutput(
@@ -1686,7 +1659,6 @@ PartyChatControlSetAudioOutput(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetAudioOutput(
@@ -1696,7 +1668,6 @@ PartyChatControlGetAudioOutput(
     _Outptr_ PartyString* deviceId
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlPopulateAvailableTextToSpeechProfiles(
@@ -1704,7 +1675,6 @@ PartyChatControlPopulateAvailableTextToSpeechProfiles(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetAvailableTextToSpeechProfiles(
@@ -1713,7 +1683,6 @@ PartyChatControlGetAvailableTextToSpeechProfiles(
     _Outptr_result_buffer_(*profileCount) const PARTY_TEXT_TO_SPEECH_PROFILE_HANDLE** profiles
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetTextToSpeechProfile(
@@ -1723,7 +1692,6 @@ PartyChatControlSetTextToSpeechProfile(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetTextToSpeechProfile(
@@ -1732,7 +1700,6 @@ PartyChatControlGetTextToSpeechProfile(
     _Outptr_result_maybenull_ PARTY_TEXT_TO_SPEECH_PROFILE_HANDLE* profile
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSynthesizeTextToSpeech(
@@ -1742,7 +1709,6 @@ PartyChatControlSynthesizeTextToSpeech(
     _In_opt_ void * asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetLanguage(
@@ -1751,7 +1717,6 @@ PartyChatControlSetLanguage(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetLanguage(
@@ -1759,7 +1724,6 @@ PartyChatControlGetLanguage(
     _Outptr_ PartyString* languageCode
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetTranscriptionOptions(
@@ -1768,7 +1732,6 @@ PartyChatControlSetTranscriptionOptions(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetTranscriptionOptions(
@@ -1776,7 +1739,6 @@ PartyChatControlGetTranscriptionOptions(
     _Out_ PARTY_VOICE_CHAT_TRANSCRIPTION_OPTIONS* options
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetTextChatOptions(
@@ -1785,7 +1747,6 @@ PartyChatControlSetTextChatOptions(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetTextChatOptions(
@@ -1793,7 +1754,6 @@ PartyChatControlGetTextChatOptions(
     _Out_ PARTY_TEXT_CHAT_OPTIONS* options
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetAudioRenderVolume(
@@ -1802,7 +1762,6 @@ PartyChatControlSetAudioRenderVolume(
     float volume
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetAudioRenderVolume(
@@ -1811,7 +1770,6 @@ PartyChatControlGetAudioRenderVolume(
     _Out_ float* volume
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetAudioInputMuted(
@@ -1819,7 +1777,6 @@ PartyChatControlSetAudioInputMuted(
     PartyBool muted
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetAudioInputMuted(
@@ -1827,7 +1784,6 @@ PartyChatControlGetAudioInputMuted(
     _Out_ PartyBool* muted
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetIncomingAudioMuted(
@@ -1836,7 +1792,6 @@ PartyChatControlSetIncomingAudioMuted(
     PartyBool muted
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetIncomingAudioMuted(
@@ -1845,7 +1800,6 @@ PartyChatControlGetIncomingAudioMuted(
     _Out_ PartyBool* muted
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetIncomingTextMuted(
@@ -1854,7 +1808,6 @@ PartyChatControlSetIncomingTextMuted(
     PartyBool muted
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetIncomingTextMuted(
@@ -1863,7 +1816,6 @@ PartyChatControlGetIncomingTextMuted(
     _Out_ PartyBool* muted
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetVoiceAudioOptions(
@@ -1871,7 +1823,6 @@ PartyChatControlSetVoiceAudioOptions(
     PARTY_VOICE_AUDIO_OPTIONS options
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetVoiceAudioOptions(
@@ -1879,7 +1830,6 @@ PartyChatControlGetVoiceAudioOptions(
     _Out_ PARTY_VOICE_AUDIO_OPTIONS* options
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetLocalChatIndicator(
@@ -1887,7 +1837,6 @@ PartyChatControlGetLocalChatIndicator(
     _Out_ PARTY_LOCAL_CHAT_CONTROL_CHAT_INDICATOR* chatIndicator
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetChatIndicator(
@@ -1896,7 +1845,6 @@ PartyChatControlGetChatIndicator(
     _Out_ PARTY_CHAT_CONTROL_CHAT_INDICATOR* chatIndicator
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetAudioEncoderBitrate(
@@ -1905,7 +1853,6 @@ PartyChatControlSetAudioEncoderBitrate(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetAudioEncoderBitrate(
@@ -1913,7 +1860,6 @@ PartyChatControlGetAudioEncoderBitrate(
     _Out_ uint32_t* bitrate
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlIsLocal(
@@ -1921,7 +1867,6 @@ PartyChatControlIsLocal(
     _Out_ PartyBool* isLocal
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetDevice(
@@ -1929,7 +1874,6 @@ PartyChatControlGetDevice(
     _Outptr_ PARTY_DEVICE_HANDLE* device
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetEntityId(
@@ -1937,7 +1881,13 @@ PartyChatControlGetEntityId(
     _Outptr_ PartyString* entityId
     );
 
-PARTY_API_ATTRIBUTES
+PartyError
+PARTY_API
+PartyChatControlGetEntityType(
+    PARTY_CHAT_CONTROL_HANDLE chatControl,
+    _Outptr_ PartyString* entityType
+    );
+
 PartyError
 PARTY_API
 PartyChatControlGetSharedProperty(
@@ -1946,7 +1896,6 @@ PartyChatControlGetSharedProperty(
     _Out_ PARTY_DATA_BUFFER* value
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetSharedPropertyKeys(
@@ -1955,7 +1904,6 @@ PartyChatControlGetSharedPropertyKeys(
     _Outptr_result_buffer_(*propertyCount) const PartyString** keys
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetSharedProperties(
@@ -1965,7 +1913,6 @@ PartyChatControlSetSharedProperties(
     _In_reads_(propertyCount) const PARTY_DATA_BUFFER* values
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetNetworks(
@@ -1974,7 +1921,6 @@ PartyChatControlGetNetworks(
     _Outptr_result_buffer_(*networkCount) const PARTY_NETWORK_HANDLE** networks
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlSetCustomContext(
@@ -1982,7 +1928,6 @@ PartyChatControlSetCustomContext(
     _In_opt_ void* customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetCustomContext(
@@ -1990,7 +1935,6 @@ PartyChatControlGetCustomContext(
     _Outptr_result_maybenull_ void** customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlConfigureAudioManipulationVoiceStream(
@@ -1999,7 +1943,6 @@ PartyChatControlConfigureAudioManipulationVoiceStream(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetAudioManipulationVoiceStream(
@@ -2007,7 +1950,6 @@ PartyChatControlGetAudioManipulationVoiceStream(
     _Outptr_ PARTY_AUDIO_MANIPULATION_SOURCE_STREAM_HANDLE* stream
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlConfigureAudioManipulationCaptureStream(
@@ -2016,7 +1958,6 @@ PartyChatControlConfigureAudioManipulationCaptureStream(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetAudioManipulationCaptureStream(
@@ -2024,7 +1965,6 @@ PartyChatControlGetAudioManipulationCaptureStream(
     _Outptr_ PARTY_AUDIO_MANIPULATION_SINK_STREAM_HANDLE* stream
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlConfigureAudioManipulationRenderStream(
@@ -2033,7 +1973,6 @@ PartyChatControlConfigureAudioManipulationRenderStream(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyChatControlGetAudioManipulationRenderStream(
@@ -2041,7 +1980,6 @@ PartyChatControlGetAudioManipulationRenderStream(
     _Outptr_ PARTY_AUDIO_MANIPULATION_SINK_STREAM_HANDLE* stream
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyTextToSpeechProfileGetIdentifier(
@@ -2049,7 +1987,6 @@ PartyTextToSpeechProfileGetIdentifier(
     _Outptr_ PartyString* identifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyTextToSpeechProfileGetName(
@@ -2057,7 +1994,6 @@ PartyTextToSpeechProfileGetName(
     _Outptr_ PartyString* name
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyTextToSpeechProfileGetLanguageCode(
@@ -2065,7 +2001,6 @@ PartyTextToSpeechProfileGetLanguageCode(
     _Outptr_ PartyString* languageCode
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyTextToSpeechProfileGetGender(
@@ -2073,7 +2008,6 @@ PartyTextToSpeechProfileGetGender(
     _Out_ PARTY_GENDER* gender
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyTextToSpeechProfileGetCustomContext(
@@ -2081,7 +2015,6 @@ PartyTextToSpeechProfileGetCustomContext(
     _Outptr_result_maybenull_ void** customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyTextToSpeechProfileSetCustomContext(
@@ -2089,7 +2022,6 @@ PartyTextToSpeechProfileSetCustomContext(
     _In_opt_ void* customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSourceStreamGetConfiguration(
@@ -2097,7 +2029,6 @@ PartyAudioManipulationSourceStreamGetConfiguration(
     _Out_ PARTY_AUDIO_MANIPULATION_SOURCE_STREAM_CONFIGURATION * configuration
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSourceStreamGetFormat(
@@ -2105,7 +2036,6 @@ PartyAudioManipulationSourceStreamGetFormat(
     _Out_ PARTY_AUDIO_FORMAT * format
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSourceStreamGetAvailableBufferCount(
@@ -2113,7 +2043,6 @@ PartyAudioManipulationSourceStreamGetAvailableBufferCount(
     _Out_ uint32_t* count
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSourceStreamGetNextBuffer(
@@ -2121,7 +2050,6 @@ PartyAudioManipulationSourceStreamGetNextBuffer(
     _Out_ PARTY_MUTABLE_DATA_BUFFER* buffer
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSourceStreamReturnBuffer(
@@ -2129,7 +2057,6 @@ PartyAudioManipulationSourceStreamReturnBuffer(
     _Post_invalid_ void * buffer
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSourceStreamGetCustomContext(
@@ -2137,7 +2064,6 @@ PartyAudioManipulationSourceStreamGetCustomContext(
     _Outptr_result_maybenull_ void** customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSourceStreamSetCustomContext(
@@ -2145,7 +2071,6 @@ PartyAudioManipulationSourceStreamSetCustomContext(
     _In_opt_ void* customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSinkStreamGetConfiguration(
@@ -2153,7 +2078,6 @@ PartyAudioManipulationSinkStreamGetConfiguration(
     _Out_ PARTY_AUDIO_MANIPULATION_SINK_STREAM_CONFIGURATION * configuration
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSinkStreamGetFormat(
@@ -2161,7 +2085,6 @@ PartyAudioManipulationSinkStreamGetFormat(
     _Out_ PARTY_AUDIO_FORMAT* format
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSinkStreamSubmitBuffer(
@@ -2169,7 +2092,6 @@ PartyAudioManipulationSinkStreamSubmitBuffer(
     const PARTY_DATA_BUFFER* buffer
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSinkStreamGetCustomContext(
@@ -2177,7 +2099,6 @@ PartyAudioManipulationSinkStreamGetCustomContext(
     _Outptr_result_maybenull_ void** customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyAudioManipulationSinkStreamSetCustomContext(
@@ -2185,7 +2106,6 @@ PartyAudioManipulationSinkStreamSetCustomContext(
     _In_opt_ void* customContext
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartySetOption(
@@ -2194,7 +2114,6 @@ PartySetOption(
     _In_opt_ const void* value
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyGetOption(
@@ -2203,7 +2122,6 @@ PartyGetOption(
     _Out_ void* value
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyGetErrorMessage(
@@ -2211,7 +2129,6 @@ PartyGetErrorMessage(
     _Outptr_ PartyString* errorMessage
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartySerializeNetworkDescriptor(
@@ -2219,7 +2136,6 @@ PartySerializeNetworkDescriptor(
     _Out_writes_z_(PARTY_MAX_SERIALIZED_NETWORK_DESCRIPTOR_STRING_LENGTH + 1) char* serializedNetworkDescriptorString
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyDeserializeNetworkDescriptor(
@@ -2227,7 +2143,6 @@ PartyDeserializeNetworkDescriptor(
     _Out_ PARTY_NETWORK_DESCRIPTOR* networkDescriptor
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartySetMemoryCallbacks(
@@ -2235,7 +2150,6 @@ PartySetMemoryCallbacks(
     _In_ PARTY_MEM_FREE_FUNC freeMemoryCallback
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyGetMemoryCallbacks(
@@ -2243,7 +2157,6 @@ PartyGetMemoryCallbacks(
     _Out_ PARTY_MEM_FREE_FUNC* freeMemoryCallback
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartySetProfilingCallbacksForMethodEntryExit(
@@ -2251,7 +2164,6 @@ PartySetProfilingCallbacksForMethodEntryExit(
     _In_opt_ PARTY_PROFILING_METHOD_EXIT_FUNC profilingMethodExitCallback
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyGetProfilingCallbacksForMethodEntryExit(
@@ -2259,7 +2171,6 @@ PartyGetProfilingCallbacksForMethodEntryExit(
     _Outptr_result_maybenull_ PARTY_PROFILING_METHOD_EXIT_FUNC* profilingMethodExitCallback
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartySetThreadAffinityMask(
@@ -2267,7 +2178,6 @@ PartySetThreadAffinityMask(
     uint64_t threadAffinityMask
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyGetThreadAffinityMask(
@@ -2275,7 +2185,6 @@ PartyGetThreadAffinityMask(
     _Out_ uint64_t* threadAffinityMask
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartySetWorkMode(
@@ -2283,7 +2192,6 @@ PartySetWorkMode(
     PARTY_WORK_MODE workMode
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyGetWorkMode(
@@ -2291,22 +2199,18 @@ PartyGetWorkMode(
     _Out_ PARTY_WORK_MODE * workMode
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyInitialize(
     PartyString titleId,
     _Outptr_ PARTY_HANDLE* handle
     );
-
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyCleanup(
     _Post_invalid_ PARTY_HANDLE handle
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyStartProcessingStateChanges(
@@ -2315,7 +2219,6 @@ PartyStartProcessingStateChanges(
     _Outptr_result_buffer_(*stateChangeCount) const PARTY_STATE_CHANGE*const** stateChanges
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyFinishProcessingStateChanges(
@@ -2324,7 +2227,6 @@ PartyFinishProcessingStateChanges(
     _In_reads_(stateChangeCount) const PARTY_STATE_CHANGE*const* stateChanges
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyDoWork(
@@ -2332,7 +2234,6 @@ PartyDoWork(
     PARTY_THREAD_ID threadId
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyGetRegions(
@@ -2341,7 +2242,6 @@ PartyGetRegions(
     _Outptr_result_buffer_(*regionListCount) const PARTY_REGION** regionList
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyCreateNewNetwork(
@@ -2356,7 +2256,6 @@ PartyCreateNewNetwork(
     _Out_writes_opt_z_(PARTY_MAX_INVITATION_IDENTIFIER_STRING_LENGTH + 1) char * appliedInitialInvitationIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyConnectToNetwork(
@@ -2366,7 +2265,6 @@ PartyConnectToNetwork(
     _Outptr_opt_ PARTY_NETWORK_HANDLE* network
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartySynchronizeMessagesBetweenEndpoints(
@@ -2377,7 +2275,6 @@ PartySynchronizeMessagesBetweenEndpoints(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyGetLocalDevice(
@@ -2385,7 +2282,6 @@ PartyGetLocalDevice(
     _Outptr_ PARTY_DEVICE_HANDLE* localDevice
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyCreateLocalUser(
@@ -2395,7 +2291,15 @@ PartyCreateLocalUser(
     _Outptr_ PARTY_LOCAL_USER_HANDLE* localUser
     );
 
-PARTY_API_ATTRIBUTES
+PartyError
+PARTY_API
+PartyCreateLocalUserWithEntityType(
+    PARTY_HANDLE handle,
+    PartyString entityId,
+    PartyString entityType,
+    PartyString entityToken,
+    _Outptr_ PARTY_LOCAL_USER_HANDLE* localUser
+    );
 PartyError
 PARTY_API
 PartyDestroyLocalUser(
@@ -2404,7 +2308,6 @@ PartyDestroyLocalUser(
     _In_opt_ void* asyncIdentifier
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyGetLocalUsers(
@@ -2413,7 +2316,6 @@ PartyGetLocalUsers(
     _Outptr_result_buffer_(*userCount) const PARTY_LOCAL_USER_HANDLE** users
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyGetNetworks(
@@ -2422,7 +2324,6 @@ PartyGetNetworks(
     _Outptr_result_buffer_(*networkCount) const PARTY_NETWORK_HANDLE** networks
     );
 
-PARTY_API_ATTRIBUTES
 PartyError
 PARTY_API
 PartyGetChatControls(

@@ -35,13 +35,24 @@ if ($Platform -eq "Switch")
     Write-Host "    4: SDK 15.3.2-logging"
     Write-Host "    5: SDK 16.2.0-shipping"
     Write-Host "    6: SDK 16.2.0-logging"
-    Write-Host "    7: SDK 16.2.3-shippng"
+    Write-Host "    7: SDK 16.2.3-shipping"
     Write-Host "    8: SDK 16.2.3-logging"
+    Write-Host "    9: SDK 18.3.1-shipping"
+    Write-Host "    10: SDK 18.3.1-logging"
     while($True)
     {
         Write-Host -NoNewline "> "
-        $key = $Host.UI.RawUI.ReadKey()
-        $Selection = $key.Character
+        $inputString = ""
+        while ($true)
+        {
+            $key = $Host.UI.RawUI.ReadKey()
+            if ($key.VirtualKeyCode -eq 13) # Enter key
+            {
+                break
+            }
+            $inputString += $key.Character
+        }
+        $Selection = $inputString
         Write-Host ""
         if ($Selection -eq '1')
         {
@@ -107,6 +118,22 @@ if ($Platform -eq "Switch")
             $mlpNugetVersion = "1.7.2"
             break
         }
+        elseif ($Selection -eq '9')
+        {
+            $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.Switch-18.3.2-shipping"
+            $partyNugetVersion = "1.10.9"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-18.3.2-shipping"
+            $mlpNugetVersion = "1.7.9"
+            break
+        }
+        elseif ($Selection -eq '10')
+        {
+            $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.Switch-18.3.2-logging"
+            $partyNugetVersion = "1.10.9"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-18.3.2-logging"
+            $mlpNugetVersion = "1.7.9"
+            break
+        }
         Write-Host "Unknown input"
     }
 	Write-Host "Downloading Switch Party and Multiplayer NuGet packages..."
@@ -127,11 +154,21 @@ elseif ($Platform -eq "PlayStation")
 	Write-Host "    2: SDK 10.000"
     Write-Host "    3: SDK 10.500"
     Write-Host "    4: SDK 11.500"
+    Write-Host "    5: SDK 12.000"
     while($True)
     {
         Write-Host -NoNewline "> "
-        $key = $Host.UI.RawUI.ReadKey()
-        $Selection = $key.Character
+        $inputString = ""
+        while ($true)
+        {
+            $key = $Host.UI.RawUI.ReadKey()
+            if ($key.VirtualKeyCode -eq 13) # Enter key
+            {
+                break
+            }
+            $inputString += $key.Character
+        }
+        $Selection = $inputString
         Write-Host ""
         if ($Selection -eq '1')
         {
@@ -165,6 +202,14 @@ elseif ($Platform -eq "PlayStation")
             $mlpNugetVersion = "1.7.2"
             break
         }
+        elseif ($Selection -eq '5')
+        {
+            $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.PS4-12.000"
+            $partyNugetVersion = "1.10.8"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.PS4-12.000"
+            $mlpNugetVersion = "1.7.9"
+            break
+        }
         Write-Host "Unknown input"
     }
 	Write-Host "Downloading PlayStation4 Party and Multiplayer NuGet packages..."
@@ -185,11 +230,21 @@ elseif ($Platform -eq "PlayStation")
 	Write-Host "    2: SDK 6.000"
     Write-Host "    3: SDK 7.000"
     Write-Host "    4: SDK 9.000"
+    Write-Host "    5: SDK 10.000"
     while($True)
     {
         Write-Host -NoNewline "> "
-        $key = $Host.UI.RawUI.ReadKey()
-        $Selection = $key.Character
+        $inputString = ""
+        while ($true)
+        {
+            $key = $Host.UI.RawUI.ReadKey()
+            if ($key.VirtualKeyCode -eq 13) # Enter key
+            {
+                break
+            }
+            $inputString += $key.Character
+        }
+        $Selection = $inputString
         Write-Host ""
         if ($Selection -eq '1')
         {
@@ -221,6 +276,14 @@ elseif ($Platform -eq "PlayStation")
             $partyNugetVersion = "1.9.5"
             $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.PS5-9.000"
             $mlpNugetVersion = "1.7.2"
+            break
+        }
+        elseif ($Selection -eq '5')
+        {
+            $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.PS5-10.000"
+            $partyNugetVersion = "1.10.8"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.PS5-10.000"
+            $mlpNugetVersion = "1.7.9"
             break
         }
         Write-Host "Unknown input"
