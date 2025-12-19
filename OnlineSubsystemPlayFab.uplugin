@@ -1,8 +1,8 @@
 {
 	"FileVersion" : 3,
     "FriendlyName": "Online Subsystem PlayFab Party & Multiplayer",
-	"Version": 2.36,
-	"VersionName": "2.3.6",
+	"Version": 2.37,
+	"VersionName": "2.3.7",
 	"Description": "Support for the PlayFab Party and Multiplayer platform",
 	"Category": "Networking",
 	"CreatedBy": "Microsoft Corporation",
@@ -24,7 +24,7 @@
             "Name": "OnlineSubsystemPlayFab",
             "Type": "Runtime",
             "LoadingPhase" : "Default",
-            "WhitelistPlatforms": [
+            "PlatformAllowList": [
 				"XB1",
 				"WinGDK",
 				"XSX",
@@ -54,37 +54,37 @@
 		{
 			"Name": "OnlineSubsystemGDK",
 			"Enabled": true,
-			"WhitelistPlatforms": [
+			"PlatformAllowList": [
 				"XSX",
 				"WinGDK",
 				"XB1"
 			]
 		},
 		{
-			"Name": "OnlineSubsystemSwitch",
+			"Name": "OnlineSubsystemNintendo",
 			"Enabled": true,
-			"WhitelistPlatforms": [
+			"PlatformAllowList": [
 				"Switch"
 			]
 		},
 		{
 			"Name": "OnlineSubsystemPS4",
 			"Enabled": true,
-			"WhitelistPlatforms": [
+			"PlatformAllowList": [
 				"PS4"
 			]
 		},
 		{
 			"Name": "OnlineSubsystemPS5",
 			"Enabled": true,
-			"WhitelistPlatforms": [
+			"PlatformAllowList": [
 				"PS5"
 			]
 		},
 		{
 			"Name": "OnlineSubsystemSony",
 			"Enabled": true,
-			"WhitelistPlatforms" :
+			"PlatformAllowList" :
 			[
 				"PS4",
 				"PS5"

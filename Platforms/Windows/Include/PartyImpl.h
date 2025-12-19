@@ -1939,6 +1939,7 @@ PARTY_C_ASSERT(PARTY_OPTION_TEXT_CHAT_FILTER_LEVEL == static_cast<uint32_t>(Part
 PARTY_C_ASSERT(PARTY_OPTION_LOCAL_DEVICE_MAX_DIRECT_PEER_CONNECTIONS == static_cast<uint32_t>(PartyOption::LocalDeviceMaxDirectPeerConnections));
 PARTY_C_ASSERT(PARTY_OPTION_REGION_UPDATE_CONFIGURATION == static_cast<uint32_t>(PartyOption::RegionUpdateConfiguration));
 PARTY_C_ASSERT(PARTY_OPTION_REGION_QUALITY_MEASUREMENT_CONFIGURATION == static_cast<uint32_t>(PartyOption::RegionQualityMeasurementConfiguration));
+PARTY_C_ASSERT(PARTY_OPTION_DEVELOPMENT_CONNECTIVITY_PRESERVATION_MODE == static_cast<uint32_t>(PartyOption::DevelopmentConnectivityPreservationMode));
 
 PARTY_C_ASSERT(PARTY_THREAD_ID_AUDIO == static_cast<uint32_t>(PartyThreadId::Audio));
 PARTY_C_ASSERT(PARTY_THREAD_ID_NETWORKING == static_cast<uint32_t>(PartyThreadId::Networking));
@@ -2107,6 +2108,9 @@ PARTY_C_ASSERT(PARTY_ENDPOINT_LOCATION_FILTER_NO_LOCATION_FILTER == static_cast<
 PARTY_C_ASSERT(PARTY_ENDPOINT_LOCATION_FILTER_LOCAL_ONLY == static_cast<uint32_t>(PartyEndpointLocationFilter::LocalOnly));
 PARTY_C_ASSERT(PARTY_ENDPOINT_LOCATION_FILTER_REMOTE_ONLY == static_cast<uint32_t>(PartyEndpointLocationFilter::RemoteOnly));
 
+PARTY_C_ASSERT(PARTY_DEVELOPMENT_CONNECTIVITY_PRESERVATION_MODE_STANDARD == static_cast<uint32_t>(PartyDevelopmentConnectivityPreservationMode::Standard));
+PARTY_C_ASSERT(PARTY_DEVELOPMENT_CONNECTIVITY_PRESERVATION_MODE_TEMPORARY_DEBUGGING == static_cast<uint32_t>(PartyDevelopmentConnectivityPreservationMode::TemporaryDebugging));
+
 PARTY_C_ASSERT(sizeof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION) == sizeof(PartyLocalUdpSocketBindAddressConfiguration));
 PARTY_C_ASSERT(sizeof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION::options) == sizeof(PartyLocalUdpSocketBindAddressConfiguration::options));
 PARTY_C_ASSERT(offsetof(PARTY_LOCAL_UDP_SOCKET_BIND_ADDRESS_CONFIGURATION, options) == offsetof(PartyLocalUdpSocketBindAddressConfiguration, options));
@@ -2232,6 +2236,11 @@ PARTY_C_ASSERT(offsetof(PARTY_AUDIO_MANIPULATION_SINK_STREAM_CONFIGURATION, maxT
 PARTY_C_ASSERT(sizeof(PARTY_STATE_CHANGE) == sizeof(PartyStateChange));
 PARTY_C_ASSERT(sizeof(PARTY_STATE_CHANGE::stateChangeType) == sizeof(PartyStateChange::stateChangeType));
 PARTY_C_ASSERT(offsetof(PARTY_STATE_CHANGE, stateChangeType) == offsetof(PartyStateChange, stateChangeType));
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#endif // __clang__
 
 PARTY_C_ASSERT(sizeof(PARTY_REGIONS_CHANGED_STATE_CHANGE) == sizeof(PartyRegionsChangedStateChange));
 PARTY_C_ASSERT(sizeof(PARTY_REGIONS_CHANGED_STATE_CHANGE::result) == sizeof(PartyRegionsChangedStateChange::result));
@@ -2849,6 +2858,10 @@ PARTY_C_ASSERT(offsetof(PARTY_CONFIGURE_AUDIO_MANIPULATION_RENDER_STREAM_COMPLET
 PARTY_C_ASSERT(sizeof(PARTY_CONFIGURE_AUDIO_MANIPULATION_RENDER_STREAM_COMPLETED_STATE_CHANGE::asyncIdentifier) == sizeof(PartyConfigureAudioManipulationRenderStreamCompletedStateChange::asyncIdentifier));
 PARTY_C_ASSERT(offsetof(PARTY_CONFIGURE_AUDIO_MANIPULATION_RENDER_STREAM_COMPLETED_STATE_CHANGE, asyncIdentifier) == offsetof(PartyConfigureAudioManipulationRenderStreamCompletedStateChange, asyncIdentifier));
 
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif // __clang__
+
 PARTY_C_ASSERT(sizeof(PARTY_PROFILING_METHOD_ENTRANCE_EVENT_DATA) == sizeof(PartyProfilingMethodEntranceEventData));
 PARTY_C_ASSERT(sizeof(PARTY_PROFILING_METHOD_ENTRANCE_EVENT_DATA::methodName) == sizeof(PartyProfilingMethodEntranceEventData::methodName));
 PARTY_C_ASSERT(offsetof(PARTY_PROFILING_METHOD_ENTRANCE_EVENT_DATA, methodName) == offsetof(PartyProfilingMethodEntranceEventData, methodName));
@@ -2880,3 +2893,5 @@ PARTY_C_ASSERT(sizeof(PartyStateChangeType) == sizeof(uint32_t));
 #endif // PARTY_SAL_SUPPORT
 
 }; // Party
+
+
