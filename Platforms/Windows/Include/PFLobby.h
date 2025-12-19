@@ -354,6 +354,15 @@ enum class PFLobbyStateChangeType : uint32_t
     /// </remarks>
     ServerLeaveLobbyAsServerCompleted = 22,
 #endif // PFMULTIPLAYER_INCLUDE_SERVER_APIS
+
+    /// <summary>
+    /// The operation started by a previous call to <see cref="PFMultiplayerConnectToLobby()" /> completed.
+    /// </summary>
+    /// <remarks>
+    /// The PFLobbyStateChange object should be cast to a <see cref="PFLobbyConnectToLobbyCompletedStateChange" /> object for
+    /// more information.
+    /// </remarks>
+    ConnectToLobbyCompleted = 23,
 };
 
 /// <summary>
@@ -389,7 +398,8 @@ enum class PFLobbyDisconnectingReason : uint32_t
     NoLocalMembers = 0,
 
     /// <summary>
-    /// The client is being disconnected from the lobby because the lobby's server owner deleted the lobby.
+    /// The client is being disconnected from the lobby because the lobby's server owner deleted the lobby
+    /// or the lobby expired due to inactivity.
     /// </summary>
     LobbyDeleted = 1,
 
@@ -399,7 +409,7 @@ enum class PFLobbyDisconnectingReason : uint32_t
     ConnectionInterruption = 2,
 
     /// <summary>
-    /// The client is being disconnected from the lobby because the lobby server left the lobby.
+    /// The lobby's server owner is being disconnected from the lobby because it left the lobby.
     /// </summary>
     LobbyServerLeft = 3,
 };
@@ -1331,6 +1341,40 @@ struct PFLobbyJoinLobbyCompletedStateChange : PFLobbyStateChange
 };
 
 /// <summary>
+/// Information specific to the <em>ConnectToLobbyCompleted</em> type of state change.
+/// </summary>
+struct PFLobbyConnectToLobbyCompletedStateChange : PFLobbyStateChange
+{
+    /// <summary>
+    /// Indicates the result of the ConnectToLobby operation.
+    /// </summary>
+    /// <remarks>
+    /// The human-readable form of this result can be retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+    /// </remarks>
+    HRESULT result;
+
+    /// <summary>
+    /// The entity provided to the call associated with this state change which is connecting to the lobby.
+    /// </summary>
+    PFEntityKey newMember;
+
+    /// <summary>
+    /// The lobby ID provided to the call associated with this state change.
+    /// </summary>
+    _Null_terminated_ const char * lobbyId;
+
+    /// <summary>
+    /// The async context provided to the call associated with this state change.
+    /// </summary>
+    void * asyncContext;
+
+    /// <summary>
+    /// The lobby that was connected to.
+    /// </summary>
+    _Notnull_ PFLobbyHandle lobby;
+};
+
+/// <summary>
 /// Information specific to the <em>MemberAdded</em> type of state change.
 /// </summary>
 /// <remarks>
@@ -1709,6 +1753,11 @@ struct PFLobbyInviteReceivedStateChange : PFLobbyStateChange
     /// The connection string of the lobby to which the <c>listeningEntity</c> has been invited.
     /// </summary>
     _Null_terminated_ const char * connectionString;
+
+    /// <summary>
+    /// The ID of the lobby to which the <c>listeningEntity</c> has been invited.
+    /// </summary>
+    _Null_terminated_ const char * lobbyId;
 };
 
 /// <summary>
@@ -3112,6 +3161,50 @@ PFMultiplayerJoinLobby(
     _In_opt_ void * asyncContext,
     _Outptr_opt_ PFLobbyHandle * lobby
     ) noexcept;
+
+
+/// <summary>
+/// Connect to a lobby in which the local PlayFab entity was already added as a member.
+/// </summary>
+/// <remarks>
+/// This is an asynchronous operation. Upon successful completion, the title will be provided a
+/// <see cref="PFLobbyMemberAddedStateChange" /> followed by a <see cref="PFLobbyUpdatedStateChange" /> and
+/// <see cref="PFLobbyConnectToLobbyCompletedStateChange" /> with the
+/// <see cref="PFLobbyConnectToLobbyCompletedStateChange::result" /> field set to <c>S_OK</c>. Upon a failed completion, the
+/// title will be provided a <see cref="PFLobbyConnectToLobbyCompletedStateChange" /> with the
+/// <see cref="PFLobbyConnectToLobbyCompletedStateChange::result" /> field set to a failure.
+/// </remarks>
+/// <param name="handle">
+/// The handle of the PFMultiplayer API instance.
+/// </param>
+/// <param name="newMember">
+/// The local entity connecting to the lobby.
+/// </param>
+/// <param name="lobbyId">
+/// The ID of the Lobby to connect.
+/// </param>
+/// <param name="asyncContext">
+/// An optional, app-defined, pointer-sized context value that can be used to associate the completion state change with
+/// this call.
+/// </param>
+/// <param name="lobby">
+/// The optional, output lobby object which can be used to queue operations for immediate execution of this operation
+/// completes.
+/// </param>
+/// <returns>
+/// <c>S_OK</c> if the call succeeded or an error code otherwise. The human-readable form of the error code can be
+/// retrieved via <see cref="PFMultiplayerGetErrorMessage()" />.
+/// </returns>
+PFMULTIPLAYER_API_ATTRIBUTES
+HRESULT
+PFMULTIPLAYER_API
+PFMultiplayerConnectToLobby(
+    PFMultiplayerHandle handle,
+    const PFEntityKey* newMember,
+    _Null_terminated_ const char* lobbyId,
+    _In_opt_ void* asyncContext,
+    _Outptr_opt_ PFLobbyHandle* lobby
+) noexcept;
 
 /// <summary>
 /// Joins a lobby using an arrangement string provided by another service, such as matchmaking. If no one has joined the

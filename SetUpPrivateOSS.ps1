@@ -39,6 +39,8 @@ if ($Platform -eq "Switch")
     Write-Host "    8: SDK 16.2.3-logging"
     Write-Host "    9: SDK 18.3.1-shipping"
     Write-Host "    10: SDK 18.3.1-logging"
+    Write-Host "    11: SDK 20.5.14-shipping"
+    Write-Host "    12: SDK 20.5.14-logging"
     while($True)
     {
         Write-Host -NoNewline "> "
@@ -134,6 +136,22 @@ if ($Platform -eq "Switch")
             $mlpNugetVersion = "1.7.9"
             break
         }
+        elseif ($Selection -eq '11')
+        {
+            $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.Switch-20.5.14-shipping"
+            $partyNugetVersion = "1.10.12"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-20.5.14-shipping"
+            $mlpNugetVersion = "1.8.1-Switch"
+            break
+        }
+        elseif ($Selection -eq '12')
+        {
+            $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.Switch-20.5.14-logging"
+            $partyNugetVersion = "1.10.12"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.Switch-20.5.14-logging"
+            $mlpNugetVersion = "1.8.1-Switch"
+            break
+        }
         Write-Host "Unknown input"
     }
 	Write-Host "Downloading Switch Party and Multiplayer NuGet packages..."
@@ -155,6 +173,7 @@ elseif ($Platform -eq "PlayStation")
     Write-Host "    3: SDK 10.500"
     Write-Host "    4: SDK 11.500"
     Write-Host "    5: SDK 12.000"
+    Write-Host "    6: SDK 12.500"
     while($True)
     {
         Write-Host -NoNewline "> "
@@ -210,6 +229,14 @@ elseif ($Platform -eq "PlayStation")
             $mlpNugetVersion = "1.7.9"
             break
         }
+        elseif ($Selection -eq '6')
+        {
+            $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.PS4-12.500"
+            $partyNugetVersion = "1.10.12"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.PS4-12.500"
+            $mlpNugetVersion = "1.8.2"
+            break
+        }
         Write-Host "Unknown input"
     }
 	Write-Host "Downloading PlayStation4 Party and Multiplayer NuGet packages..."
@@ -231,6 +258,7 @@ elseif ($Platform -eq "PlayStation")
     Write-Host "    3: SDK 7.000"
     Write-Host "    4: SDK 9.000"
     Write-Host "    5: SDK 10.000"
+    Write-Host "    6: SDK 11.000"
     while($True)
     {
         Write-Host -NoNewline "> "
@@ -284,6 +312,14 @@ elseif ($Platform -eq "PlayStation")
             $partyNugetVersion = "1.10.8"
             $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.PS5-10.000"
             $mlpNugetVersion = "1.7.9"
+            break
+        }
+        elseif ($Selection -eq '6')
+        {
+            $partyNugetFileName = "Microsoft.PlayFab.PlayFabParty.Cpp.PS5-11.000"
+            $partyNugetVersion = "1.10.12"
+            $mlpNugetFileName = "Microsoft.PlayFab.Multiplayer.Cpp.PS5-11.000"
+            $mlpNugetVersion = "1.8.0"
             break
         }
         Write-Host "Unknown input"

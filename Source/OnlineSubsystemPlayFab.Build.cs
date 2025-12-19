@@ -261,7 +261,7 @@ public class OnlineSubsystemPlayFab : ModuleRules
 	//Switch
     private void ConfigureForSwitchPlatform()
 	{
-		PublicDependencyModuleNames.Add("OnlineSubsystemSwitch");
+		PublicDependencyModuleNames.Add("OnlineSubsystemNintendo");
 
         string PlatformDir = Path.Combine(PluginDirectory, "Platforms", "Switch");
 

@@ -1175,6 +1175,29 @@ enum class PartyOption : uint32_t
     /// </para>
     /// </remarks>
     RegionQualityMeasurementConfiguration = 5,
+
+    /// <summary>
+    /// An option to preserve the Party network connectivity for debugging purposes.
+    /// </summary>
+    /// <remarks>
+    /// To override this option, call <see cref="PartyManager::SetOption" /> passing null for the object parameter, this
+    /// value for the option parameter, and an optional pointer to a
+    /// <see cref="PartyDevelopmentConnectivityPreservationMode" /> variable containing the desired development mode. If a null
+    /// PartyDevelopmentConnectivityPreservationMode pointer is provided, the default configuration is restored.
+    /// <para>
+    /// To query this option, call <see cref="PartyManager::GetOption" /> passing null for the object parameter, this
+    /// value for the option parameter, and a pointer to a <see cref="PartyDevelopmentConnectivityPreservationMode" /> 
+    /// variable into which the currently configured mode should be written.
+    /// </para>
+    /// <para>
+    /// It's safe and recommended to override or query for this option prior to initializing the Party library.
+    /// Overriding the development connectivity preservation mode will take effect the next time the Party library is
+    /// initialized. It does not modify any connectivity preservation mode that has already been initialized. Similarly,
+    /// querying retrieves the configuration that will be used with the next Party library initialization, not the value
+    /// currently in use if the library is already initialized.
+    /// </para>
+    /// </remarks>
+    DevelopmentConnectivityPreservationMode = 6,
 };
 
 /// <summary>
@@ -3155,6 +3178,38 @@ enum class PartyEndpointLocationFilter
 };
 
 /// <summary>
+/// Configuration modes representing how the Party library preserves connectivity and responsiveness for standard and
+/// temporary debugging scenarios as part of the <see cref="PartyDevelopmentConnectivityPreservationConfiguration" /> structure.
+/// </summary>
+/// <seealso cref="PartyManager::SetOption" />
+enum class PartyDevelopmentConnectivityPreservationMode : uint32_t
+{
+    /// <summary>
+    /// Default Party connectivity preservation mode is enabled.
+    /// </summary>
+    /// <remarks>
+    /// This value is the default when <see cref="PartyOption::DevelopmentConnectivityPreservationMode" /> has not been configured.
+    /// This mode is used for standard Party connectivity and responsiveness for titles that are not in active debugging scenarios.
+    /// </remarks>
+    Standard = 0,
+
+    /// <summary>
+    /// Debug connectivity preservation mode is enabled.
+    /// </summary>
+    /// <remarks>
+    /// Use this value to preserve connectivity for 30 minutes during debugging by allowing the title to remain connected to the Party 
+    /// network even when non-responsive, such as when its execution has temporarily stopped in the debugger. It is recommended
+    /// to use this feature only with non-guaranteed delivery messages, as it may result in a large number of queued messages.
+    /// Note that this therefore also increases the time it takes for Party to automatically detect unintentional crashes or environmental
+    /// connectivity loss. These extended timeouts likely exceed real-world user experience tolerances. This mode may also result
+    /// in failures to reconnect to a Party network after leaving it ungracefully since the previous instance has not been removed yet.
+    /// This mode should be used only temporarily, and it is highly recommended to unset PartyDevelopmentConnectivityPreservationMode
+    /// or set it back to <see cref="PartyDevelopmentConnectivityPreservationMode::Standard" /> after debugging is complete.
+    /// </remarks>
+    TemporaryDebugging = 1,
+};
+
+/// <summary>
 /// The configuration used by the Party library to bind to a UDP socket.
 /// </summary>
 /// <remarks>
@@ -3482,10 +3537,10 @@ struct PartyNetworkConfiguration
     /// The maximum number of devices allowed to connect to the network.
     /// </summary>
     /// <remarks>
-    /// PlayFab Party networks can scale to support anywhere between 2 and 128 devices. The service will choose 
-    /// a network relay configuration optimized for your scenario, so it's important to configure the 
-    /// <c>maxDeviceCount</c> in <c>PartyNetworkConfiguration</c> to match the max expected number of devices
-    /// in your network.
+    /// PlayFab Party networks can scale to support anywhere between 2 and 128 devices. The service will choose a
+    /// network relay configuration optimized for your scenario, so it's important to configure the
+    /// <c>maxDeviceCount</c> in <c>PartyNetworkConfiguration</c> to match the max expected number of devices in your
+    /// network.
     /// <para>
     /// If a client would violate this limit by calling <see cref="PartyManager::ConnectToNetwork()" />, the operation
     /// will fail asynchronously and <see cref="PartyConnectToNetworkCompletedStateChange::result" /> will be set to
@@ -10746,7 +10801,6 @@ public:
         _In_ PartyAllocateMemoryCallback allocateMemoryCallback,
         _In_ PartyFreeMemoryCallback freeMemoryCallback
         ) party_no_throw;
-
     /// <summary>
     /// Retrieves the memory allocation and freeing callbacks the Party library is using.
     /// </summary>
@@ -11873,3 +11927,5 @@ private:
 }; // Party
 
 #pragma pop_macro("DEFINE_ENUM_FLAG_OPERATORS")
+
+
