@@ -68,7 +68,6 @@ static struct FSearchKeyMappingTable
 	{SEARCH_EMPTY_SERVERS_ONLY, 		10, EOnlineKeyValuePairDataType::Bool},
 	{SEARCH_NONEMPTY_SERVERS_ONLY, 		9, EOnlineKeyValuePairDataType::Bool},
 	{SEARCH_SECURE_SERVERS_ONLY, 		8, EOnlineKeyValuePairDataType::Bool},
-	{SEARCH_PRESENCE, 					7, EOnlineKeyValuePairDataType::Bool},
 	{SEARCH_LOBBIES, 					6, EOnlineKeyValuePairDataType::Bool},
 };
 
@@ -1669,7 +1668,7 @@ FString FPlayFabLobby::ComposeLobbySearchQueryFilter(const FSearchParams& Search
 	{
 		const FString& SettingName = SearchParam.Key.ToString();
 		const FVariantData& SettingValue = SearchParam.Value.Data;
-		if (SettingValue.ToString().IsEmpty() || SettingName == SEARCH_PRESENCE.ToString() || SettingName == SEARCH_LOBBIES.ToString())
+		if (SettingValue.ToString().IsEmpty() || SettingName == SEARCH_LOBBIES.ToString())
 		{
 			continue;
 		}

@@ -835,28 +835,6 @@ bool FOnlineSessionPlayFab::FindSessions(const FUniqueNetId& SearchingPlayerId, 
 		return false;
 	}
 
-#if defined(OSS_PLAYFAB_WIN64)
-	CachedSearchSettings = MakeShared<FOnlineSessionSearch>(*SearchSettings);
-	CachedSearchSettings->SearchState = EOnlineAsyncTaskState::NotStarted;
-	if (bUsesNativeSession)
-	{
-		OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
-		{
-			OnNativeFindSessionsCompleteDelegateHandle = NativeSessionInterface->AddOnFindSessionsCompleteDelegate_Handle(
-				FOnFindSessionsCompleteDelegate::CreateLambda([this, NativeSessionInterface](bool NativeSessionFindResult)
-					{
-						if (!NativeSessionFindResult)
-						{
-							UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnNativeFindSessionComplete: Find Steam native sessions has failure"));
-						}
-						UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnNativeFindSessionComplete: Num of Search Results: %d"), CachedSearchSettings->SearchResults.Num());
-						NativeSessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(OnNativeFindSessionsCompleteDelegateHandle);
-					}));
-		return NativeSessionInterface->FindSessions(SearchingPlayerId, CachedSearchSettings.ToSharedRef());
-		}
-	}
-#endif
-
 	return true;
 }
 
@@ -1324,6 +1302,23 @@ bool FOnlineSessionPlayFab::SetHostOnSession(FName SessionName, const PFEntityKe
 	return true;
 }
 
+void FOnlineSessionPlayFab::CleanupFailedJoinSession(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
+{
+	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::CleanupFailedJoinSession: Cleaning up session %s due to %s"), *SessionName.ToString(), LexToString(Result));
+	
+	// Leave the PlayFab lobby
+	OSSPlayFab->GetPlayFabLobbyInterface()->LeaveLobby(*FUniqueNetIdPlayFab::EmptyId(), SessionName, FOnDestroySessionCompleteDelegate(), FOnUnregisterLocalPlayerCompleteDelegate(), true);
+	
+	// Leave the PlayFab Party network
+	OSSPlayFab->LeavePlayFabPartyNetwork();
+	
+	// Remove the local session reference
+	RemoveNamedSession(SessionName);
+	
+	// Notify listeners of the failure
+	TriggerOnJoinSessionCompleteDelegates(SessionName, Result);
+}
+
 bool FOnlineSessionPlayFab::JoinSession_PlayFabInternal(int32 ControllerIndex, TSharedPtr<const FUniqueNetId> UserId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession)
 {
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::JoinSession_PlayFabInternal()"));
@@ -1409,14 +1404,15 @@ bool FOnlineSessionPlayFab::JoinSession(int32 ControllerIndex, FName SessionName
 		OSS_PLAYFAB_GET_NATIVE_SESSION_INTERFACE
 		{
 			OnNativeJoinSessionCompleteDelegateHandle = NativeSessionInterface->AddOnJoinSessionCompleteDelegate_Handle(
-				FOnJoinSessionCompleteDelegate::CreateLambda([this, NativeSessionInterface](FName SessionName, EOnJoinSessionCompleteResult::Type NativeSessionJoinedResult)
+				FOnJoinSessionCompleteDelegate::CreateLambda([this, SessionName, NativeSessionInterface](FName InSessionName, EOnJoinSessionCompleteResult::Type NativeSessionJoinedResult)
 					{
+						NativeSessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(OnNativeJoinSessionCompleteDelegateHandle);
+						
 						if (NativeSessionJoinedResult != EOnJoinSessionCompleteResult::Success)
 						{
-							UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnNativeJoinSessionComplete: Failed to join native session due to %s"), LexToString(NativeSessionJoinedResult));
+							UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnNativeJoinSessionComplete: Failed to join native session due to %s. Cleaning up PlayFab session."), LexToString(NativeSessionJoinedResult));
+							CleanupFailedJoinSession(SessionName, NativeSessionJoinedResult);
 						}
-
-						NativeSessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(OnNativeJoinSessionCompleteDelegateHandle);
 					}));
 			return NativeSessionInterface->JoinSession(ControllerIndex, NativeSessionName, DesiredSession);
 		}
@@ -1506,34 +1502,25 @@ bool FOnlineSessionPlayFab::JoinSession(const FUniqueNetId& UserId, FName Sessio
 					const FString SessionIdString(PlayFabSessionInfo->GetNativeSessionIdString());
 					if (!SessionIdString.IsEmpty())
 					{
-						const FOnlineSessionSearchResult* NativeDesiredSession = nullptr;
-						for (auto SearchResult : CachedSearchSettings->SearchResults)
-						{
-							if (SearchResult.Session.GetSessionIdStr() == SessionIdString)
-							{
-								NativeDesiredSession = &SearchResult;
-								break;
-							}
-						}
-						if (!NativeDesiredSession)
-						{
-							UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::JoinSession: Failed to find Steam session with sessionId=%s"), *SessionIdString);
-							bSuccess = false;
-						}
-						else
-						{
-							OnNativeJoinSessionCompleteDelegateHandle = NativeSessionInterface->AddOnJoinSessionCompleteDelegate_Handle(
-								FOnJoinSessionCompleteDelegate::CreateLambda([this, NativeSessionInterface](FName SessionName, EOnJoinSessionCompleteResult::Type NativeSessionJoinedResult)
+						// Cache the desired session for native join
+						CachedDesiredSession = MakeShared<FOnlineSessionSearchResult>(DesiredSession);
+						
+						OnNativeJoinSessionCompleteDelegateHandle = NativeSessionInterface->AddOnJoinSessionCompleteDelegate_Handle(
+							FOnJoinSessionCompleteDelegate::CreateLambda([this, SessionName, NativeSessionInterface](FName InSessionName, EOnJoinSessionCompleteResult::Type NativeSessionJoinedResult)
+								{
+									NativeSessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(OnNativeJoinSessionCompleteDelegateHandle);
+									
+									if (NativeSessionJoinedResult != EOnJoinSessionCompleteResult::Success)
 									{
-										if (NativeSessionJoinedResult != EOnJoinSessionCompleteResult::Success)
-										{
-											UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnNativeJoinSessionComplete: Failed to join native session due to %s"), LexToString(NativeSessionJoinedResult));
-										}
-										NativeSessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(OnNativeJoinSessionCompleteDelegateHandle);
-									}));
-							bSuccess = NativeSessionInterface->JoinSession(UserId, NativeSessionName, *NativeDesiredSession);
-							}
-						}
+										UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnNativeJoinSessionComplete: Failed to join native session due to %s. Cleaning up PlayFab session."), LexToString(NativeSessionJoinedResult));
+										CleanupFailedJoinSession(SessionName, NativeSessionJoinedResult);
+									}
+									
+									// Clear the cached session after join attempt
+									CachedDesiredSession.Reset();
+								}));
+						bSuccess = NativeSessionInterface->JoinSession(UserId, NativeSessionName, *CachedDesiredSession);
+					}
 					else
 					{
 						UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::JoinSession: SessionIdString is empty"));
@@ -1552,14 +1539,15 @@ bool FOnlineSessionPlayFab::JoinSession(const FUniqueNetId& UserId, FName Sessio
 			{
 				// This call is triggered by invitation from native layer.
 				OnNativeJoinSessionCompleteDelegateHandle = NativeSessionInterface->AddOnJoinSessionCompleteDelegate_Handle(
-					FOnJoinSessionCompleteDelegate::CreateLambda([this, NativeSessionInterface](FName SessionName, EOnJoinSessionCompleteResult::Type NativeSessionJoinedResult)
+					FOnJoinSessionCompleteDelegate::CreateLambda([this, SessionName, NativeSessionInterface](FName InSessionName, EOnJoinSessionCompleteResult::Type NativeSessionJoinedResult)
 						{
+							NativeSessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(OnNativeJoinSessionCompleteDelegateHandle);
+							
 							if (NativeSessionJoinedResult != EOnJoinSessionCompleteResult::Success)
 							{
-								UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnNativeJoinSessionComplete: Failed to join native session due to %s"), LexToString(NativeSessionJoinedResult));
+								UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnNativeJoinSessionComplete: Failed to join native session due to %s. Cleaning up PlayFab session."), LexToString(NativeSessionJoinedResult));
+								CleanupFailedJoinSession(SessionName, NativeSessionJoinedResult);
 							}
-
-							NativeSessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(OnNativeJoinSessionCompleteDelegateHandle);
 						}));
 				return NativeSessionInterface->JoinSession(UserId, NativeSessionName, DesiredSession);
 			}

@@ -217,12 +217,13 @@ private:
 	void UnregisterVoice(const FUniqueNetId& PlayerId);
 	FString GetPlatformIdFromEntityId(const FString& EntityId);
 	FOnlineSessionSearchResult CreateSearchResultFromInvite(const PFLobbyInviteReceivedStateChange& StateChange);
+	void CleanupFailedJoinSession(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 
 #if defined(OSS_PLAYFAB_GDK)
 	XTaskQueueRegistrationToken InviteAcceptedHandler = { 0 };
 #endif
 #if defined(OSS_PLAYFAB_WIN64)
-	TSharedPtr<FOnlineSessionSearch> CachedSearchSettings;
+	TSharedPtr<FOnlineSessionSearchResult> CachedDesiredSession;
 #endif
 
 	FPendingInviteData PendingInviteData;
