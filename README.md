@@ -31,12 +31,12 @@ The quickstart guide for OnlineSubsystemPlayFab can be found at:
 
 |OSS Version|Release Note|
 |-|-|
-Latest Version |2.3.7|
+Latest Version |2.3.8|
 Deprecated Version |2.2.6 and 2.27 may potentially crash the game. **Please upgrade to the latest version to ensure the bug fix is included.**|
 
 ## Compatibility
 
-|Unreal Engine version|5.6|
+|Unreal Engine version|5.7|
 |-|-|
 [PlayFab Multiplayer SDK](https://learn.microsoft.com/en-us/gaming/playfab/features/multiplayer/lobby/lobby-matchmaking-sdks/lobby-matchmaking-sdks) | v1.1.5+ (Recommended v1.8.0+ for GDK, Win64+Steam, Nintendo Switch, and Sony PS4™/PS5™)
 [PlayFab Party SDK](https://learn.microsoft.com/en-us/gaming/playfab/features/multiplayer/networking/party-sdks) | v1.7.8+ (Recommended v1.10.12+ for GDK, Win64+Steam, Nintendo Switch, and Sony PS4™/PS5™)
@@ -45,7 +45,7 @@ Platforms|GDK, Win64+Steam, Nintendo Switch, Sony PS4™/PS5™ (See which versi
 For users on previous versions of Unreal Engine (UE4.27+, 5.0, 5.1, and 5.2) who wish to use PlayFab Online Subsystem, please view [PlayFab Online Subsystem Overview](https://learn.microsoft.com/en-us/gaming/playfab/features/multiplayer/networking/party-unreal-engine-oss-overview#which-versions-of-unreal-engine-are-supported) for more details.
 If you have any questions, please feel free to open a [Github issue](https://github.com/PlayFab/PlayFabMultiplayerUnreal/issues/new) or open a [support ticket](https://playfab.com/contact/).
 ## Important Note
-#### UE5.6, UE5.5 and UE5.4
+#### UE5.7, UE5.6, UE5.5 and UE5.4
 
 When using the PlayFab Online Subsystem in UE higher than 5.4 for GDK, you may encounter the following runtime error: 
 `Runtime dependency Party.dll is configured to be staged from C:\Program Files (x86)\Microsoft GDK\<version>\Party.dll and \Engine\Plugins\Online\OnlineSubsystemPlayFab\Platforms\GDK\Redist\Party.dll`

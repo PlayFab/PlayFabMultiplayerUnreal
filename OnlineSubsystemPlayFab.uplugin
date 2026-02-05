@@ -1,8 +1,8 @@
 {
 	"FileVersion" : 3,
     "FriendlyName": "Online Subsystem PlayFab Party & Multiplayer",
-	"Version": 2.37,
-	"VersionName": "2.3.7",
+	"Version": 2.38,
+	"VersionName": "2.3.8",
 	"Description": "Support for the PlayFab Party and Multiplayer platform",
 	"Category": "Networking",
 	"CreatedBy": "Microsoft Corporation",
