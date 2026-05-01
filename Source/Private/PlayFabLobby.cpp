@@ -166,16 +166,17 @@ bool FPlayFabLobby::CreateLobbyWithUser(const FUniqueNetId& HostingPlayerId, FNa
 		// Add search attribute settings to lobby's search properties
 		if (IsSearchKey(SettingNameString))
 		{
+			const FString LowerSettingNameString = SettingNameString.ToLower();
 			if (SettingValueString.IsEmpty())
 			{
-				UE_LOG_ONLINE(Warning, TEXT("CreateLobbyWithUser: %s: <Empty>."), *SettingNameString);
-				SearchKeys.Add(SettingNameString);
+				UE_LOG_ONLINE(Warning, TEXT("CreateLobbyWithUser: %s: <Empty>."), *LowerSettingNameString);
+				SearchKeys.Add(LowerSettingNameString);
 				SearchValues.AddNull();
 			}
 			else
 			{
-				UE_LOG_ONLINE(Verbose, TEXT("CreateLobbyWithUser: %s: %s."), *SettingNameString, *SettingValueString);
-				SearchKeys.Add(SettingNameString);
+				UE_LOG_ONLINE(Verbose, TEXT("CreateLobbyWithUser: %s: %s."), *LowerSettingNameString, *SettingValueString);
+				SearchKeys.Add(LowerSettingNameString);
 				SearchValues.Add(SettingValueString);
 			}
 		}
@@ -572,16 +573,17 @@ bool FPlayFabLobby::UpdateLobby(FName SessionName, const FOnlineSessionSettings&
 		// Add search attribute settings to lobby's search properties
 		if (IsSearchKey(SettingNameString))
 		{
+			const FString LowerSettingNameString = SettingNameString.ToLower();
 			if (SettingValueString.IsEmpty())
 			{
-				UE_LOG_ONLINE(Warning, TEXT("UpdateLobby Search Property: %s: <Empty>."), *SettingNameString);
-				SearchKeys.Add(SettingNameString);
+				UE_LOG_ONLINE(Warning, TEXT("UpdateLobby Search Property: %s: <Empty>."), *LowerSettingNameString);
+				SearchKeys.Add(LowerSettingNameString);
 				SearchValues.AddNull();
 			}
 			else
 			{
-				UE_LOG_ONLINE(Verbose, TEXT("UpdateLobby Search Property: %s: %s."), *SettingNameString, *SettingValueString);
-				SearchKeys.Add(SettingNameString);
+				UE_LOG_ONLINE(Verbose, TEXT("UpdateLobby Search Property: %s: %s."), *LowerSettingNameString, *SettingValueString);
+				SearchKeys.Add(LowerSettingNameString);
 				SearchValues.Add(SettingValueString);
 			}
 		}
@@ -1343,7 +1345,14 @@ void FPlayFabLobby::HandleOnMemberRemoved(const PFLobbyMemberRemovedStateChange&
 
 void FPlayFabLobby::HandleForceRemoveMember(const PFLobbyForceRemoveMemberCompletedStateChange& StateChange)
 {
-	UE_LOG_ONLINE(Verbose, TEXT("Received ForceRemoveMemberCompleted(%u) event"), StateChange.stateChangeType);
+	if (SUCCEEDED(StateChange.result))
+	{
+		UE_LOG_ONLINE(Verbose, TEXT("FPlayFabLobby::HandleForceRemoveMember succeeded for lobby: 0x%p"), StateChange.lobby);
+	}
+	else
+	{
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleForceRemoveMember failed. ErrorCode=[0x%08x], Error message:%s"), StateChange.result, *GetMultiplayerErrorMessage(StateChange.result));
+	}
 }
 
 void FPlayFabLobby::HandleLeaveLobbyCompleted(const PFLobbyLeaveLobbyCompletedStateChange& StateChange)

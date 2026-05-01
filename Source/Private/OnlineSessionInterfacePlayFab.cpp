@@ -1098,6 +1098,46 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 		{
 			UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate PlatformId not found for Entity:%s!"), *FString(MemberEntity->id));
 		}
+
+		// Check if this member's connection status changed and remove them if disconnected
+		if (MemberUpdate.connectionStatusUpdated)
+		{
+			PFLobbyMemberConnectionStatus ConnectionStatus;
+			Hr = PFLobbyGetMemberConnectionStatus(StateChange.lobby, MemberEntity, &ConnectionStatus);
+			if (SUCCEEDED(Hr) && ConnectionStatus == PFLobbyMemberConnectionStatus::NotConnected)
+			{
+				UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Member %s is NotConnected, checking if we should force remove."), *FString(MemberEntity->id));
+
+				// Only the lobby owner can force-remove members
+				const PFEntityKey* OwnerEntityKeyPtr = nullptr;
+				Hr = PFLobbyGetOwner(StateChange.lobby, &OwnerEntityKeyPtr);
+				if (SUCCEEDED(Hr) && OwnerEntityKeyPtr != nullptr)
+				{
+					FOnlineIdentityPlayFabPtr PlayFabIdentityInt = OSSPlayFab->GetIdentityInterfacePlayFab();
+					if (PlayFabIdentityInt.IsValid())
+					{
+						const TArray<PFEntityKey> LocalEntityKeys = PlayFabIdentityInt->GetLocalUserEntityKeys();
+						for (const PFEntityKey& LocalEntity : LocalEntityKeys)
+						{
+							if (FCString::Strcmp(UTF8_TO_TCHAR(LocalEntity.id), UTF8_TO_TCHAR(OwnerEntityKeyPtr->id)) == 0)
+							{
+								UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Local user is lobby owner, force removing disconnected member %s."), *FString(MemberEntity->id));
+								HRESULT ForceRemoveHr = PFLobbyForceRemoveMember(StateChange.lobby, MemberEntity, false, nullptr);
+								if (FAILED(ForceRemoveHr))
+								{
+									UE_LOG_ONLINE_SESSION(Error, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate PFLobbyForceRemoveMember failed. ErrorCode=[0x%08x], Error message:%s"), ForceRemoveHr, *GetMultiplayerErrorMessage(ForceRemoveHr));
+								}
+								break;
+							}
+						}
+					}
+				}
+			}
+			else if (FAILED(Hr))
+			{
+				UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate PFLobbyGetMemberConnectionStatus failed. ErrorCode=[0x%08x], Error message:%s"), Hr, *GetMultiplayerErrorMessage(Hr));
+			}
+		}
 	}
 
 #if defined(OSS_PLAYFAB_GDK)
