@@ -1457,6 +1457,7 @@ void FPlayFabLobby::HandleInvitationReceived(const PFLobbyInviteReceivedStateCha
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->OnInvitationReceived_PlayFabMultiplayer(StateChange.listeningEntity, StateChange.invitingEntity, FString(StateChange.connectionString));
+		SessionInterface->NotifyLobbyInviteForStandardDelegate_PlayFabMultiplayer(StateChange);
 	}
 	else
 	{

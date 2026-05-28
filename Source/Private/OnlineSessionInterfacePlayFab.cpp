@@ -2340,6 +2340,19 @@ void FOnlineSessionPlayFab::OnInvitationReceived_PlayFabMultiplayer(const PFEnti
 	TriggerOnPlayFabMultiplayerInviteReceivedDelegates(ListeningEntityKey, InvitingEntityKey, InConnectionString);
 }
 
+void FOnlineSessionPlayFab::NotifyLobbyInviteForStandardDelegate_PlayFabMultiplayer(const PFLobbyInviteReceivedStateChange& StateChange)
+{
+	FOnlineSessionSearchResult SearchResult = CreateSearchResultFromInvite(StateChange);
+
+	const int32 ControllerIndex = 0;
+	FOnlineIdentityPlayFabPtr PlayFabIdentityInt = OSSPlayFab ? OSSPlayFab->GetIdentityInterfacePlayFab() : nullptr;
+	TSharedPtr<const FUniqueNetId> LocalUniqueId = (PlayFabIdentityInt.IsValid() && PlayFabIdentityInt->GetAllPartyLocalUsers().Num() > 0)
+		? PlayFabIdentityInt->GetUniquePlayerId(ControllerIndex)
+		: nullptr;
+
+	TriggerOnSessionUserInviteAcceptedDelegates(LocalUniqueId.IsValid(), ControllerIndex, LocalUniqueId, SearchResult);
+}
+
 void FOnlineSessionPlayFab::OnAppResume(FOnSessionsRemovedDelegate& CompletionDelegate)
 {
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnAppResume()"));
