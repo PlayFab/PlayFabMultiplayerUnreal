@@ -961,6 +961,37 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 		}
 	}
 
+	// Mirror server-authoritative lobby properties (written by a game_server entity via
+	// PFLobbyServerPostUpdateAsServer after PFMultiplayerJoinLobbyAsServer) into SessionSettings,
+	// matching how regular lobby properties are surfaced above. Without this, server-owned data on
+	// client-owned lobbies is invisible to game code even though the SDK delivers it on every
+	// PFLobbyUpdatedStateChange.
+	for (uint32 i = 0; i < StateChange.updatedServerPropertyCount; ++i)
+	{
+		const char* updatedServerKey = StateChange.updatedServerPropertyKeys[i];
+		const char* updatedServerPropertyValue = nullptr;
+		Hr = PFLobbyGetServerProperty(StateChange.lobby, updatedServerKey, &updatedServerPropertyValue);
+		if (FAILED(Hr))
+		{
+			LogMultiplayerErrorWithMessage("PFLobbyGetServerProperty", Hr);
+			continue;
+		}
+
+		const FString UpdatedServerKey(UTF8_TO_TCHAR(updatedServerKey));
+
+		if (updatedServerPropertyValue == nullptr)
+		{
+			UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Remove Server Key:%s"), *UpdatedServerKey);
+			ExistingNamedSession->SessionSettings.Remove(FName(UpdatedServerKey));
+		}
+		else
+		{
+			const FString UpdatedServerPropertyValue(UTF8_TO_TCHAR(updatedServerPropertyValue));
+			UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate Server Key:%s, value:%s"), *UpdatedServerKey, *UpdatedServerPropertyValue);
+			ExistingNamedSession->SessionSettings.Set(FName(UpdatedServerKey), UpdatedServerPropertyValue, EOnlineDataAdvertisementType::ViaOnlineService);
+		}
+	}
+
 	for (uint32 i = 0; i < StateChange.updatedSearchPropertyCount; ++i)
 	{
 		const char* updatedSearchKey = StateChange.updatedSearchPropertyKeys[i];
@@ -1064,6 +1095,54 @@ void FOnlineSessionPlayFab::OnLobbyUpdate(FName SessionName, const PFLobbyUpdate
 		else
 		{
 			UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate failed to GetAccessPolicy for the lobby. ErrorCode=[0x%08x], Warning message:%s"), Hr, *GetMultiplayerErrorMessage(Hr));
+		}
+	}
+
+	// Surface the joined server's presence on a client-owned lobby. A game_server entity that calls
+	// PFMultiplayerJoinLobbyAsServer is signaled here via serverUpdated; the entity is exposed under
+	// the reserved key "_server_entity" so game code can react to server arrival/departure through
+	// the same OnSessionSettingsUpdated path used for LobbyData/ServerData.
+	if (StateChange.serverUpdated)
+	{
+		const PFEntityKey* ServerEntityKeyPtr = nullptr;
+		Hr = PFLobbyGetServer(StateChange.lobby, &ServerEntityKeyPtr);
+		if (SUCCEEDED(Hr))
+		{
+			if (ServerEntityKeyPtr != nullptr)
+			{
+				const FString ServerEntityId(UTF8_TO_TCHAR(ServerEntityKeyPtr->id));
+				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate server entity joined: %s"), *ServerEntityId);
+				ExistingNamedSession->SessionSettings.Set(FName(TEXT("_server_entity")), ServerEntityId, EOnlineDataAdvertisementType::ViaOnlineService);
+			}
+			else
+			{
+				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate server entity left"));
+				ExistingNamedSession->SessionSettings.Remove(FName(TEXT("_server_entity")));
+				ExistingNamedSession->SessionSettings.Remove(FName(TEXT("_server_connection_status")));
+			}
+		}
+		else
+		{
+			LogMultiplayerErrorWithMessage("PFLobbyGetServer", Hr);
+		}
+	}
+
+	// Surface the joined server's notification-service connection status. Without this, clients
+	// have no signal when the server's link to the lobby service drops and ServerData stops being
+	// updated -- the last-known values would silently go stale. Exposed under "_server_connection_status".
+	if (StateChange.serverConnectionStatusUpdated)
+	{
+		PFLobbyServerConnectionStatus NewStatus;
+		Hr = PFLobbyGetServerConnectionStatus(StateChange.lobby, &NewStatus);
+		if (SUCCEEDED(Hr))
+		{
+			const FString StatusStr = (NewStatus == PFLobbyServerConnectionStatus::Connected) ? TEXT("Connected") : TEXT("NotConnected");
+			UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLobbyUpdate server connection status updated to :%s"), *StatusStr);
+			ExistingNamedSession->SessionSettings.Set(FName(TEXT("_server_connection_status")), StatusStr, EOnlineDataAdvertisementType::ViaOnlineService);
+		}
+		else
+		{
+			LogMultiplayerErrorWithMessage("PFLobbyGetServerConnectionStatus", Hr);
 		}
 	}
 
