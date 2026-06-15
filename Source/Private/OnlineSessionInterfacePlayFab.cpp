@@ -147,12 +147,15 @@ bool FOnlineSessionPlayFab::CreateSession(int32 HostingPlayerControllerIndex, FN
 #endif
 	PendingCreateSessionInfo.SessionSettings = NewSessionSettings;
 
+	OSSPlayFab->AddOnConnectToPlayFabPartyNetworkCompletedDelegate_Handle(FOnConnectToPlayFabPartyNetworkCompletedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_CreateSession));
 	OSSPlayFab->AddOnPartyEndpointCreatedDelegate_Handle(FOnPartyEndpointCreatedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnCreatePartyEndpoint));
 
 	bSuccess = OSSPlayFab->CreateAndConnectToPlayFabPartyNetwork();
 
 	if (bSuccess == false)
 	{
+		OSSPlayFab->ClearOnConnectToPlayFabPartyNetworkCompletedDelegates(this);
+		OSSPlayFab->ClearOnPartyEndpointCreatedDelegates(this);
 		OnCreateSessionCompleted(SessionName, false);
 	}
 
@@ -188,11 +191,14 @@ bool FOnlineSessionPlayFab::CreateSession(const FUniqueNetId& HostingPlayerId, F
 #endif
 	PendingCreateSessionInfo.SessionSettings = NewSessionSettings;
 
+	OSSPlayFab->AddOnConnectToPlayFabPartyNetworkCompletedDelegate_Handle(FOnConnectToPlayFabPartyNetworkCompletedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_CreateSession));
 	OSSPlayFab->AddOnPartyEndpointCreatedDelegate_Handle(FOnPartyEndpointCreatedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnCreatePartyEndpoint));
 	bSuccess = OSSPlayFab->CreateAndConnectToPlayFabPartyNetwork();
 
 	if (bSuccess == false)
 	{
+		OSSPlayFab->ClearOnConnectToPlayFabPartyNetworkCompletedDelegates(this);
+		OSSPlayFab->ClearOnPartyEndpointCreatedDelegates(this);
 		OnCreateSessionCompleted(SessionName, false);
 	}
 
@@ -204,6 +210,7 @@ void FOnlineSessionPlayFab::OnCreatePartyEndpoint(bool bSuccess, uint16 Endpoint
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnCreatePartyEndpoint()"));
 
 	OSSPlayFab->ClearOnPartyEndpointCreatedDelegates(this);
+	OSSPlayFab->ClearOnConnectToPlayFabPartyNetworkCompletedDelegates(this);
 
 	if (bIsHosting)
 	{
@@ -580,12 +587,15 @@ void FOnlineSessionPlayFab::OnMatchmakingComplete(FName SessionName, bool bWasSu
 	{
 		if (Session->bHosting)
 		{
+			OSSPlayFab->AddOnConnectToPlayFabPartyNetworkCompletedDelegate_Handle(FOnConnectToPlayFabPartyNetworkCompletedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_Matchmaking));
 			OSSPlayFab->AddOnPartyEndpointCreatedDelegate_Handle(FOnPartyEndpointCreatedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnCreatePartyEndpoint_Matchmaking));
 			bool bSuccess = OSSPlayFab->CreateAndConnectToPlayFabPartyNetwork();
 
 			if (bSuccess == false)
 			{
 				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnMatchmakingComplete: CreateAndConnectToPlayFabPartyNetwork failed"));
+				OSSPlayFab->ClearOnConnectToPlayFabPartyNetworkCompletedDelegates(this);
+				OSSPlayFab->ClearOnPartyEndpointCreatedDelegates(this);
 				TriggerOnMatchmakingCompleteDelegates(SessionName, false);
 			}
 		}
@@ -641,16 +651,20 @@ void FOnlineSessionPlayFab::OnOperationComplete_TryJoinNetwork(bool bJoinLobbyOp
 		{
 			if (bJoinLobbyOperation)
 			{
+				OSSPlayFab->AddOnConnectToPlayFabPartyNetworkCompletedDelegate_Handle(FOnConnectToPlayFabPartyNetworkCompletedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_JoinSession));
 				OSSPlayFab->AddOnPartyEndpointCreatedDelegate_Handle(FOnPartyEndpointCreatedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnCreatePartyEndpoint_JoinSession));
 			}
 			else
 			{
+				OSSPlayFab->AddOnConnectToPlayFabPartyNetworkCompletedDelegate_Handle(FOnConnectToPlayFabPartyNetworkCompletedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_Matchmaking));
 				OSSPlayFab->AddOnPartyEndpointCreatedDelegate_Handle(FOnPartyEndpointCreatedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnCreatePartyEndpoint_Matchmaking));
 			}
 
 			if (!OSSPlayFab->ConnectToPlayFabPartyNetwork(NetworkIdStr, NetworkDescriptorStr))
 			{
 				UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnOperationComplete_TryJoinNetwork: ConnectToPlayFabPartyNetwork failed"));
+				OSSPlayFab->ClearOnConnectToPlayFabPartyNetworkCompletedDelegates(this);
+				OSSPlayFab->ClearOnPartyEndpointCreatedDelegates(this);
 				if (bJoinLobbyOperation)
 				{
 					TriggerOnJoinSessionCompleteDelegates(JoinSessionCompleteSessionName, EOnJoinSessionCompleteResult::UnknownError);
@@ -703,6 +717,7 @@ void FOnlineSessionPlayFab::OnCreatePartyEndpoint_Matchmaking(bool bSuccess, uin
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnCreatePartyEndpoint_Matchmaking()"));
 
 	OSSPlayFab->ClearOnPartyEndpointCreatedDelegates(this);
+	OSSPlayFab->ClearOnConnectToPlayFabPartyNetworkCompletedDelegates(this);
 
 	if (bIsHosting)
 	{
@@ -758,7 +773,59 @@ void FOnlineSessionPlayFab::OnCreatePartyEndpoint_JoinSession(bool bSuccess, uin
 {
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnCreatePartyEndpoint_JoinSession()"));
 	OSSPlayFab->ClearOnPartyEndpointCreatedDelegates(this);
+	OSSPlayFab->ClearOnConnectToPlayFabPartyNetworkCompletedDelegates(this);
 	TriggerOnJoinSessionCompleteDelegates(JoinSessionCompleteSessionName, bSuccess ? EOnJoinSessionCompleteResult::Success : EOnJoinSessionCompleteResult::UnknownError);
+}
+
+void FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_CreateSession(bool bSuccess)
+{
+	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_CreateSession: bSuccess=%d"), bSuccess ? 1 : 0);
+
+	if (bSuccess)
+	{
+		// Success: wait for OnCreatePartyEndpoint to drive the rest of the create flow.
+		return;
+	}
+
+	UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_CreateSession: Party network setup failed before endpoint creation; failing CreateSession for '%s'"), *PendingCreateSessionInfo.SessionName.ToString());
+
+	OSSPlayFab->ClearOnConnectToPlayFabPartyNetworkCompletedDelegates(this);
+	OSSPlayFab->ClearOnPartyEndpointCreatedDelegates(this);
+	OnCreateSessionCompleted(PendingCreateSessionInfo.SessionName, false);
+}
+
+void FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_Matchmaking(bool bSuccess)
+{
+	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_Matchmaking: bSuccess=%d"), bSuccess ? 1 : 0);
+
+	if (bSuccess)
+	{
+		// Success: wait for OnCreatePartyEndpoint_Matchmaking to drive the rest of the flow.
+		return;
+	}
+
+	UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_Matchmaking: Party network setup failed before endpoint creation; failing matchmaking for '%s'"), *MatchmakingCompleteSessionName.ToString());
+
+	OSSPlayFab->ClearOnConnectToPlayFabPartyNetworkCompletedDelegates(this);
+	OSSPlayFab->ClearOnPartyEndpointCreatedDelegates(this);
+	TriggerOnMatchmakingCompleteDelegates(MatchmakingCompleteSessionName, false);
+}
+
+void FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_JoinSession(bool bSuccess)
+{
+	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_JoinSession: bSuccess=%d"), bSuccess ? 1 : 0);
+
+	if (bSuccess)
+	{
+		// Success: wait for OnCreatePartyEndpoint_JoinSession to drive the rest of the flow.
+		return;
+	}
+
+	UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnConnectToPlayFabPartyNetworkCompleted_JoinSession: Party network setup failed before endpoint creation; failing JoinSession for '%s'"), *JoinSessionCompleteSessionName.ToString());
+
+	OSSPlayFab->ClearOnConnectToPlayFabPartyNetworkCompletedDelegates(this);
+	OSSPlayFab->ClearOnPartyEndpointCreatedDelegates(this);
+	TriggerOnJoinSessionCompleteDelegates(JoinSessionCompleteSessionName, EOnJoinSessionCompleteResult::UnknownError);
 }
 
 void FOnlineSessionPlayFab::OnUpdateLobbyCompleted(FName SessionName, bool bWasSuccessful)
