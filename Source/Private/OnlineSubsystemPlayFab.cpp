@@ -721,6 +721,11 @@ bool FOnlineSubsystemPlayFab::CreateAndConnectToPlayFabPartyNetwork()
 
 	PartyNetworkDescriptor NewNetworkDescriptor = {};
 
+	uint32_t CachedRegionCount = 0;
+	const PartyRegion* CachedRegions = nullptr;
+	PartyManager::GetSingleton().GetRegions(&CachedRegionCount, &CachedRegions);
+	UE_LOG_ONLINE(Verbose, TEXT("CreateAndConnectToPlayFabPartyNetwork: CachedRegionCount: %u"), CachedRegionCount);
+
 	// Create a new network descriptor
 	PartyError Err = PartyManager::GetSingleton().CreateNewNetwork(
 		FirstPartyLocalUser,		// Local User
@@ -775,6 +780,8 @@ bool FOnlineSubsystemPlayFab::ConnectToPlayFabPartyNetwork(const FString& NewNet
 	}
 
 	PartyNetworkDescriptor NewNetworkDescriptor = {};
+
+	UE_LOG_ONLINE(Verbose, TEXT("ConnectToPlayFabPartyNetwork: NetworkId: %s"), *NewNetworkId);
 
 	// Deserialize the remote network's descriptor
 	PartyError Err = PartyManager::DeserializeNetworkDescriptor(TCHAR_TO_UTF8(*NewNetworkDescriptorStr), &NewNetworkDescriptor);
