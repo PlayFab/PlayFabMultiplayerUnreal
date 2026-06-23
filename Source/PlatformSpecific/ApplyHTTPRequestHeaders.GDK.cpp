@@ -126,6 +126,7 @@ bool FOnlineIdentityPlayFab::ApplyPlatformHTTPRequestData(const FString& Platfor
 	if (Result != S_OK)
 	{
 		UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::AuthenticateUser] starting XUserGetTokenAndSignatureUtf16Async operation failed with code 0x%0.8X."), Result);
+		delete pNewAsyncBlock;
 	}
 
 	return Result == S_OK;

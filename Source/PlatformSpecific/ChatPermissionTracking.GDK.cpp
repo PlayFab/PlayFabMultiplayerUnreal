@@ -482,6 +482,7 @@ void FOnlineVoicePlayFab::TickTalkerPermissionTracking()
 			if (PARTY_FAILED(err))
 			{
 				UE_LOG_ONLINE(Error, TEXT("GetXboxUserId failed: %hs"), GetXblErrorMessage(err));
+				delete async;
 				break;
 			}
 
