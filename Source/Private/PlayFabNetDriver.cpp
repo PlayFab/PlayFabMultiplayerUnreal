@@ -48,6 +48,7 @@ bool UPlayFabNetDriver::InitBase(bool bInitAsClient, FNetworkNotify* InNotify, c
 		if (FPlayFabSocketSubsystem* SocketSubsystem = GetPlayFabSocketSubsystem())
 		{
 			FUniqueSocket NewSocket = CreateSocketForProtocol(FNetworkProtocolTypes::PlayFab);
+			PlayFabSocket = static_cast<FPlayFabSocket*>(NewSocket.Get());
 
 			SetSocketAndLocalAddress(TSharedPtr<FSocket>(NewSocket.Release(), FSocketDeleter(GetSocketSubsystem())));
 
@@ -87,6 +88,7 @@ bool UPlayFabNetDriver::InitConnect(FNetworkNotify* InNotify, const FURL& InConn
 void UPlayFabNetDriver::Shutdown()
 {
 	UE_LOG(LogSockets, Verbose, TEXT("PlayFabNetDriver: Shutdown called on netdriver"));
+	PlayFabSocket = nullptr;
 
 	Super::Shutdown();
 }
