@@ -8,7 +8,6 @@
 #include "SocketSubsystemModule.h"
 #include "PlayFabSocketSubsystem.h"
 #include "IPAddressPlayFab.h"
-#include "Misc/ScopeLock.h"
 
 FPlayFabSocketSubsystem* FPlayFabSocketSubsystem::SocketSingleton = nullptr;
 
@@ -221,10 +220,7 @@ const TCHAR* FPlayFabSocketSubsystem::GetSocketAPIName() const
 
 FPlayFabSocket* FPlayFabSocketSubsystem::GetSocket()
 {
-	int32 ActiveSocketCount = 0;
-
-	FScopeLock ActiveSocketsScopeLock(&ActiveSocketsLock);
-	ActiveSocketCount = ActiveSockets.Num();
+	const int32 ActiveSocketCount = ActiveSockets.Num();
 
 	if (UPlayFabNetDriver* LinkedNetDriver = GetLinkedNetDriver())
 	{
@@ -269,12 +265,8 @@ void FPlayFabSocketSubsystem::AddSocket(FPlayFabSocket* NewSocket)
 
 	if (NewSocket)
 	{
-		int32 ActiveSocketCount = 0;
-		{
-			FScopeLock ActiveSocketsScopeLock(&ActiveSocketsLock);
 		ActiveSockets.Add(NewSocket);
-			ActiveSocketCount = ActiveSockets.Num();
-		}
+		const int32 ActiveSocketCount = ActiveSockets.Num();
 		UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::AddSocket: Added Socket=%p ActiveSockets=%d LinkedNetDriver=%p"), NewSocket, ActiveSocketCount, GetLinkedNetDriver());
 	}
 	else
@@ -287,12 +279,8 @@ void FPlayFabSocketSubsystem::RemoveSocket(FPlayFabSocket* Socket)
 {
 	UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::RemoveSocket"));
 
-	int32 ActiveSocketCount = 0;
-	{
-		FScopeLock ActiveSocketsScopeLock(&ActiveSocketsLock);
 	ActiveSockets.RemoveSingleSwap(Socket);
-		ActiveSocketCount = ActiveSockets.Num();
-	}
+	const int32 ActiveSocketCount = ActiveSockets.Num();
 	UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::RemoveSocket: Removed Socket=%p ActiveSockets=%d LinkedNetDriver=%p"), Socket, ActiveSocketCount, GetLinkedNetDriver());
 }
 
@@ -301,29 +289,18 @@ void FPlayFabSocketSubsystem::CleanUpActiveSockets()
 	UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::CleanUpActiveSockets"));
 
 	// Clean up sockets
-	TArray<FPlayFabSocket*> TempArray;
-	{
-		FScopeLock ActiveSocketsScopeLock(&ActiveSocketsLock);
-		TempArray = ActiveSockets;
-	}
+	TArray<FPlayFabSocket*> TempArray = ActiveSockets;
 	for (int SocketIdx = 0; SocketIdx < TempArray.Num(); SocketIdx++)
 	{
 		DestroySocket(TempArray[SocketIdx]);
 	}
 
-	{
-		FScopeLock ActiveSocketsScopeLock(&ActiveSocketsLock);
-		ActiveSockets.Empty();
-	}
+	ActiveSockets.Empty();
 }
 
 void FPlayFabSocketSubsystem::LinkNetDriver(UPlayFabNetDriver* InNetDriver)
 {
-	int32 ActiveSocketCount = 0;
-	{
-		FScopeLock ActiveSocketsScopeLock(&ActiveSocketsLock);
-		ActiveSocketCount = ActiveSockets.Num();
-	}
+	const int32 ActiveSocketCount = ActiveSockets.Num();
 	UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::LinkNetDriver: OldNetDriver=%p NewNetDriver=%p ActiveSockets=%d"), NetDriver.Get(), InNetDriver, ActiveSocketCount);
 	NetDriver = InNetDriver;
 }
