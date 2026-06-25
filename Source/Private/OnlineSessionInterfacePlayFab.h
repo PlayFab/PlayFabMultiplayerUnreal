@@ -200,7 +200,17 @@ public:
 	FDelegateHandle OnCancelMatchmakingCompleteHandle;
 
 	void OnLeaveLobbyCompleted(FName SessionName, bool bSuccess);
+	void OnLeavePlayFabPartyNetworkCompleted(bool bSuccess);
+	void TryCompletePendingDestroySession();
 	FDelegateHandle OnLeaveLobbyCompletedHandle;
+	FDelegateHandle OnLeavePlayFabPartyNetworkCompletedHandle;
+	FOnDestroySessionCompleteDelegate PendingDestroySessionCompletionDelegate;
+	FName PendingDestroySessionName;
+	bool bPendingDestroySession = false;
+	bool bPendingDestroyLobbyComplete = false;
+	bool bPendingDestroyLobbyResult = false;
+	bool bPendingDestroyPartyLeaveComplete = true;
+	bool bPendingDestroyPartyLeaveResult = true;
 
 	void OnFindLobbiesCompleted(int32 LocalUserNum, bool bSuccess, TSharedPtr<FOnlineSessionSearch> SearchResults);
 	FOnFindLobbiesCompletedDelegate OnFindLobbiesCompletedDelegateHandle;
