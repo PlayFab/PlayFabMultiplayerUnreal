@@ -445,6 +445,17 @@ bool FOnlineSessionPlayFab::EndSession(FName SessionName)
 bool FOnlineSessionPlayFab::DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate /*= FOnDestroySessionCompleteDelegate()*/)
 {
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::DestroySession: SessionName:%s"), *SessionName.ToString());
+	if (bPendingDestroySession)
+	{
+		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::DestroySession: A destroy operation is already in progress for session (%s)"), *PendingDestroySessionName.ToString());
+		OSSPlayFab->ExecuteNextTick([this, SessionName, CompletionDelegate]()
+		{
+			CompletionDelegate.ExecuteIfBound(SessionName, false);
+			TriggerOnDestroySessionCompleteDelegates(SessionName, false);
+		});
+		return false;
+	}
+
 	const bool bPartyLeaveRequired = OSSPlayFab && OSSPlayFab->Network && OSSPlayFab->NetworkState != EPlayFabPartyNetworkState::NoNetwork;
 
 	bPendingDestroySession = true;
