@@ -472,6 +472,17 @@ bool FOnlineSessionPlayFab::DestroySession(FName SessionName, const FOnDestroySe
 
 	// Leave the PlayFab Party network
 	OSSPlayFab->LeavePlayFabPartyNetwork();
+	if (bPartyLeaveRequired && !OSSPlayFab->bLeavePlayFabPartyNetworkPending)
+	{
+		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::DestroySession: Party leave was required but no pending leave request was recorded; treating party-leave gate as complete."));
+		if (OnLeavePlayFabPartyNetworkCompletedHandle.IsValid())
+		{
+			OSSPlayFab->ClearOnLeavePlayFabPartyNetworkCompletedDelegate_Handle(OnLeavePlayFabPartyNetworkCompletedHandle);
+			OnLeavePlayFabPartyNetworkCompletedHandle.Reset();
+		}
+		bPendingDestroyPartyLeaveComplete = true;
+		bPendingDestroyPartyLeaveResult = (OSSPlayFab->NetworkState == EPlayFabPartyNetworkState::NoNetwork || OSSPlayFab->Network == nullptr);
+	}
 
 	FNamedOnlineSessionPtr Session = GetNamedSessionPtr(SessionName);
 	if (!Session.IsValid())
