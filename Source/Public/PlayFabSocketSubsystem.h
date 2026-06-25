@@ -12,6 +12,7 @@
 #include "Containers/Array.h"
 #include "UObject/WeakObjectPtr.h"
 #include "SocketTypes.h"
+#include "HAL/CriticalSection.h"
 #include "OnlineSubsystemPlayFabPackage.h"
 namespace Party {
 	struct PartyEndpointMessageReceivedStateChange;
@@ -85,6 +86,7 @@ protected:
 
 	// Active connection bookkeeping
 	TArray<FPlayFabSocket*> ActiveSockets;
+	mutable FCriticalSection ActiveSocketsLock;
 
 	FDelegateHandle OnEndpointMessageReceivedDelegateHandle;
 

@@ -12,6 +12,7 @@
 #include "PlayFabNetDriver.generated.h"
 
 class FNetworkNotify;
+class FPlayFabSocket;
 
 UCLASS(transient, config=Engine)
 class UPlayFabNetDriver : public UIpNetDriver
@@ -32,9 +33,11 @@ public:
 
 	class FOnlineSubsystemPlayFab* GetOnlineSubsystemPlayFab();
 	class FPlayFabSocketSubsystem* GetPlayFabSocketSubsystem();
+	FPlayFabSocket* GetPlayFabSocket() const { return PlayFabSocket; }
 
 private:
 	bool bFallbackToPlatformSocketSubsystem = false;
+	FPlayFabSocket* PlayFabSocket = nullptr;
 
 protected:
 	friend class UPlayFabNetConnection;
