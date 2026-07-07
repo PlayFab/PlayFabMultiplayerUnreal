@@ -1079,6 +1079,20 @@ void FPlayFabLobby::HandleCreateAndJoinLobbyCompleted(const PFLobbyCreateAndJoin
 
 	FName SessionName = NAME_None;
 
+	if (FAILED(StateChange.result))
+	{
+		// The CreateAndJoinLobby operation itself failed (e.g. RequestRateLimitExceeded). Surface the real reason here;
+		// otherwise the code below calls PFLobbyGetLobbyId on a lobby that was never created and logs the misleading
+		// "still pending asynchronous creation" (0x89236205) instead of the actual error.
+		if (FName* FoundSessionName = LobbySessionMap.Find(StateChange.lobby))
+		{
+			SessionName = *FoundSessionName;
+		}
+		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted failed to create and join lobby. ErrorCode=[0x%08x], Error message:%s"), StateChange.result, *GetMultiplayerErrorMessage(StateChange.result));
+		TriggerOnLobbyCreatedAndJoinCompletedDelegates(false, SessionName);
+		return;
+	}
+
 	if (FName* FoundSessionName = LobbySessionMap.Find(StateChange.lobby))
 	{
 		SessionName = *FoundSessionName;
@@ -1120,12 +1134,12 @@ void FPlayFabLobby::HandleCreateAndJoinLobbyCompleted(const PFLobbyCreateAndJoin
 					}
 					else
 					{
-						UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: failed to GetConnectionString: 0x%08x"), Hr);
+						UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: failed to GetConnectionString: 0x%08x, Error message:%s"), Hr, *GetMultiplayerErrorMessage(Hr));
 					}
 				}
 				else
 				{
-					UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: failed to GetLobbyId: 0x%08x"), Hr);
+					UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: failed to GetLobbyId: 0x%08x, Error message:%s"), Hr, *GetMultiplayerErrorMessage(Hr));
 				}
 			}
 			else
@@ -1154,7 +1168,7 @@ void FPlayFabLobby::HandleJoinLobbyCompleted(const PFLobbyJoinLobbyCompletedStat
 	FName* SessionName = LobbySessionMap.Find(StateChange.lobby);
 	if (FAILED(StateChange.result))
 	{
-		UE_LOG_ONLINE(Error, TEXT("Failed to join lobby. ErrorCode=[0x%08x]"), StateChange.result);
+		UE_LOG_ONLINE(Error, TEXT("Failed to join lobby. ErrorCode=[0x%08x], Error message:%s"), StateChange.result, *GetMultiplayerErrorMessage(StateChange.result));
 		JoinResult = ConvertMultiplayerErrorToJoinSessionResult(StateChange.result);
 	}
 	else
@@ -1223,7 +1237,7 @@ void FPlayFabLobby::HandleJoinArrangedLobbyCompleted(const PFLobbyJoinArrangedLo
 	FName* SessionName = LobbySessionMap.Find(StateChange.lobby);
 	if (FAILED(StateChange.result))
 	{
-		UE_LOG_ONLINE(Error, TEXT("Failed to join arranged lobby. ErrorCode=[0x%08x]"), StateChange.result);
+		UE_LOG_ONLINE(Error, TEXT("Failed to join arranged lobby. ErrorCode=[0x%08x], Error message:%s"), StateChange.result, *GetMultiplayerErrorMessage(StateChange.result));
 		TriggerOnJoinArrangedLobbyCompletedDelegates(*SessionName, false);
 		return;
 	}
@@ -1408,7 +1422,7 @@ void FPlayFabLobby::HandleFindLobbiesCompleted(const PFLobbyFindLobbiesCompleted
 
 	if (FAILED(StateChange.result))
 	{
-		UE_LOG_ONLINE(Error, TEXT("Failed to find lobbies. ErrorCode=[0x%08x]"), StateChange.result);
+		UE_LOG_ONLINE(Error, TEXT("Failed to find lobbies. ErrorCode=[0x%08x], Error message:%s"), StateChange.result, *GetMultiplayerErrorMessage(StateChange.result));
 		CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::Failed;
 	}
 	else

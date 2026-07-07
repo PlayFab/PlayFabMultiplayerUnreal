@@ -636,6 +636,28 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 			TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, TEXT("Failed to deserialize response"));
 		}
 	}
+	else
+	{
+		// The auth HTTP request itself failed (non-success code, timeout, or connection error). Without this the failure is invisible to the dev.
+		if (HttpResponse.IsValid())
+		{
+			// Log the correlation info at Error; keep the response body at Verbose in case it echoes sensitive auth details.
+			UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Authentication request failed for Platform User %s. Url:%s, ResponseCode:%u, RequestId:%s"),
+				*PlatformUserIdStr,
+				*HttpResponse->GetURL(),
+				HttpResponse->GetResponseCode(),
+				*HttpResponse->GetHeader(TEXT("X-RequestId")));
+
+			UE_LOG_ONLINE(Verbose, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Authentication request failed for Platform User %s, response:%s"),
+				*PlatformUserIdStr,
+				*HttpResponse->GetContentAsString());
+		}
+		else
+		{
+			UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Authentication request failed for Platform User %s with no valid HTTP response (connection error or timeout)."),
+				*PlatformUserIdStr);
+		}
+	}
 
 	// Remove the in flight data
 	UserAuthRequestsInFlight.Remove(PlatformUserIdStr);
