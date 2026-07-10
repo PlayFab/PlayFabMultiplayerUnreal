@@ -112,8 +112,47 @@ private:
 	bool GetSearchKeyFromSettingMappingTable(const FString& SettingKey, FString& SearchKey, EOnlineKeyValuePairDataType::Type& Type) const;
 	EOnJoinSessionCompleteResult::Type ConvertMultiplayerErrorToJoinSessionResult(HRESULT result);
 
+	// Reclaims lobby seats held by members whose connection was lost (e.g. a crash) without a graceful leave.
+	bool IsLocalUserLobbyOwner(PFLobbyHandle LobbyHandle) const;
+	void ScheduleOrCancelMemberEvictions(const PFLobbyUpdatedStateChange& StateChange);
+	void ProcessPendingMemberEvictions();
+	void RemovePendingMemberEvictionsForLobby(PFLobbyHandle LobbyHandle);
+
 	// we can eliminate this map if we pass SessionName as asyncIdentifier to lobby calls
 	TMap<PFLobbyHandle, FName> LobbySessionMap;
+
+	// When a member's connection is lost (e.g. their game crashed), the lobby service keeps their seat reserved
+	// indefinitely so they can reconnect. If this is set to a value greater than 0, the local owner will forcibly
+	// remove such a member once they have been disconnected for this many seconds, freeing their seat for someone else.
+	// 0 (default) preserves the SDK's reconnect-friendly behavior. Overridable via
+	// [OnlineSubsystemPlayFab] MemberDisconnectEvictionSeconds in Engine.ini.
+	int32 MemberDisconnectEvictionSeconds = 0;
+
+	// Identifies a pending eviction by the lobby the member belongs to plus their entity id, so the same entity
+	// tracked across multiple lobbies never collides on a single key.
+	struct FPendingMemberEvictionKey
+	{
+		PFLobbyHandle Lobby = nullptr;
+		FString EntityId;
+
+		bool operator==(const FPendingMemberEvictionKey& Other) const
+		{
+			return Lobby == Other.Lobby && EntityId == Other.EntityId;
+		}
+
+		friend uint32 GetTypeHash(const FPendingMemberEvictionKey& Key)
+		{
+			return HashCombine(GetTypeHash(static_cast<const void*>(Key.Lobby)), GetTypeHash(Key.EntityId));
+		}
+	};
+
+	struct FPendingMemberEviction
+	{
+		FString EntityType;
+		double EvictAtSeconds = 0.0;
+	};
+	// Members currently NotConnected and awaiting eviction.
+	TMap<FPendingMemberEvictionKey, FPendingMemberEviction> PendingMemberEvictions;
 
 	struct FPendingSendInviteData
 	{

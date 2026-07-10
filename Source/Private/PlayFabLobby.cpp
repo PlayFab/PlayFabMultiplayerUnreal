@@ -75,6 +75,8 @@ FPlayFabLobby::FPlayFabLobby(FOnlineSubsystemPlayFab* InOSSPlayFab) :
 	OSSPlayFab(InOSSPlayFab)
 {
 	BuildSearchKeyMappingTable();
+
+	GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("MemberDisconnectEvictionSeconds"), MemberDisconnectEvictionSeconds, GEngineIni);
 }
 
 bool FPlayFabLobby::CreatePlayFabLobby(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings)
@@ -1069,6 +1071,8 @@ void FPlayFabLobby::DoWork()
 	{
 		UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::DoWork::PFMultiplayerFinishProcessingLobbyStateChanges failed. ErrorCode=[0x%08x], Error message:%s"), Hr, *GetMultiplayerErrorMessage(Hr));
 	}
+
+	ProcessPendingMemberEvictions();
 }
 
 void FPlayFabLobby::HandleCreateAndJoinLobbyCompleted(const PFLobbyCreateAndJoinLobbyCompletedStateChange& StateChange)
@@ -1305,6 +1309,8 @@ void FPlayFabLobby::HandleLobbyUpdate(const PFLobbyUpdatedStateChange& StateChan
 {
 	UE_LOG_ONLINE(Verbose, TEXT("Received PFLobbyUpdatedStateChange(%u) event"), StateChange.stateChangeType);
 
+	ScheduleOrCancelMemberEvictions(StateChange);
+
 	FName* SessionName = LobbySessionMap.Find(StateChange.lobby);
 	TriggerOnLobbyUpdateDelegates(*SessionName, StateChange);
 }
@@ -1337,6 +1343,13 @@ void FPlayFabLobby::HandleOnMemberRemoved(const PFLobbyMemberRemovedStateChange&
 {
 	UE_LOG_ONLINE(Verbose, TEXT("Received PFLobbyMemberRemovedStateChange(%u) event"), StateChange.stateChangeType);
 
+	// The member is no longer in the lobby (removed or left), so stop tracking any pending eviction for them. Every
+	// client - not just the owner - receives this, which keeps non-owners' maps from accumulating stale entries.
+	if (PendingMemberEvictions.Num() > 0)
+	{
+		PendingMemberEvictions.Remove(FPendingMemberEvictionKey{ StateChange.lobby, FString(UTF8_TO_TCHAR(StateChange.member.id)) });
+	}
+
 	FName* SessionName = LobbySessionMap.Find(StateChange.lobby);
 	TriggerOnLobbyMemberRemovedDelegates(*SessionName, StateChange);
 }
@@ -1344,6 +1357,160 @@ void FPlayFabLobby::HandleOnMemberRemoved(const PFLobbyMemberRemovedStateChange&
 void FPlayFabLobby::HandleForceRemoveMember(const PFLobbyForceRemoveMemberCompletedStateChange& StateChange)
 {
 	UE_LOG_ONLINE(Verbose, TEXT("Received ForceRemoveMemberCompleted(%u) event"), StateChange.stateChangeType);
+	if (FAILED(StateChange.result))
+	{
+		UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleForceRemoveMember failed. ErrorCode=[0x%08x], Error message:%s"), StateChange.result, *GetMultiplayerErrorMessage(StateChange.result));
+	}
+}
+
+bool FPlayFabLobby::IsLocalUserLobbyOwner(PFLobbyHandle LobbyHandle) const
+{
+	const PFEntityKey* OwnerEntityKey = nullptr;
+	HRESULT Hr = PFLobbyGetOwner(LobbyHandle, &OwnerEntityKey);
+	if (FAILED(Hr) || OwnerEntityKey == nullptr)
+	{
+		return false;
+	}
+
+	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
+	FOnlineIdentityPlayFab* PlayFabIdentityInt = static_cast<FOnlineIdentityPlayFab*>(IdentityIntPtr.Get());
+	return PlayFabIdentityInt != nullptr && PlayFabIdentityInt->IsUserLocal(*OwnerEntityKey);
+}
+
+void FPlayFabLobby::ScheduleOrCancelMemberEvictions(const PFLobbyUpdatedStateChange& StateChange)
+{
+	if (MemberDisconnectEvictionSeconds <= 0)
+	{
+		return;
+	}
+
+	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
+	FOnlineIdentityPlayFab* PlayFabIdentityInt = static_cast<FOnlineIdentityPlayFab*>(IdentityIntPtr.Get());
+	if (PlayFabIdentityInt == nullptr)
+	{
+		return;
+	}
+
+	// Every member tracks disconnected members, not just the current owner. This way, if ownership migrates to a
+	// member after others have already disconnected, the new owner already has them in the map ready to process.
+	// Only the owner actually force-removes them (see ProcessPendingMemberEvictions).
+	for (uint32_t i = 0; i < StateChange.memberUpdateCount; ++i)
+	{
+		const PFLobbyMemberUpdateSummary& MemberUpdate = StateChange.memberUpdates[i];
+		if (!MemberUpdate.connectionStatusUpdated)
+		{
+			continue;
+		}
+
+		// Never schedule a local user (including ourselves, the owner) for eviction. A local user still
+		// asynchronously joining also transiently reports NotConnected.
+		if (PlayFabIdentityInt->IsUserLocal(MemberUpdate.member))
+		{
+			continue;
+		}
+
+		const FString EntityId(UTF8_TO_TCHAR(MemberUpdate.member.id));
+		const FPendingMemberEvictionKey EvictionKey{ StateChange.lobby, EntityId };
+
+		PFLobbyMemberConnectionStatus ConnectionStatus = PFLobbyMemberConnectionStatus::NotConnected;
+		HRESULT Hr = PFLobbyGetMemberConnectionStatus(StateChange.lobby, &MemberUpdate.member, &ConnectionStatus);
+		if (FAILED(Hr))
+		{
+			UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::ScheduleOrCancelMemberEvictions failed to get connection status for Entity:%s. ErrorCode=[0x%08x], Error message:%s"), *EntityId, Hr, *GetMultiplayerErrorMessage(Hr));
+			continue;
+		}
+
+		if (ConnectionStatus == PFLobbyMemberConnectionStatus::NotConnected)
+		{
+			if (!PendingMemberEvictions.Contains(EvictionKey))
+			{
+				FPendingMemberEviction& Pending = PendingMemberEvictions.Add(EvictionKey);
+				Pending.EntityType = FString(UTF8_TO_TCHAR(MemberUpdate.member.type));
+				Pending.EvictAtSeconds = FPlatformTime::Seconds() + static_cast<double>(MemberDisconnectEvictionSeconds);
+				UE_LOG_ONLINE(Verbose, TEXT("FPlayFabLobby::ScheduleOrCancelMemberEvictions scheduled disconnected Entity:%s for eviction in %ds"), *EntityId, MemberDisconnectEvictionSeconds);
+			}
+		}
+		else
+		{
+			// Member reconnected within the grace period - keep their seat.
+			if (PendingMemberEvictions.Remove(EvictionKey) > 0)
+			{
+				UE_LOG_ONLINE(Verbose, TEXT("FPlayFabLobby::ScheduleOrCancelMemberEvictions Entity:%s reconnected, eviction cancelled"), *EntityId);
+			}
+		}
+	}
+}
+
+void FPlayFabLobby::ProcessPendingMemberEvictions()
+{
+	if (PendingMemberEvictions.Num() == 0)
+	{
+		return;
+	}
+
+	const double Now = FPlatformTime::Seconds();
+
+	for (auto It = PendingMemberEvictions.CreateIterator(); It; ++It)
+	{
+		const FPendingMemberEvictionKey& EvictionKey = It.Key();
+		const FPendingMemberEviction& PendingData = It.Value();
+
+		// Not expired yet - keep waiting out the grace window (or for a reconnect).
+		if (Now < PendingData.EvictAtSeconds)
+		{
+			continue;
+		}
+
+		// Only the current owner of this member's lobby may force-remove it. Non-owners keep the entry so that, if
+		// ownership migrates to them, the disconnected member is already tracked and ready to be processed.
+		if (!IsLocalUserLobbyOwner(EvictionKey.Lobby))
+		{
+			continue;
+		}
+
+		const std::string EntityIdStr(TCHAR_TO_UTF8(*EvictionKey.EntityId));
+		const std::string EntityTypeStr(TCHAR_TO_UTF8(*PendingData.EntityType));
+		const PFEntityKey TargetEntity{ EntityIdStr.c_str(), EntityTypeStr.c_str() };
+
+		// Confirm the member is still disconnected - they may have reconnected between ticks.
+		PFLobbyMemberConnectionStatus ConnectionStatus = PFLobbyMemberConnectionStatus::NotConnected;
+		HRESULT Hr = PFLobbyGetMemberConnectionStatus(EvictionKey.Lobby, &TargetEntity, &ConnectionStatus);
+		if (FAILED(Hr) || ConnectionStatus != PFLobbyMemberConnectionStatus::NotConnected)
+		{
+			// The member reconnected or can no longer be queried; stop tracking it.
+			It.RemoveCurrent();
+			continue;
+		}
+
+		Hr = PFLobbyForceRemoveMember(EvictionKey.Lobby, &TargetEntity, false /* preventRejoin */, nullptr);
+		if (FAILED(Hr))
+		{
+			// Leave the entry in place so we retry on a subsequent tick.
+			UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::ProcessPendingMemberEvictions failed to force remove Entity:%s, will retry. ErrorCode=[0x%08x], Error message:%s"), *EvictionKey.EntityId, Hr, *GetMultiplayerErrorMessage(Hr));
+			continue;
+		}
+
+		UE_LOG_ONLINE(Log, TEXT("FPlayFabLobby::ProcessPendingMemberEvictions evicting disconnected Entity:%s to free its lobby seat"), *EvictionKey.EntityId);
+		It.RemoveCurrent();
+	}
+}
+
+void FPlayFabLobby::RemovePendingMemberEvictionsForLobby(PFLobbyHandle LobbyHandle)
+{
+	if (PendingMemberEvictions.Num() == 0)
+	{
+		return;
+	}
+
+	// The lobby handle is being invalidated (leave/disconnect); drop any pending evictions that reference it so we
+	// never operate on a stale handle in ProcessPendingMemberEvictions.
+	for (auto It = PendingMemberEvictions.CreateIterator(); It; ++It)
+	{
+		if (It.Key().Lobby == LobbyHandle)
+		{
+			It.RemoveCurrent();
+		}
+	}
 }
 
 void FPlayFabLobby::HandleLeaveLobbyCompleted(const PFLobbyLeaveLobbyCompletedStateChange& StateChange)
@@ -1387,6 +1554,7 @@ void FPlayFabLobby::HandleLeaveLobbyCompleted(const PFLobbyLeaveLobbyCompletedSt
 		if (ExistingNamedSession->SessionState == EOnlineSessionState::Destroying)
 		{
 			SessionInterface->RemoveNamedSession(*SessionName);
+			RemovePendingMemberEvictionsForLobby(StateChange.lobby);
 			LobbySessionMap.Remove(StateChange.lobby);
 			TriggerOnLeaveLobbyCompletedDelegates(*SessionName, true);
 		}
@@ -1467,6 +1635,7 @@ void FPlayFabLobby::HandleInvitationReceived(const PFLobbyInviteReceivedStateCha
 void FPlayFabLobby::HandleLobbyDisconnected(const PFLobbyDisconnectedStateChange& StateChange)
 {
 	UE_LOG_ONLINE(Verbose, TEXT("Received PFLobbyDisconnectedStateChange(%u) event"), StateChange.stateChangeType);
+	RemovePendingMemberEvictionsForLobby(StateChange.lobby);
 	FName* SessionName = LobbySessionMap.Find(StateChange.lobby);
 	if (SessionName != nullptr)
 	{
