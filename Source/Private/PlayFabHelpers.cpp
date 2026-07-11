@@ -367,7 +367,7 @@ bool ParseTitleAccountIDsFromPlatformIDsResponse(
 
 	for (auto ValueIter = (*JsonTitlePlayerAccounts)->Values.CreateConstIterator(); ValueIter; ++ValueIter)
 	{
-		const FString Xuid = (*ValueIter).Key;
+		const FString Xuid((*ValueIter).Key.ToView());
 		TSharedPtr< FJsonValue > Value = (*ValueIter).Value;
 		if (Value.IsValid())
 		{
