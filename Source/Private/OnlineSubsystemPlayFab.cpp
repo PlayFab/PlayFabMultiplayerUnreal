@@ -151,6 +151,31 @@ void FOnlineSubsystemPlayFab::InitializePlayFabParty()
 		FString TitleID;
 		GConfig->GetString(TEXT("OnlineSubsystemPlayFab"), TEXT("PlayFabTitleID"), TitleID, GEngineIni);
 
+		bool bUsePartyDebugConnectivityPreservationMode = false;
+		GConfig->GetBool(
+			TEXT("OnlineSubsystemPlayFab"),
+			TEXT("bUsePartyDebugConnectivityPreservationMode"),
+			bUsePartyDebugConnectivityPreservationMode,
+			GEngineIni);
+
+		if (bUsePartyDebugConnectivityPreservationMode)
+		{
+			const PartyDevelopmentConnectivityPreservationMode ConnectivityPreservationMode = PartyDevelopmentConnectivityPreservationMode::TemporaryDebugging;
+			const PartyError SetOptionErr = Manager.SetOption(
+				nullptr,
+				PartyOption::DevelopmentConnectivityPreservationMode,
+				&ConnectivityPreservationMode);
+
+			if (PARTY_FAILED(SetOptionErr))
+			{
+				UE_LOG_ONLINE(Warning, TEXT("FOnlineSubsystemPlayFab::InitializePlayFabParty: Failed to enable Party debug connectivity preservation: %s"), *GetPartyErrorMessage(SetOptionErr));
+			}
+			else
+			{
+				UE_LOG_ONLINE(Display, TEXT("FOnlineSubsystemPlayFab::InitializePlayFabParty: Party debug connectivity preservation enabled (30 minute timeout)"));
+			}
+		}
+
 		// Initialize PlayFab Party
 		PartyError Err = Manager.Initialize(TCHAR_TO_UTF8(*TitleID));
 		if (PARTY_FAILED(Err))
