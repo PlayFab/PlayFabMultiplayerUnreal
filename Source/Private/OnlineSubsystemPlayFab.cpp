@@ -105,6 +105,12 @@ bool FOnlineSubsystemPlayFab::Init()
 	GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("MaxUserCount"), MaxUserCount, GEngineIni);
 	GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("MaxUsersPerDeviceCount"), MaxUsersPerDeviceCount, GEngineIni);
 	GConfig->GetBool(TEXT("OnlineSubsystemPlayFab"), TEXT("bForceAutoLogin"), bForceAutoLogin, GEngineIni);
+	GConfig->GetBool(TEXT("OnlineSubsystemPlayFab"), TEXT("bEnableCustomDataEndpoint"), bEnableCustomDataEndpoint, GEngineIni);
+	if (bEnableCustomDataEndpoint && MaxEndpointsPerDeviceCount < 2)
+	{
+		UE_LOG_ONLINE(Warning, TEXT("Custom multicast data requires at least two Party endpoints per device; increasing MaxEndpointsPerDeviceCount from %d to 2."), MaxEndpointsPerDeviceCount);
+		MaxEndpointsPerDeviceCount = 2;
+	}
 
 	ParseDirectPeerConnectivityOptions();
 
@@ -222,6 +228,8 @@ void FOnlineSubsystemPlayFab::CleanUpPlayFab()
 
 		NetworkState = EPlayFabPartyNetworkState::NoNetwork;
 		Network = nullptr;
+		CustomDataLocalEndpoint = nullptr;
+		CustomDataEndpoints.Empty();
 
 		// This cleans up everything allocated in PartyManager.Initialize() and
 		// should only be used when done with networking
@@ -428,6 +436,8 @@ void FOnlineSubsystemPlayFab::OnAppSuspend()
 
 		NetworkState = EPlayFabPartyNetworkState::NoNetwork;
 		Network = nullptr;
+		CustomDataLocalEndpoint = nullptr;
+		CustomDataEndpoints.Empty();
 
 		// This cleans up everything allocated in PartyManager.Initialize() and
 		// should only be used when done with networking
@@ -871,6 +881,79 @@ bool FOnlineSubsystemPlayFab::InternalConnectToNetwork(PartyLocalUser* PlayFabPa
 		return false;
 	}
 
+	if (bEnableCustomDataEndpoint)
+	{
+		PartyString CustomDataChannelKey = "Channel";
+		PartyString CustomDataChannelValueString = "CustomData";
+		PartyDataBuffer CustomDataChannelValue =
+		{
+			CustomDataChannelValueString,
+			static_cast<uint32_t>(FCStringAnsi::Strlen(CustomDataChannelValueString) + 1)
+		};
+
+		Err = Network->CreateEndpoint(
+			PlayFabPartyLocalUser,
+			1,
+			&CustomDataChannelKey,
+			&CustomDataChannelValue,
+			nullptr,
+			&CustomDataLocalEndpoint
+		);
+
+		if (PARTY_FAILED(Err))
+		{
+			CustomDataLocalEndpoint = nullptr;
+			UE_LOG_ONLINE(Warning, TEXT("FOnlineSubsystemPlayFab::InternalConnectToNetwork: Custom data endpoint creation failed; custom multicast will be unavailable: %s"), *GetPartyErrorMessage(Err));
+		}
+	}
+
+	return true;
+}
+
+bool FOnlineSubsystemPlayFab::MulticastCustomData(const TArray<uint8>& Payload)
+{
+	if (CustomDataLocalEndpoint == nullptr || Payload.Num() == 0)
+	{
+		return false;
+	}
+
+	TArray<PartyEndpoint*> TargetEndpoints;
+	TargetEndpoints.Reserve(CustomDataEndpoints.Num());
+	for (const TPair<uint32, PartyEndpoint*>& Endpoint : CustomDataEndpoints)
+	{
+		if (Endpoint.Value != nullptr)
+		{
+			TargetEndpoints.Add(Endpoint.Value);
+		}
+	}
+
+	if (TargetEndpoints.Num() == 0)
+	{
+		return true;
+	}
+
+	PartySendMessageQueuingConfiguration QueueConfiguration = {};
+	QueueConfiguration.priority = c_maxSendMessageQueuingPriority;
+	QueueConfiguration.identityForCancelFilters = static_cast<uint32>(reinterpret_cast<uintptr_t>(this));
+	QueueConfiguration.timeoutInMilliseconds = 100;
+
+	PartyDataBuffer DataBuffer = { Payload.GetData(), static_cast<uint32_t>(Payload.Num()) };
+	PartyError Err = CustomDataLocalEndpoint->SendMessage(
+		static_cast<uint32_t>(TargetEndpoints.Num()),
+		TargetEndpoints.GetData(),
+		PartySendMessageOptions::AllowLazyAcknowledgement,
+		&QueueConfiguration,
+		1,
+		&DataBuffer,
+		nullptr
+	);
+
+	if (PARTY_FAILED(Err))
+	{
+		UE_LOG_ONLINE(Warning, TEXT("FOnlineSubsystemPlayFab::MulticastCustomData: SendMessage failed: %s"), *GetPartyErrorMessage(Err));
+		return false;
+	}
+
 	return true;
 }
 
@@ -1107,6 +1190,8 @@ void FOnlineSubsystemPlayFab::OnLeaveNetworkCompleted(const PartyStateChange* Ch
 
 				NetworkState = EPlayFabPartyNetworkState::NoNetwork;
 				Network = nullptr;
+				CustomDataLocalEndpoint = nullptr;
+				CustomDataEndpoints.Empty();
 			}
 		}
 		else
@@ -1128,6 +1213,8 @@ void FOnlineSubsystemPlayFab::OnNetworkDestroyed(const PartyStateChange* Change)
 
 		NetworkState = EPlayFabPartyNetworkState::NoNetwork;
 		Network = nullptr;
+		CustomDataLocalEndpoint = nullptr;
+		CustomDataEndpoints.Empty();
 
 		FPlayFabSocketSubsystem* SocketSubsystem = static_cast<FPlayFabSocketSubsystem*>(ISocketSubsystem::Get(PLAYFAB_SOCKET_SUBSYSTEM));
 		if (SocketSubsystem == nullptr)
@@ -1186,7 +1273,24 @@ void FOnlineSubsystemPlayFab::OnEndpointMessageReceived(const PartyStateChange* 
 	const PartyEndpointMessageReceivedStateChange* Result = static_cast<const PartyEndpointMessageReceivedStateChange*>(Change);
 	if (Result)
 	{
-		TriggerOnEndpointMessageReceivedDelegates(Result);
+		bool bCustomDataMessage = false;
+		for (uint32_t EndpointIndex = 0; EndpointIndex < Result->receiverEndpointCount; ++EndpointIndex)
+		{
+			if (Result->receiverEndpoints[EndpointIndex] == CustomDataLocalEndpoint)
+			{
+				bCustomDataMessage = true;
+				break;
+			}
+		}
+
+		if (bCustomDataMessage)
+		{
+			TriggerOnCustomDataMessageReceivedDelegates(Result);
+		}
+		else
+		{
+			TriggerOnEndpointMessageReceivedDelegates(Result);
+		}
 	}
 }
 
@@ -1278,6 +1382,23 @@ void FOnlineSubsystemPlayFab::OnEndpointCreated(const PartyStateChange* Change)
 			}
 			else
 			{
+				PartyDataBuffer ChannelValue = {};
+				PartyError ChannelErr = NewEndpoint->GetSharedProperty("Channel", &ChannelValue);
+				static const ANSICHAR CustomDataChannel[] = "CustomData";
+				if (PARTY_SUCCEEDED(ChannelErr) &&
+					ChannelValue.buffer != nullptr &&
+					ChannelValue.bufferByteCount == sizeof(CustomDataChannel) &&
+					FMemory::Memcmp(ChannelValue.buffer, CustomDataChannel, sizeof(CustomDataChannel)) == 0)
+				{
+					if (NewEndpoint != CustomDataLocalEndpoint)
+					{
+						CustomDataEndpoints.Add(EndpointId, NewEndpoint);
+					}
+
+					UE_LOG(LogNet, Verbose, TEXT("FOnlineSubsystemPlayFab::OnEndpointCreated: Classified custom data endpoint: %d"), EndpointId);
+					return;
+				}
+
 				Endpoints.Add(EndpointId, NewEndpoint);
 				NetworkState = EPlayFabPartyNetworkState::NetworkReady;
 				TriggerOnPartyEndpointCreatedDelegates(true, EndpointId, bIsHosting);
@@ -1303,6 +1424,30 @@ void FOnlineSubsystemPlayFab::OnEndpointDestroyed(const PartyStateChange* Change
 		PartyEndpoint* NewEndpoint = Result->endpoint;
 		if (NewEndpoint)
 		{
+			bool bCustomDataEndpoint = NewEndpoint == CustomDataLocalEndpoint;
+			if (bCustomDataEndpoint)
+			{
+				CustomDataLocalEndpoint = nullptr;
+			}
+			else
+			{
+				for (auto EndpointIt = CustomDataEndpoints.CreateIterator(); EndpointIt; ++EndpointIt)
+				{
+					if (EndpointIt.Value() == NewEndpoint)
+					{
+						EndpointIt.RemoveCurrent();
+						bCustomDataEndpoint = true;
+						break;
+					}
+				}
+			}
+
+			if (bCustomDataEndpoint)
+			{
+				UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::OnEndpointDestroyed: Destroyed custom data endpoint with reason code %d"), Result->reason);
+				return;
+			}
+
 			uint16 EndpointId = 0;
 			PartyError Err = NewEndpoint->GetUniqueIdentifier(&EndpointId);
 			if (PARTY_FAILED(Err) || EndpointId == 0)
