@@ -1247,6 +1247,17 @@ void FOnlineSubsystemPlayFab::OnNetworkPropertiesChanged(const PartyStateChange*
 void FOnlineSubsystemPlayFab::OnCreateEndpointCompleted(const PartyStateChange* Change)
 {
 	UE_LOG_ONLINE(Verbose, TEXT("FOnlineSubsystemPlayFab::OnCreateEndpointCompleted"));
+
+	const PartyCreateEndpointCompletedStateChange* Result = static_cast<const PartyCreateEndpointCompletedStateChange*>(Change);
+	if (Result && Result->result != PartyStateChangeResult::Succeeded)
+	{
+		UE_LOG_ONLINE(Warning, TEXT("CreateEndpointCompleted: FAIL: %s"), *PartyStateChangeResultToReasonString(Result->result));
+		UE_LOG_ONLINE(Warning, TEXT("ErrorDetail: %s"), *GetPartyErrorMessage(Result->errorDetail));
+
+		const bool bIsHosting = NetworkState == EPlayFabPartyNetworkState::JoiningNetwork_Host ||
+			NetworkState == EPlayFabPartyNetworkState::JoiningNetwork_Host_PendingEndpointCreation;
+		TriggerOnPartyEndpointCreatedDelegates(false, 0, bIsHosting);
+	}
 }
 
 void FOnlineSubsystemPlayFab::OnDestroyEndpointCompleted(const PartyStateChange* Change)
