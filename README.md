@@ -76,6 +76,15 @@ The WinGDK version of UE5.3 is known to have an issue related to HTTP requests. 
 
 The PlayFab Online Subsystem (PF OSS) v2 is currently generally available (GA) for GDK and Win64+Steam, Nintendo Switch, and Sony PS4™/PS5™.
 
+For PlayStation titles that require an explicit PSN authentication version, set `PsnAuthVersion` to `v2` or `v3` in the game's engine configuration:
+
+```ini
+[OnlineSubsystemPlayFab]
+PsnAuthVersion=v3
+```
+
+When the setting is omitted, the login request does not include `AuthVersion`, preserving the existing automatic-detection behavior.
+
 For platform certification and shipping to retail users, games must use the generally available (GA) release of the SDKs and engine plugins that will become available in the coming months.
 
 For games shipping to Xbox console and PC Game Pass program before September 2022, it is recommended that games use the base Online Subsystem (OSS) for GDK provided by Epic for multiplayer integration (backed by Xbox Live multiplayer services) and the PlayFab Online Subsystem (PF OSS) v1.x for Party networking and VOIP available on the [GDK download website](https://aka.ms/gdkdl).
