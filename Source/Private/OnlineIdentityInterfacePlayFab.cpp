@@ -14,6 +14,7 @@
 
 #include "HttpModule.h"
 #include "OnlineSubsystem.h"
+#include "HAL/PlatformTime.h"
 
 #define OSS_PLAYFAB_GET_NATIVE_IDENTITY_INTERFACE IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();  IOnlineIdentityPtr NativeIdentityInterface = NativeSubsystem ? NativeSubsystem->GetIdentityInterface() : nullptr; if (NativeIdentityInterface)
 
@@ -410,7 +411,7 @@ void FOnlineIdentityPlayFab::TryAuthenticateUsers()
 	// Update any users that need to update their tokens
 	for (TSharedPtr<FPlayFabUser> LocalUser : LocalPlayFabUsers)
 	{
-		if (FDateTime::Now() > LocalUser->GetEntityTokenUpdateTime())
+		if (LocalUser->IsEntityTokenRefreshDue())
 		{
 			UsersToAuth.Add(LocalUser->GetPlatformUserId());
 		}
@@ -549,50 +550,59 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 							FString EntityIdStr, EntityTypeStr;
 							if ((*JsonEntity)->TryGetStringField(TEXT("Id"), EntityIdStr) && (*JsonEntity)->TryGetStringField(TEXT("Type"), EntityTypeStr))
 							{
-								UE_LOG_ONLINE(
-									Verbose,
-									TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Platform User %s authenticated with EntityId %s, Token %s, and Expiration %s"),
-									*PlatformUserIdStr,
-									*EntityIdStr,
-									*EntityTokenStr,
-									*TokenExpirationStr
-								);
-
-								int32 Index;
-								TSharedPtr<FPlayFabUser> LocalUser = GetPartyLocalUserFromPlatformIdString(PlatformUserIdStr, &Index);
-								if (LocalUser)
+								FString SessionTicketStr;
+								if (!(*JsonData)->TryGetStringField(TEXT("SessionTicket"), SessionTicketStr) || SessionTicketStr.IsEmpty())
 								{
-									// Update an existing user if we already have one
-									LocalUser->UpdateEntityToken(EntityTokenStr);
-									TriggerOnAuthenticateUserCompleteDelegates(Index, true, PlatformUserIdStr, TEXT(""));
+									ErrorStr = TEXT("SessionTicket data is missing or empty");
+									UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] %s"), *ErrorStr);
+									TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, ErrorStr);
 								}
 								else
 								{
-									// Obtain the SessionTicket from the PlayFab auth response for use in any subsequent requests demanding the X-Authorization header.
-									FString SessionTicketStr = "";
-									if ((*JsonData)->TryGetStringField(TEXT("SessionTicket"), SessionTicketStr) == false)
-									{
-										ErrorStr = SessionTicketStr.IsEmpty() ? TEXT("SessionTicket data is empty") : TEXT("Failed to parse SessionTicket data");
+									UE_LOG_ONLINE(
+										Verbose,
+										TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] Platform User %s authenticated with EntityId %s and Expiration %s"),
+										*PlatformUserIdStr,
+										*EntityIdStr,
+										*TokenExpirationStr
+									);
 
-										UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] %s"), *ErrorStr);
-										TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, ErrorStr);
+									const FString ServerTimeStr = HttpResponse->GetHeader(TEXT("Date"));
+									int32 LocalUserNum = INDEX_NONE;
+									TSharedPtr<FPlayFabUser> LocalUser = GetPartyLocalUserFromPlatformIdString(PlatformUserIdStr, &LocalUserNum);
+									bool bAuthSuccessful = false;
+									if (LocalUser)
+									{
+										bAuthSuccessful = LocalUser->UpdateEntityToken(OSSPlayFab->GetMultiplayerHandle(), EntityTokenStr, SessionTicketStr, TokenExpirationStr, ServerTimeStr);
+										if (!bAuthSuccessful)
+										{
+											ErrorStr = TEXT("Failed to update PlayFab user credentials");
+										}
+									}
+									else
+									{
+										FString PlayFabIdStr;
+										if (!(*JsonData)->TryGetStringField(TEXT("PlayFabId"), PlayFabIdStr) || PlayFabIdStr.IsEmpty())
+										{
+											ErrorStr = TEXT("PlayFabId data is missing or empty");
+										}
+										else
+										{
+											bAuthSuccessful = CreateLocalUser(PlatformUserIdStr, EntityIdStr, EntityTypeStr, SessionTicketStr, EntityTokenStr, TokenExpirationStr, ServerTimeStr, PlayFabIdStr, LocalUserNum);
+										}
+										if (!bAuthSuccessful && ErrorStr.IsEmpty())
+										{
+											ErrorStr = TEXT("Failed to create PlayFab local user");
+										}
 									}
 
-									FString PlayFabIdStr = "";
-									if ((*JsonData)->TryGetStringField(TEXT("PlayFabId"), PlayFabIdStr) == false)
+									TriggerOnAuthenticateUserCompleteDelegates(LocalUserNum == INDEX_NONE ? 0 : LocalUserNum, bAuthSuccessful, PlatformUserIdStr, ErrorStr);
+									TimeSinceLastAuth = 0.0f;
+									if (bAuthSuccessful)
 									{
-										ErrorStr = PlayFabIdStr.IsEmpty() ? TEXT("PlayFabId data is empty") : TEXT("Failed to parse PlayFabId data");
-
-										UE_LOG_ONLINE(Error, TEXT("[FOnlineIdentityPlayFab::Auth_HttpRequestComplete] %s"), *ErrorStr);
-										TriggerOnAuthenticateUserCompleteDelegates(0, false, PlatformUserIdStr, ErrorStr);
+										UsersToAuth.Remove(PlatformUserIdStr);
 									}
-
-									// Create a new user if we don't already have one
-									CreateLocalUser(PlatformUserIdStr, EntityIdStr, EntityTypeStr, SessionTicketStr, EntityTokenStr, TokenExpirationStr, PlayFabIdStr);
 								}
-
-								TimeSinceLastAuth = 0.0f;
-								UsersToAuth.Remove(PlatformUserIdStr);
 							}
 							else
 							{
@@ -641,7 +651,7 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 	UserAuthRequestsInFlight.Remove(PlatformUserIdStr);
 }
 
-void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, const FString& EntityId, const FString& EntityType, const FString& SessionTicket, const FString& EntityToken, const FString& TokenExpiration, const FString& PlayFabId)
+bool FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, const FString& EntityId, const FString& EntityType, const FString& SessionTicket, const FString& EntityToken, const FString& TokenExpiration, const FString& ServerTime, const FString& PlayFabId, int32& LocalUserNum)
 {
 	UE_LOG_ONLINE_IDENTITY(Verbose, TEXT("FOnlineIdentityPlayFab::CreateLocalUser"));
 
@@ -658,10 +668,10 @@ void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, c
 	if (PARTY_FAILED(Err))
 	{
 		UE_LOG_ONLINE(Warning, TEXT("FOnlineSubsystemPlayFab PartyManager::CreateLocalUser failed: %s"), *GetPartyErrorMessage(Err));
-		return;
+		return false;
 	}
 	
-	TSharedPtr<FPlayFabUser> NewLocalUser = MakeShared<FPlayFabUser>(PlatformUserIdStr, EntityToken, EntityId, EntityType, SessionTicket, NewPartyLocalUser, PlayFabId);
+	TSharedPtr<FPlayFabUser> NewLocalUser = MakeShared<FPlayFabUser>(PlatformUserIdStr, EntityToken, TokenExpiration, ServerTime, EntityId, EntityType, SessionTicket, NewPartyLocalUser, PlayFabId);
 
 	PFEntityKey EntityKey = NewLocalUser->GetEntityKey();
 	HRESULT hr = PFMultiplayerSetEntityToken(
@@ -674,13 +684,13 @@ void FOnlineIdentityPlayFab::CreateLocalUser(const FString& PlatformUserIdStr, c
 	{
 		UE_LOG_ONLINE(Warning, TEXT("FOnlineSubsystemPlayFab MultiplayerManager::GetSingleton().SetEntityToken failed: 0x%x"), hr);
 		PartyManager::GetSingleton().DestroyLocalUser(NewPartyLocalUser, nullptr);
-		return;
+		return false;
 	}
-	int32 LocalUserNum = LocalPlayFabUsers.Add(NewLocalUser);
-	TriggerOnAuthenticateUserCompleteDelegates(LocalUserNum, true, PlatformUserIdStr, TEXT(""));
+	LocalUserNum = LocalPlayFabUsers.Add(NewLocalUser);
 
 	// Listening to invite is best effort
 	OSSPlayFab->GetPlayFabLobbyInterface()->RegisterForInvites_PlayFabMultiplayer(EntityKey);
+	return true;
 }
 
 void FOnlineIdentityPlayFab::RemoveLocalUser(const FString& PlatformUserIdStr)
@@ -958,29 +968,57 @@ PartyLocalUser* FOnlineIdentityPlayFab::GetFirstPartyLocalUser()
 	return nullptr;
 }
 
-void FPlayFabUser::UpdateEntityToken(const FString& NewEntityToken)
+bool FPlayFabUser::UpdateEntityToken(PFMultiplayerHandle MultiplayerHandle, const FString& NewEntityToken, const FString& NewSessionTicket, const FString& TokenExpiration, const FString& ServerTime)
 {
 	UE_LOG_ONLINE_IDENTITY(Verbose, TEXT("FOnlineIdentityPlayFab::UpdateEntityToken"));
 
-	if (NewEntityToken.IsEmpty() == false)
+	if (NewEntityToken.IsEmpty() || NewSessionTicket.IsEmpty() || !LocalUser)
 	{
-		if (LocalUser)
-		{
-			PartyError Err = LocalUser->UpdateEntityToken(TCHAR_TO_UTF8(*NewEntityToken));
-			if (PARTY_FAILED(Err))
-			{
-				UE_LOG_ONLINE(Warning, TEXT("FPlayFabPartyUser::UpdateEntityToken failed: %s"), *GetPartyErrorMessage(Err));
-			}
-			else
-			{
-				EntityToken = NewEntityToken;
-				SetNewEntityTokenUpdateTime();
-			}
-		}
+		UE_LOG_ONLINE(Warning, TEXT("FPlayFabUser::UpdateEntityToken received invalid credentials or local user"));
+		return false;
 	}
+
+	PartyError Err = LocalUser->UpdateEntityToken(TCHAR_TO_UTF8(*NewEntityToken));
+	if (PARTY_FAILED(Err))
+	{
+		UE_LOG_ONLINE(Warning, TEXT("FPlayFabUser::UpdateEntityToken failed: %s"), *GetPartyErrorMessage(Err));
+		return false;
+	}
+
+	PFEntityKey EntityKey = GetEntityKey();
+	HRESULT Hr = PFMultiplayerSetEntityToken(MultiplayerHandle, &EntityKey, TCHAR_TO_UTF8(*NewEntityToken));
+	if (FAILED(Hr))
+	{
+		UE_LOG_ONLINE(Warning, TEXT("FPlayFabUser::UpdateEntityToken PFMultiplayerSetEntityToken failed: 0x%x"), Hr);
+		return false;
+	}
+
+	EntityToken = NewEntityToken;
+	SessionTicket = NewSessionTicket;
+	SetNewEntityTokenUpdateTime(TokenExpiration, ServerTime);
+	return true;
 }
 
-void FPlayFabUser::SetNewEntityTokenUpdateTime()
+bool FPlayFabUser::IsEntityTokenRefreshDue() const
 {
-	EntityTokenUpdateTime = FDateTime::Now() + FTimespan::FromHours(12.0f);
+	return FPlatformTime::Seconds() > EntityTokenUpdateTimeSeconds;
+}
+
+void FPlayFabUser::SetNewEntityTokenUpdateTime(const FString& TokenExpiration, const FString& ServerTime)
+{
+	FTimespan RefreshInterval = FTimespan::FromHours(12.0);
+	FDateTime ExpirationUtc;
+	FDateTime ServerUtc;
+	if (FDateTime::ParseIso8601(*TokenExpiration, ExpirationUtc) && FDateTime::ParseHttpDate(ServerTime, ServerUtc) && ExpirationUtc > ServerUtc)
+	{
+		const FTimespan TokenLifetime = ExpirationUtc - ServerUtc;
+		RefreshInterval = FTimespan::FromTicks(TokenLifetime.GetTicks() / 2);
+	}
+	else
+	{
+		UE_LOG_ONLINE(Warning, TEXT("FPlayFabUser::SetNewEntityTokenUpdateTime could not determine the server-relative token lifetime; using the 12 hour fallback"));
+	}
+
+	EntityTokenUpdateTime = FDateTime::UtcNow() + RefreshInterval;
+	EntityTokenUpdateTimeSeconds = FPlatformTime::Seconds() + RefreshInterval.GetTotalSeconds();
 }
