@@ -146,13 +146,17 @@ bool ParseDataObjectFromPlayFabResponse(
 {
 	if (!HttpResponse.IsValid())
 	{
+		UE_LOG_ONLINE(Error, TEXT("ParseDataObjectFromPlayFabResponse failed: HttpResponse was invalid!"));
 		return false;
 	}
 
 	if (HttpResponse->GetResponseCode() != 200)
 	{
-		const FString ErrorResponseStr = HttpResponse->GetContentAsString();
-		UE_LOG_ONLINE(Error, TEXT("ParseDataObjectFromPlayFabResponse failed with response code %u, response:%s!"), HttpResponse->GetResponseCode(), *ErrorResponseStr);
+		UE_LOG_ONLINE(Error, TEXT("ParseDataObjectFromPlayFabResponse failed. Url:%s, ResponseCode:%u, RequestId:%s, response:%s!"),
+			*HttpResponse->GetURL(),
+			HttpResponse->GetResponseCode(),
+			*HttpResponse->GetHeader(TEXT("X-RequestId")),
+			*HttpResponse->GetContentAsString());
 		return false;
 	}
 
