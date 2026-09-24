@@ -197,6 +197,7 @@ protected:
 	void StopTrackingPermissionForTalker(const FString& UserId);
 	void TickTalkerPermissionTracking();
 	void OnChatPermissionsChanged(const FString& LocalUserId, const FString& RemoteUserId, PartyChatPermissionOptions perms);
+	bool IsVoiceEnabled() const { return bVoiceEnabled; }
 
 private:
 #if OSS_PLAYFAB_VERBOSE_VOIP_LOGGING
@@ -206,6 +207,7 @@ private:
 	void ProcessTalkingDelegates(float DeltaTime);
 
 	float VoiceNotificationDelta = 0.2f;
+	bool bVoiceEnabled = true;
 
 	FString LocalChatControlLanguage;
 	TMap<FString, FLocalTalkerPlayFab> LocalTalkers;

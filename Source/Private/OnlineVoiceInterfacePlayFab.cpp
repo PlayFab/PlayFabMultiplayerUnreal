@@ -9,7 +9,11 @@
 FOnlineVoicePlayFab::FOnlineVoicePlayFab(class FOnlineSubsystemPlayFab* InSubsystem) :
 	OSSPlayFab(InSubsystem)
 {
-
+	GConfig->GetBool(TEXT("OnlineSubsystemPlayFab"), TEXT("bHasPlayFabVoiceEnabled"), bVoiceEnabled, GEngineIni);
+	if (!bVoiceEnabled)
+	{
+		UE_LOG_ONLINE_VOICE(Log, TEXT("Voice Chat is Disabled"));
+	}
 }
 
 FOnlineVoicePlayFab::~FOnlineVoicePlayFab()
@@ -111,6 +115,11 @@ void FOnlineVoicePlayFab::StopNetworkedVoice(uint8 LocalUserNum)
 
 bool FOnlineVoicePlayFab::RegisterLocalTalker(uint32 LocalUserNum)
 {
+	if (!bVoiceEnabled)
+	{
+		return true;
+	}
+
 	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
 	if (IdentityIntPtr.IsValid())
 	{
@@ -134,6 +143,11 @@ bool FOnlineVoicePlayFab::RegisterLocalTalker(uint32 LocalUserNum)
 
 bool FOnlineVoicePlayFab::RegisterLocalTalker(const FUniqueNetId& LocalPlayer)
 {
+	if (!bVoiceEnabled)
+	{
+		return true;
+	}
+
 	IOnlineIdentityPtr IdentityIntPtr = OSSPlayFab->GetIdentityInterface();
 	if (IdentityIntPtr.IsValid())
 	{
@@ -148,6 +162,11 @@ bool FOnlineVoicePlayFab::RegisterLocalTalker(const FUniqueNetId& LocalPlayer)
 
 bool FOnlineVoicePlayFab::RegisterLocalTalker(TSharedPtr<FPlayFabUser> LocalPlayer)
 {
+	if (!bVoiceEnabled)
+	{
+		return true;
+	}
+
 	if (LocalPlayer == nullptr)
 	{
 		return false;
@@ -361,6 +380,11 @@ void FOnlineVoicePlayFab::UnregisterLocalTalkers()
 
 bool FOnlineVoicePlayFab::RegisterRemoteTalker(const FUniqueNetId& UniqueId)
 {
+	if (!bVoiceEnabled)
+	{
+		return true;
+	}
+
 	StartTrackingPermissionForTalker(UniqueId.ToString(), true);
 	return true;
 }
@@ -657,6 +681,11 @@ void FOnlineVoicePlayFab::ProcessTalkingDelegates(float DeltaTime)
 
 void FOnlineVoicePlayFab::Tick(float DeltaTime)
 {
+	if (!bVoiceEnabled)
+	{
+		return;
+	}
+
 	TickTalkerPermissionTracking();
 	ProcessTalkingDelegates(DeltaTime);
 }

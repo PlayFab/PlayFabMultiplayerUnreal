@@ -132,6 +132,11 @@ void FOnlineVoicePlayFab::AddTalkerIdMapping(const FString& EntityId, const FStr
 
 void FOnlineVoicePlayFab::SetTalkerCrossNetworkPermission(ECrossNetworkType VoiceChatType, const FString& RemoteUserId, const FString& PlatformModel)
 {
+	if (!bVoiceEnabled)
+	{
+		return;
+	}
+
 	FCrossNetworkTalkerPlayFab CrossNetwork = {VoiceChatType, RemoteUserId, PlatformModel};
 	CrossNetworkTalkers.Emplace(CrossNetwork);
 }
