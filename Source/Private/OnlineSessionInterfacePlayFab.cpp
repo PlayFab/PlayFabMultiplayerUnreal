@@ -41,6 +41,11 @@ FOnlineSessionPlayFab::~FOnlineSessionPlayFab()
 
 	// Clean up delegates
 	OSSPlayFab->ClearOnConnectToPlayFabPartyNetworkCompletedDelegates(this);
+	if (OnLeavePlayFabPartyNetworkCompletedHandle.IsValid())
+	{
+		OSSPlayFab->ClearOnLeavePlayFabPartyNetworkCompletedDelegate_Handle(OnLeavePlayFabPartyNetworkCompletedHandle);
+		OnLeavePlayFabPartyNetworkCompletedHandle.Reset();
+	}
 	ClearOnMatchmakingCompleteDelegate_Handle(OnMatchmakingCompleteDelegateHandle);
 	UnregisterForUpdates();
 }
@@ -440,6 +445,32 @@ bool FOnlineSessionPlayFab::EndSession(FName SessionName)
 bool FOnlineSessionPlayFab::DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate /*= FOnDestroySessionCompleteDelegate()*/)
 {
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::DestroySession: SessionName:%s"), *SessionName.ToString());
+	if (bPendingDestroySession)
+	{
+		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::DestroySession: A destroy operation is already in progress for session (%s)"), *PendingDestroySessionName.ToString());
+		OSSPlayFab->ExecuteNextTick([this, SessionName, CompletionDelegate]()
+		{
+			CompletionDelegate.ExecuteIfBound(SessionName, false);
+			TriggerOnDestroySessionCompleteDelegates(SessionName, false);
+		});
+		return false;
+	}
+
+	const bool bPartyLeaveRequired = OSSPlayFab && OSSPlayFab->Network && OSSPlayFab->NetworkState != EPlayFabPartyNetworkState::NoNetwork;
+
+	bPendingDestroySession = true;
+	PendingDestroySessionName = SessionName;
+	PendingDestroySessionCompletionDelegate = CompletionDelegate;
+	bPendingDestroyLobbyComplete = false;
+	bPendingDestroyLobbyResult = false;
+	bPendingDestroyPartyLeaveComplete = !bPartyLeaveRequired;
+	bPendingDestroyPartyLeaveResult = !bPartyLeaveRequired;
+
+	if (bPartyLeaveRequired)
+	{
+		OnLeavePlayFabPartyNetworkCompletedHandle = OSSPlayFab->AddOnLeavePlayFabPartyNetworkCompletedDelegate_Handle(
+			FOnLeavePlayFabPartyNetworkCompletedDelegate::CreateRaw(this, &FOnlineSessionPlayFab::OnLeavePlayFabPartyNetworkCompleted));
+	}
 
 	if (bUsesNativeSession)
 	{
@@ -452,11 +483,28 @@ bool FOnlineSessionPlayFab::DestroySession(FName SessionName, const FOnDestroySe
 
 	// Leave the PlayFab Party network
 	OSSPlayFab->LeavePlayFabPartyNetwork();
+	if (bPartyLeaveRequired && !OSSPlayFab->bLeavePlayFabPartyNetworkPending)
+	{
+		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::DestroySession: Party leave was required but no pending leave request was recorded; treating party-leave gate as complete."));
+		if (OnLeavePlayFabPartyNetworkCompletedHandle.IsValid())
+		{
+			OSSPlayFab->ClearOnLeavePlayFabPartyNetworkCompletedDelegate_Handle(OnLeavePlayFabPartyNetworkCompletedHandle);
+			OnLeavePlayFabPartyNetworkCompletedHandle.Reset();
+		}
+		bPendingDestroyPartyLeaveComplete = true;
+		bPendingDestroyPartyLeaveResult = (OSSPlayFab->NetworkState == EPlayFabPartyNetworkState::NoNetwork || OSSPlayFab->Network == nullptr);
+	}
 
 	FNamedOnlineSessionPtr Session = GetNamedSessionPtr(SessionName);
 	if (!Session.IsValid())
 	{
 		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::DestroySession: Can't destroy a null online session (%s)"), *SessionName.ToString());
+		if (OnLeavePlayFabPartyNetworkCompletedHandle.IsValid())
+		{
+			OSSPlayFab->ClearOnLeavePlayFabPartyNetworkCompletedDelegate_Handle(OnLeavePlayFabPartyNetworkCompletedHandle);
+			OnLeavePlayFabPartyNetworkCompletedHandle.Reset();
+		}
+		bPendingDestroySession = false;
 		OSSPlayFab->ExecuteNextTick([this, SessionName, CompletionDelegate]()
 		{
 			CompletionDelegate.ExecuteIfBound(SessionName, false);
@@ -468,6 +516,12 @@ bool FOnlineSessionPlayFab::DestroySession(FName SessionName, const FOnDestroySe
 	if (Session->SessionState == EOnlineSessionState::Destroying)
 	{
 		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::DestroySession: Already in process of destroying session (%s)"), *SessionName.ToString());
+		if (OnLeavePlayFabPartyNetworkCompletedHandle.IsValid())
+		{
+			OSSPlayFab->ClearOnLeavePlayFabPartyNetworkCompletedDelegate_Handle(OnLeavePlayFabPartyNetworkCompletedHandle);
+			OnLeavePlayFabPartyNetworkCompletedHandle.Reset();
+		}
+		bPendingDestroySession = false;
 		OSSPlayFab->ExecuteNextTick([this, SessionName, CompletionDelegate]()
 		{
 			CompletionDelegate.ExecuteIfBound(SessionName, false);
@@ -485,6 +539,12 @@ bool FOnlineSessionPlayFab::DestroySession(FName SessionName, const FOnDestroySe
 	{
 		UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::DestroySession: Failed to destroy the session %s"), *SessionName.ToString());
 		OSSPlayFab->GetPlayFabLobbyInterface()->ClearOnLeaveLobbyCompletedDelegate_Handle(OnLeaveLobbyCompletedHandle);
+		if (OnLeavePlayFabPartyNetworkCompletedHandle.IsValid())
+		{
+			OSSPlayFab->ClearOnLeavePlayFabPartyNetworkCompletedDelegate_Handle(OnLeavePlayFabPartyNetworkCompletedHandle);
+			OnLeavePlayFabPartyNetworkCompletedHandle.Reset();
+		}
+		bPendingDestroySession = false;
 
 		OSSPlayFab->ExecuteNextTick([this, SessionName, CompletionDelegate]()
 			{
@@ -502,7 +562,59 @@ void FOnlineSessionPlayFab::OnLeaveLobbyCompleted(FName SessionName, bool bSucce
 	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLeaveLobbyCompleted()"));
 
 	OSSPlayFab->GetPlayFabLobbyInterface()->ClearOnLeaveLobbyCompletedDelegate_Handle(OnLeaveLobbyCompletedHandle);
+
+	if (bPendingDestroySession)
+	{
+		bPendingDestroyLobbyComplete = true;
+		bPendingDestroyLobbyResult = bSuccess;
+		TryCompletePendingDestroySession();
+		return;
+	}
+
 	TriggerOnDestroySessionCompleteDelegates(SessionName, bSuccess);
+}
+
+void FOnlineSessionPlayFab::OnLeavePlayFabPartyNetworkCompleted(bool bSuccess)
+{
+	UE_LOG_ONLINE_SESSION(Verbose, TEXT("FOnlineSessionPlayFab::OnLeavePlayFabPartyNetworkCompleted: bSuccess=%d"), bSuccess);
+
+	if (OnLeavePlayFabPartyNetworkCompletedHandle.IsValid())
+	{
+		OSSPlayFab->ClearOnLeavePlayFabPartyNetworkCompletedDelegate_Handle(OnLeavePlayFabPartyNetworkCompletedHandle);
+		OnLeavePlayFabPartyNetworkCompletedHandle.Reset();
+	}
+
+	bPendingDestroyPartyLeaveComplete = true;
+	bPendingDestroyPartyLeaveResult = bSuccess;
+	TryCompletePendingDestroySession();
+}
+
+void FOnlineSessionPlayFab::TryCompletePendingDestroySession()
+{
+	if (!bPendingDestroySession)
+	{
+		return;
+	}
+
+	if (!bPendingDestroyLobbyComplete || !bPendingDestroyPartyLeaveComplete)
+	{
+		return;
+	}
+
+	const FName CompletedSessionName = PendingDestroySessionName;
+	const bool bSuccess = bPendingDestroyLobbyResult && bPendingDestroyPartyLeaveResult;
+	const FOnDestroySessionCompleteDelegate CompletionDelegate = PendingDestroySessionCompletionDelegate;
+
+	bPendingDestroySession = false;
+	PendingDestroySessionName = NAME_None;
+	PendingDestroySessionCompletionDelegate = FOnDestroySessionCompleteDelegate();
+	bPendingDestroyLobbyComplete = false;
+	bPendingDestroyLobbyResult = false;
+	bPendingDestroyPartyLeaveComplete = true;
+	bPendingDestroyPartyLeaveResult = true;
+
+	CompletionDelegate.ExecuteIfBound(CompletedSessionName, bSuccess);
+	TriggerOnDestroySessionCompleteDelegates(CompletedSessionName, bSuccess);
 }
 
 void FOnlineSessionPlayFab::OnFindLobbiesCompleted(int32 LocalUserNum, bool bSuccess, TSharedPtr<FOnlineSessionSearch> SearchResults)

@@ -42,6 +42,9 @@ typedef FOnEndpointMessageReceived::FDelegate FOnEndpointMessageReceivedDelegate
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnConnectToPlayFabPartyNetworkCompleted, bool /*bSuccess*/);
 typedef FOnConnectToPlayFabPartyNetworkCompleted::FDelegate FOnConnectToPlayFabPartyNetworkCompletedDelegate;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLeavePlayFabPartyNetworkCompleted, bool /*bSuccess*/);
+typedef FOnLeavePlayFabPartyNetworkCompleted::FDelegate FOnLeavePlayFabPartyNetworkCompletedDelegate;
+
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPartyEndpointCreated, bool /*bSuccess*/, uint16 /*EndpointID*/, bool /*bIsHosting*/);
 typedef FOnPartyEndpointCreated::FDelegate FOnPartyEndpointCreatedDelegate;
 
@@ -178,6 +181,7 @@ public:
 	PartyNetwork* Network = nullptr;
 	PartyLocalEndpoint* LocalEndpoint = nullptr;
 	TMap<uint32, PartyEndpoint*> Endpoints;
+	bool bLeavePlayFabPartyNetworkPending = false;
 	
 	FString NetworkId;
 	PartyNetworkDescriptor NetworkDescriptor;
@@ -284,6 +288,7 @@ public:
 
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnEndpointMessageReceived, const PartyEndpointMessageReceivedStateChange* /*Change*/);
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnConnectToPlayFabPartyNetworkCompleted, bool /*bSuccess*/);
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnLeavePlayFabPartyNetworkCompleted, bool /*bSuccess*/);
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnPartyEndpointCreated, bool /*bSuccess*/, uint16 /*EndpointID*/, bool /*bIsHosting*/);
 	
 	PartyEndpoint* GetPartyEndpoint(uint32 EndpointId);

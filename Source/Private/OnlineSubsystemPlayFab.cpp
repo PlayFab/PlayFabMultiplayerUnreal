@@ -880,6 +880,7 @@ void FOnlineSubsystemPlayFab::LeavePlayFabPartyNetwork()
 
 	if (NetworkState != EPlayFabPartyNetworkState::LeavingNetwork && Network)
 	{
+		bLeavePlayFabPartyNetworkPending = true;
 		NetworkState = EPlayFabPartyNetworkState::LeavingNetwork;
 		Network->LeaveNetwork(nullptr);
 
@@ -1107,12 +1108,24 @@ void FOnlineSubsystemPlayFab::OnLeaveNetworkCompleted(const PartyStateChange* Ch
 
 				NetworkState = EPlayFabPartyNetworkState::NoNetwork;
 				Network = nullptr;
+
+				if (bLeavePlayFabPartyNetworkPending)
+				{
+					bLeavePlayFabPartyNetworkPending = false;
+					TriggerOnLeavePlayFabPartyNetworkCompletedDelegates(true);
+				}
 			}
 		}
 		else
 		{
 			UE_LOG_ONLINE(Warning, TEXT("OnLeaveNetworkCompleted: FAIL:  %s"), *PartyStateChangeResultToReasonString(Result->result));
 			UE_LOG_ONLINE(Warning, TEXT("ErrorDetail: %s"), *GetPartyErrorMessage(Result->errorDetail));
+
+			if (bLeavePlayFabPartyNetworkPending)
+			{
+				bLeavePlayFabPartyNetworkPending = false;
+				TriggerOnLeavePlayFabPartyNetworkCompletedDelegates(false);
+			}
 		}
 	}
 }
@@ -1125,6 +1138,13 @@ void FOnlineSubsystemPlayFab::OnNetworkDestroyed(const PartyStateChange* Change)
 	if (Result)
 	{
 		UE_LOG_ONLINE(Warning, TEXT("FOnlineSubsystemPlayFab::OnNetworkDestroyed: PlayFab Party network was destroyed with reason code %d"), Result->reason);
+
+		const bool bWasLeaveRequest = Result->reason == PartyDestroyedReason::Requested;
+		if (bLeavePlayFabPartyNetworkPending)
+		{
+			bLeavePlayFabPartyNetworkPending = false;
+			TriggerOnLeavePlayFabPartyNetworkCompletedDelegates(bWasLeaveRequest);
+		}
 
 		NetworkState = EPlayFabPartyNetworkState::NoNetwork;
 		Network = nullptr;
