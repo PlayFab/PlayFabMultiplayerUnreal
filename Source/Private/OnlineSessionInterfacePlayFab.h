@@ -182,6 +182,14 @@ protected:
 	void OnCreatePartyEndpoint_Matchmaking(bool bSuccess, uint16 EndpointID, bool bIsHosting);
 	void OnCreatePartyEndpoint_JoinSession(bool bSuccess, uint16 EndpointID, bool bIsHosting);
 
+	// Fires when the underlying Party network create/connect call completes (success or failure).
+	// Needed so that pre-endpoint failures (e.g. CreateNewNetwork fails because regions can't be
+	// determined) still tear down the in-flight session call instead of hanging forever waiting
+	// on an endpoint that will never be created.
+	void OnConnectToPlayFabPartyNetworkCompleted_CreateSession(bool bSuccess);
+	void OnConnectToPlayFabPartyNetworkCompleted_Matchmaking(bool bSuccess);
+	void OnConnectToPlayFabPartyNetworkCompleted_JoinSession(bool bSuccess);
+
 public:
 	void Tick(float DeltaTime);
 
