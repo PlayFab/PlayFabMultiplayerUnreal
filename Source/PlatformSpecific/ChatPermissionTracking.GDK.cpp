@@ -118,7 +118,7 @@ namespace
 		}
 		else
 		{
-			UE_LOG_ONLINE(Error, TEXT("LocalChatUser is nullptr"));
+			UE_LOG_ONLINE(Verbose, TEXT("LocalChatUser is nullptr"));
 		}
 		return false;
 	}
