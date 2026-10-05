@@ -198,6 +198,7 @@ public:
 protected:
 	bool AuthenticateUser(const FString& UserPlatformIdStr);
 	void Auth_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
+	void Auth_RequestComplete(bool bSucceeded, const FString& PlatformUserIdStr);
 
 	void CreateLocalUser(const FString& UserPlatformIdStr, const FString& EntityId, const FString& EntityType, const FString& SessionTicket, const FString& EntityToken, const FString& TokenExpiration, const FString& PlayFabId);
 	void RemoveLocalUser(const FString& PlatformUserIdStr);
@@ -209,6 +210,9 @@ private:
 	bool bRegisterAuthDelegates = true;
 	bool bAuthAllUsers = true;
 	float TimeSinceLastAuth = 0.0f;
+	// Per-user consecutive failures drive backoff and the retry cap.
+	TMap<FString, int32> AuthFailureCountsByUser;
+	float CurrentAuthCoolDownTime = 0.0f;
 	FString LocalUserXToken;
 
 	TArray<FDelegateHandle> LoginStatusChangedDelegateHandles;

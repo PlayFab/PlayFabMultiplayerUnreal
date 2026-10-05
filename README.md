@@ -34,6 +34,12 @@ The quickstart guide for OnlineSubsystemPlayFab can be found at:
 Latest Version |2.3.8|
 Deprecated Version |2.2.6 and 2.27 may potentially crash the game. **Please upgrade to the latest version to ensure the bug fix is included.**|
 
+The 2.3.8 retry-storm patch resets the authentication cooldown on failure, applies
+exponential backoff with a 60-second upper bound, and stops retrying after five
+consecutive failures per platform user. A successful authentication clears the
+backoff state; a later login-status change can re-queue a user with a fresh retry
+window.
+
 ## Compatibility
 
 |Unreal Engine version|5.7|

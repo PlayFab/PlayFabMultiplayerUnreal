@@ -18,10 +18,13 @@
 #define OSS_PLAYFAB_GET_NATIVE_IDENTITY_INTERFACE IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();  IOnlineIdentityPtr NativeIdentityInterface = NativeSubsystem ? NativeSubsystem->GetIdentityInterface() : nullptr; if (NativeIdentityInterface)
 
 static constexpr float AuthCoolDownTime = 3.0f;
+static constexpr float MaxAuthCoolDownTime = 60.0f;
+static constexpr int32 MaxAuthFailuresBeforeGivingUp = 5;
 
 FOnlineIdentityPlayFab::FOnlineIdentityPlayFab(class FOnlineSubsystemPlayFab* InSubsystem) : 
 	OSSPlayFab(InSubsystem),
-	TimeSinceLastAuth(AuthCoolDownTime) // Don't wait on the cool down to auth on the very first go
+	TimeSinceLastAuth(AuthCoolDownTime), // Don't wait on the cool down to auth on the very first go
+	CurrentAuthCoolDownTime(AuthCoolDownTime)
 {
 	check(OSSPlayFab);
 }
@@ -416,10 +419,11 @@ void FOnlineIdentityPlayFab::TryAuthenticateUsers()
 		}
 	}
 	
-	// Only try to auth if we have waited long enough and have users that need it
-	if (TimeSinceLastAuth > AuthCoolDownTime && UsersToAuth.Num() != 0)
+	// Back off after failed authentication instead of retrying every tick.
+	if (TimeSinceLastAuth > CurrentAuthCoolDownTime && UsersToAuth.Num() != 0)
 	{
-		for (const FString& PlatformUserIdStr : UsersToAuth)
+		// A synchronous platform callback can remove a user when the retry cap is reached.
+		for (const FString& PlatformUserIdStr : UsersToAuth.Array())
 		{
 			AuthenticateUser(PlatformUserIdStr);
 		}
@@ -434,6 +438,8 @@ void FOnlineIdentityPlayFab::CleanUpLocalUsers()
 
 	UsersToAuth.Empty();
 	UserAuthRequestsInFlight.Empty();
+	AuthFailureCountsByUser.Empty();
+	CurrentAuthCoolDownTime = AuthCoolDownTime;
 }
 
 bool FOnlineIdentityPlayFab::AuthenticateUser(const FString& PlatformUserIdStr)
@@ -511,8 +517,7 @@ void FOnlineIdentityPlayFab::FinishRequest(bool bPlatformDataSuccess, const FStr
 	}
 	else
 	{
-		// Remove the in flight data
-		UserAuthRequestsInFlight.Remove(PlatformUserIdStr);
+		Auth_RequestComplete(false, PlatformUserIdStr);
 	}
 }
 
@@ -522,6 +527,7 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 
 	FString ResponseStr;
 	FString ErrorStr;
+	bool bAuthSucceeded = false;
 
 	if (bSucceeded && HttpResponse.IsValid())
 	{
@@ -591,8 +597,7 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 									CreateLocalUser(PlatformUserIdStr, EntityIdStr, EntityTypeStr, SessionTicketStr, EntityTokenStr, TokenExpirationStr, PlayFabIdStr);
 								}
 
-								TimeSinceLastAuth = 0.0f;
-								UsersToAuth.Remove(PlatformUserIdStr);
+								bAuthSucceeded = true;
 							}
 							else
 							{
@@ -637,7 +642,41 @@ void FOnlineIdentityPlayFab::Auth_HttpRequestComplete(FHttpRequestPtr HttpReques
 		}
 	}
 
-	// Remove the in flight data
+	Auth_RequestComplete(bAuthSucceeded, PlatformUserIdStr);
+}
+
+void FOnlineIdentityPlayFab::Auth_RequestComplete(bool bSucceeded, const FString& PlatformUserIdStr)
+{
+	// Reset on failure as well as success so the auth gate cannot stay open every tick.
+	TimeSinceLastAuth = 0.0f;
+
+	if (bSucceeded)
+	{
+		AuthFailureCountsByUser.Remove(PlatformUserIdStr);
+		CurrentAuthCoolDownTime = AuthCoolDownTime;
+		UsersToAuth.Remove(PlatformUserIdStr);
+	}
+	else
+	{
+		int32& FailureCountForUser = AuthFailureCountsByUser.FindOrAdd(PlatformUserIdStr);
+		++FailureCountForUser;
+		CurrentAuthCoolDownTime = FMath::Min(AuthCoolDownTime * FMath::Pow(2.0f, static_cast<float>(FailureCountForUser - 1)), MaxAuthCoolDownTime);
+
+		if (FailureCountForUser >= MaxAuthFailuresBeforeGivingUp)
+		{
+			UE_LOG_ONLINE(Warning, TEXT("FOnlineIdentityPlayFab::Auth_RequestComplete: authentication failed %d times for user %s; giving up until the user is re-queued"), FailureCountForUser, *PlatformUserIdStr);
+			UsersToAuth.Remove(PlatformUserIdStr);
+
+			// A later login-status change must start a fresh retry window.
+			AuthFailureCountsByUser.Remove(PlatformUserIdStr);
+			CurrentAuthCoolDownTime = AuthCoolDownTime;
+		}
+		else
+		{
+			UE_LOG_ONLINE(Warning, TEXT("FOnlineIdentityPlayFab::Auth_RequestComplete: authentication failed for user %s (attempt %d); retrying in %.1fs"), *PlatformUserIdStr, FailureCountForUser, CurrentAuthCoolDownTime);
+		}
+	}
+
 	UserAuthRequestsInFlight.Remove(PlatformUserIdStr);
 }
 
@@ -691,6 +730,7 @@ void FOnlineIdentityPlayFab::RemoveLocalUser(const FString& PlatformUserIdStr)
 	{
 		UserAuthRequestsInFlight.Remove(PlatformUserIdStr);
 		UsersToAuth.Remove(PlatformUserIdStr);
+		AuthFailureCountsByUser.Remove(PlatformUserIdStr);
 
 		for (int32 i = 0; i < LocalPlayFabUsers.Num(); ++i)
 		{
