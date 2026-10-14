@@ -83,7 +83,12 @@ void FPlayFabSocketSubsystem::OnEndpointMessageReceived(const PartyEndpointMessa
 		{
 			if (FPlayFabSocket* Socket = GetSocket())
 			{
+				UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::OnEndpointMessageReceived: Routing endpoint=%u bytes=%d to Socket=%p LinkedNetDriver=%p"), SenderEndpointId, MessagedReceivedChange->messageSize, Socket, GetLinkedNetDriver());
 				Socket->AddNewPendingData(SenderEndpointId, Payload);
+			}
+			else
+			{
+				UE_LOG(LogSockets, Warning, TEXT("FPlayFabSocketSubsystem::OnEndpointMessageReceived: Dropping endpoint=%u bytes=%d; no active socket. LinkedNetDriver=%p"), SenderEndpointId, MessagedReceivedChange->messageSize, GetLinkedNetDriver());
 			}
 		}
 		else
@@ -215,9 +220,26 @@ const TCHAR* FPlayFabSocketSubsystem::GetSocketAPIName() const
 
 FPlayFabSocket* FPlayFabSocketSubsystem::GetSocket()
 {
-	FPlayFabSocket* FoundSocket = nullptr;
-	for (FPlayFabSocket* Socket : ActiveSockets)
+	const int32 ActiveSocketCount = ActiveSockets.Num();
+
+	if (UPlayFabNetDriver* LinkedNetDriver = GetLinkedNetDriver())
 	{
+		if (FPlayFabSocket* LinkedSocket = LinkedNetDriver->GetPlayFabSocket())
+		{
+			if (ActiveSockets.Contains(LinkedSocket))
+			{
+				UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::GetSocket: Using LinkedNetDriver Socket=%p ActiveSockets=%d LinkedNetDriver=%p"), LinkedSocket, ActiveSocketCount, LinkedNetDriver);
+				return LinkedSocket;
+			}
+
+			UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::GetSocket: LinkedNetDriver Socket=%p not in ActiveSockets. ActiveSockets=%d LinkedNetDriver=%p"), LinkedSocket, ActiveSocketCount, LinkedNetDriver);
+		}
+	}
+
+	FPlayFabSocket* FoundSocket = nullptr;
+	for (int32 SocketIdx = ActiveSockets.Num() - 1; SocketIdx >= 0; --SocketIdx)
+	{
+		FPlayFabSocket* Socket = ActiveSockets[SocketIdx];
 		if (Socket)
 		{
 			FoundSocket = Socket;
@@ -227,7 +249,11 @@ FPlayFabSocket* FPlayFabSocketSubsystem::GetSocket()
 
 	if (FoundSocket == nullptr)
 	{
-		UE_LOG(LogSockets, Warning, TEXT("FPlayFabSocketSubsystem::GetSocket: Cannot get Socket, returning null"));
+		UE_LOG(LogSockets, Warning, TEXT("FPlayFabSocketSubsystem::GetSocket: Cannot get socket, returning null. ActiveSockets=%d LinkedNetDriver=%p"), ActiveSocketCount, GetLinkedNetDriver());
+	}
+	else
+	{
+		UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::GetSocket: Selected Socket=%p ActiveSockets=%d LinkedNetDriver=%p"), FoundSocket, ActiveSocketCount, GetLinkedNetDriver());
 	}
 
 	return FoundSocket;
@@ -240,6 +266,8 @@ void FPlayFabSocketSubsystem::AddSocket(FPlayFabSocket* NewSocket)
 	if (NewSocket)
 	{
 		ActiveSockets.Add(NewSocket);
+		const int32 ActiveSocketCount = ActiveSockets.Num();
+		UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::AddSocket: Added Socket=%p ActiveSockets=%d LinkedNetDriver=%p"), NewSocket, ActiveSocketCount, GetLinkedNetDriver());
 	}
 	else
 	{
@@ -252,6 +280,8 @@ void FPlayFabSocketSubsystem::RemoveSocket(FPlayFabSocket* Socket)
 	UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::RemoveSocket"));
 
 	ActiveSockets.RemoveSingleSwap(Socket);
+	const int32 ActiveSocketCount = ActiveSockets.Num();
+	UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::RemoveSocket: Removed Socket=%p ActiveSockets=%d LinkedNetDriver=%p"), Socket, ActiveSocketCount, GetLinkedNetDriver());
 }
 
 void FPlayFabSocketSubsystem::CleanUpActiveSockets()
@@ -270,5 +300,7 @@ void FPlayFabSocketSubsystem::CleanUpActiveSockets()
 
 void FPlayFabSocketSubsystem::LinkNetDriver(UPlayFabNetDriver* InNetDriver)
 {
+	const int32 ActiveSocketCount = ActiveSockets.Num();
+	UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocketSubsystem::LinkNetDriver: OldNetDriver=%p NewNetDriver=%p ActiveSockets=%d"), NetDriver.Get(), InNetDriver, ActiveSocketCount);
 	NetDriver = InNetDriver;
 }
