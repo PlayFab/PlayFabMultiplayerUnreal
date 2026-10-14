@@ -39,6 +39,10 @@ typedef TSharedPtr<class FMatchmakingInterfacePlayFab, ESPMode::ThreadSafe> FMat
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnEndpointMessageReceived, const PartyEndpointMessageReceivedStateChange* /*Change*/);
 typedef FOnEndpointMessageReceived::FDelegate FOnEndpointMessageReceivedDelegate;
 
+/** Fired for messages received on the custom multicast data endpoint. */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCustomDataMessageReceived, const PartyEndpointMessageReceivedStateChange* /*Change*/);
+typedef FOnCustomDataMessageReceived::FDelegate FOnCustomDataMessageReceivedDelegate;
+
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnConnectToPlayFabPartyNetworkCompleted, bool /*bSuccess*/);
 typedef FOnConnectToPlayFabPartyNetworkCompleted::FDelegate FOnConnectToPlayFabPartyNetworkCompletedDelegate;
 
@@ -165,6 +169,7 @@ public:
 	bool bMultiplayerInitialized = false;
 	bool bMemoryCallbacksSet = false;
 	bool bForceAutoLogin = true;
+	bool bEnableCustomDataEndpoint = false;
 
 	int32 MaxDeviceCount = 8;
 	int32 MaxDevicesPerUserCount = 1;
@@ -178,6 +183,8 @@ public:
 	PartyNetwork* Network = nullptr;
 	PartyLocalEndpoint* LocalEndpoint = nullptr;
 	TMap<uint32, PartyEndpoint*> Endpoints;
+	PartyLocalEndpoint* CustomDataLocalEndpoint = nullptr;
+	TMap<uint32, PartyEndpoint*> CustomDataEndpoints;
 	
 	FString NetworkId;
 	PartyNetworkDescriptor NetworkDescriptor;
@@ -211,6 +218,10 @@ private:
 	void DoWork();
 
 	bool InternalConnectToNetwork(PartyLocalUser* PlayFabPartyLocalUser, const FString& InNetworkId, Party::PartyNetworkDescriptor& NetworkDescriptor);
+
+	/** Sends one payload to all remote custom-data endpoints in one Party call. */
+	bool MulticastCustomData(const TArray<uint8>& Payload);
+	friend class UPlayFabNetDriver;
 
 	FOnlineIdentityPlayFabPtr IdentityInterface;
 	FOnlineSessionPlayFabPtr SessionInterface;
@@ -283,6 +294,7 @@ public:
 	void OnConfigureAudioManipulationRenderStreamCompleted(const PartyStateChange* Change);
 
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnEndpointMessageReceived, const PartyEndpointMessageReceivedStateChange* /*Change*/);
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnCustomDataMessageReceived, const PartyEndpointMessageReceivedStateChange* /*Change*/);
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnConnectToPlayFabPartyNetworkCompleted, bool /*bSuccess*/);
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnPartyEndpointCreated, bool /*bSuccess*/, uint16 /*EndpointID*/, bool /*bIsHosting*/);
 	

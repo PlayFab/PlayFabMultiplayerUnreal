@@ -71,6 +71,27 @@ To resolve this issue, follow the steps below:
 
 These updates should resolve the staging conflict for `Party.dll`.
 
+## Custom multicast data channel
+
+The PlayFab net driver can optionally create a second Party endpoint for raw, byte-identical data that a listen server sends to all connected clients in one `SendMessage` call. This side channel is kept separate from Unreal replication traffic.
+
+Enable it consistently on every peer and allow at least two endpoints per device:
+
+```ini
+[OnlineSubsystemPlayFab]
+bEnableCustomDataEndpoint=true
+MaxEndpointsPerDeviceCount=2
+```
+
+Bind the static, single-cast delegates once during game-module startup:
+
+```cpp
+UPlayFabNetDriver::FillCustomMulticastPayloadDelegate.BindStatic(&FillCustomMulticastPayload);
+UPlayFabNetDriver::OnCustomDataReceivedDelegate.BindStatic(&OnCustomDataReceived);
+```
+
+The fill handler receives `UWorld*`, `UNetDriver*`, and an output byte array. It runs once after the listen server's normal `TickFlush` work; returning `true` with a non-empty payload sends it. The receive handler gets the world, net driver, sender PlayFab Entity ID, and payload immediately after normal `TickDispatch` work on the client.
+
 #### UE5.3
 The WinGDK version of UE5.3 is known to have an issue related to HTTP requests. Epic Games has recognized this problem and addressed it in version 5.4. To work around this issue in UE5.3, you can launch your game using the `-UseWinHttpGDK` argument to switch to WinHTTP instead of xCurl.
 

@@ -59,9 +59,10 @@ bool FPlayFabSocket::SendTo(const uint8* Data, int32 Count, int32& BytesSent, co
 	PartyEndpoint* RemoteEndpoint = OSSPlayFab->GetPartyEndpoint(EndpointId);
 	if (RemoteEndpoint == nullptr)
 	{
-		// Might be disconnected peer
+		// Endpoint discovery can lag behind JoinSession completion. Let the connection retry on
+		// the next tick; confirmed disconnects are closed by the endpoint/network destroy paths.
 		UE_LOG(LogSockets, Verbose, TEXT("FPlayFabSocket::SendTo failed, no endpoint for %s"), *Destination.ToString(true));
-		SocketSubsystem->LastSocketError = SE_ENOTCONN;
+		SocketSubsystem->LastSocketError = SE_EWOULDBLOCK;
 		return false;
 	}
 
