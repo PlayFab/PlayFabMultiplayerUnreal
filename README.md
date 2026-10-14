@@ -44,6 +44,18 @@ Platforms|GDK, Win64+Steam, Nintendo Switch, Sony PS4™/PS5™ (See which versi
 
 For users on previous versions of Unreal Engine (UE4.27+, 5.0, 5.1, and 5.2) who wish to use PlayFab Online Subsystem, please view [PlayFab Online Subsystem Overview](https://learn.microsoft.com/en-us/gaming/playfab/features/multiplayer/networking/party-unreal-engine-oss-overview#which-versions-of-unreal-engine-are-supported) for more details.
 If you have any questions, please feel free to open a [Github issue](https://github.com/PlayFab/PlayFabMultiplayerUnreal/issues/new) or open a [support ticket](https://playfab.com/contact/).
+
+## Preserving Party connectivity while debugging
+
+Pausing a title in a debugger can make it unresponsive long enough for Party to disconnect it. Party's temporary debugging mode preserves network connectivity for up to 30 minutes while execution is paused. Enable it in the title's configuration:
+
+```ini
+[OnlineSubsystemPlayFab]
+bUsePartyDebugConnectivityPreservationMode=true
+```
+
+This setting increases the time required to detect crashes or connectivity loss and can delay reconnection after an ungraceful exit. Use it only during active debugging and leave it disabled in production builds. Non-guaranteed delivery messages are recommended while this mode is enabled because messages can accumulate while execution is paused.
+
 ## Important Note
 #### UE5.7, UE5.6, UE5.5 and UE5.4
 
