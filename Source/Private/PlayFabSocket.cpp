@@ -6,8 +6,6 @@
 #include "PlayFabSocketSubsystem.h"
 #include "OnlineSubsystemPlayFab.h"
 
-const uint32 FPlayFabSocket::SendTimeout = 500;
-
 FPlayFabSocket::FPlayFabSocket(FOnlineSubsystemPlayFab* InOSSPlayFab, const FString& InSocketDescription, const FName& InSocketProtocol) :
 	FSocket(SOCKTYPE_Datagram, InSocketDescription, InSocketProtocol),
 	OSSPlayFab(InOSSPlayFab),
@@ -15,9 +13,14 @@ FPlayFabSocket::FPlayFabSocket(FOnlineSubsystemPlayFab* InOSSPlayFab, const FStr
 	LocalEndpoint(OSSPlayFab->LocalEndpoint),
 	PendingPackets(2048)
 {
+	// Default send-queue timeout (ms) applied to every Party message. Overridable via
+	// [OnlineSubsystemPlayFab] SendMessageTimeoutMs in Engine.ini.
+	int32 SendMessageTimeoutMs = 500;
+	GConfig->GetInt(TEXT("OnlineSubsystemPlayFab"), TEXT("SendMessageTimeoutMs"), SendMessageTimeoutMs, GEngineIni);
+
 	PartyQueueConfiguration.priority = Party::c_maxSendMessageQueuingPriority;
 	PartyQueueConfiguration.identityForCancelFilters = static_cast<uint32>(reinterpret_cast<uintptr_t>(this));
-	PartyQueueConfiguration.timeoutInMilliseconds = SendTimeout;
+	PartyQueueConfiguration.timeoutInMilliseconds = SendMessageTimeoutMs;
 }
 
 FPlayFabSocket::~FPlayFabSocket()

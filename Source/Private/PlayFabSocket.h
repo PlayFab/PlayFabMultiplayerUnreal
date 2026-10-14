@@ -26,8 +26,6 @@ struct PartyPacket
 class FPlayFabSocket : public FSocket
 {
 PACKAGE_SCOPE:
-	static const uint32 SendTimeout;
-	
 	class FOnlineSubsystemPlayFab* OSSPlayFab = nullptr;
 	class FPlayFabSocketSubsystem* SocketSubsystem = nullptr;
 	TWeakObjectPtr<UPlayFabNetDriver> NetDriver;
