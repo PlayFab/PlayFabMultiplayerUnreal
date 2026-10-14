@@ -485,6 +485,22 @@ void FOnlineIdentityPlayFab::FinishRequest(bool bPlatformDataSuccess, const FStr
 			RequestBodyJson->SetBoolField(TEXT("CreateAccount"), true);
 			RequestBodyJson->SetStringField(TEXT("TitleId"), TitleIdStr);
 
+#if defined(OSS_PLAYFAB_PLAYSTATION)
+			FString PsnAuthVersion;
+			if (GConfig->GetString(TEXT("OnlineSubsystemPlayFab"), TEXT("PsnAuthVersion"), PsnAuthVersion, GEngineIni))
+			{
+				PsnAuthVersion.TrimStartAndEndInline();
+				if (PsnAuthVersion.Equals(TEXT("v2"), ESearchCase::IgnoreCase) || PsnAuthVersion.Equals(TEXT("v3"), ESearchCase::IgnoreCase))
+				{
+					RequestBodyJson->SetStringField(TEXT("AuthVersion"), PsnAuthVersion.ToLower());
+				}
+				else
+				{
+					UE_LOG_ONLINE(Error, TEXT("FOnlineIdentityPlayFab::FinishRequest: PsnAuthVersion must be v2 or v3; omitting AuthVersion"));
+				}
+			}
+#endif
+
 			// Serialize request body
 			FString RequestBodySerialized;
 			TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestBodySerialized);
