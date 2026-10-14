@@ -1083,59 +1083,66 @@ void FPlayFabLobby::HandleCreateAndJoinLobbyCompleted(const PFLobbyCreateAndJoin
 	{
 		SessionName = *FoundSessionName;
 
-		FOnlineSessionPlayFabPtr SessionInterface = OSSPlayFab->GetSessionInterfacePlayFab();
-		if (SessionInterface.IsValid())
+		if (FAILED(StateChange.result))
 		{
-			FNamedOnlineSessionPtr ExistingNamedSession = SessionInterface->GetNamedSessionPtr(SessionName);
-			if (ExistingNamedSession.IsValid())
+			UE_LOG_ONLINE(Error, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted failed. ErrorCode=[0x%08x], Error message:%s"), StateChange.result, *GetMultiplayerErrorMessage(StateChange.result));
+		}
+		else
+		{
+			FOnlineSessionPlayFabPtr SessionInterface = OSSPlayFab->GetSessionInterfacePlayFab();
+			if (SessionInterface.IsValid())
 			{
-				const char* LobbyId;
-				HRESULT Hr = PFLobbyGetLobbyId(StateChange.lobby, &LobbyId);
-				if (SUCCEEDED(Hr))
+				FNamedOnlineSessionPtr ExistingNamedSession = SessionInterface->GetNamedSessionPtr(SessionName);
+				if (ExistingNamedSession.IsValid())
 				{
-					const char* ConnectionString;
-					Hr = PFLobbyGetConnectionString(StateChange.lobby, &ConnectionString);
+					const char* LobbyId;
+					HRESULT Hr = PFLobbyGetLobbyId(StateChange.lobby, &LobbyId);
 					if (SUCCEEDED(Hr))
 					{
-						FOnlineSessionInfoPlayFabPtr NewSessionInfo = StaticCastSharedPtr<FOnlineSessionInfoPlayFab>(ExistingNamedSession->SessionInfo);
-						if (NewSessionInfo.IsValid())
+						const char* ConnectionString;
+						Hr = PFLobbyGetConnectionString(StateChange.lobby, &ConnectionString);
+						if (SUCCEEDED(Hr))
 						{
-							bSuccess = true;
+							FOnlineSessionInfoPlayFabPtr NewSessionInfo = StaticCastSharedPtr<FOnlineSessionInfoPlayFab>(ExistingNamedSession->SessionInfo);
+							if (NewSessionInfo.IsValid())
+							{
+								bSuccess = true;
 
-							NewSessionInfo->LobbyHandle = StateChange.lobby;
-							NewSessionInfo->SetSessionId(UTF8_TO_TCHAR(LobbyId));
-							NewSessionInfo->ConnectionString = UTF8_TO_TCHAR(ConnectionString);
+								NewSessionInfo->LobbyHandle = StateChange.lobby;
+								NewSessionInfo->SetSessionId(UTF8_TO_TCHAR(LobbyId));
+								NewSessionInfo->ConnectionString = UTF8_TO_TCHAR(ConnectionString);
 
-							ExistingNamedSession->SessionState = EOnlineSessionState::Pending;
+								ExistingNamedSession->SessionState = EOnlineSessionState::Pending;
 
 #if defined(OSS_PLAYFAB_GDK)
-							ExistingNamedSession->SessionInfo = NewSessionInfo;
-							SessionInterface->SetMultiplayerActivityForSession(ExistingNamedSession);
+								ExistingNamedSession->SessionInfo = NewSessionInfo;
+								SessionInterface->SetMultiplayerActivityForSession(ExistingNamedSession);
 #endif
+							}
+							else
+							{
+								UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnCreateAndJoinLobbyCompleted: SessionInfo was null"));
+							}
 						}
 						else
 						{
-							UE_LOG_ONLINE_SESSION(Warning, TEXT("FOnlineSessionPlayFab::OnCreateAndJoinLobbyCompleted: SessionInfo was null"));
+							UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: failed to GetConnectionString: 0x%08x"), Hr);
 						}
 					}
 					else
 					{
-						UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: failed to GetConnectionString: 0x%08x"), Hr);
+						UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: failed to GetLobbyId: 0x%08x"), Hr);
 					}
 				}
 				else
 				{
-					UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: failed to GetLobbyId: 0x%08x"), Hr);
+					UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: ExistingNamedSession was null"));
 				}
 			}
 			else
 			{
-				UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: ExistingNamedSession was null"));
+				UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: SessionInterface was null"));
 			}
-		}
-		else
-		{
-			UE_LOG_ONLINE(Warning, TEXT("FPlayFabLobby::HandleCreateAndJoinLobbyCompleted: SessionInterface was null"));
 		}
 	}
 	else
