@@ -21,7 +21,7 @@ keywords: playfab, multiplayer, networking, unreal, unreal engine, unreal engine
 [![PRs welcome][badge-prs]][link-prs]
 
 > [!NOTE]
-> This SDK supports the Legacy (v1) SDKs for PlayFab. If you are using the Unified SDK for PlayFab, please see https://github.com/PlayFab/PlayFabSDK_Unreal
+> This is the standalone PlayFab Online Subsystem. If you're using the [Unified PlayFab Unreal SDK](https://github.com/PlayFab/PlayFabSDK_Unreal), use the OnlineSubsystemPlayFab plugin included there instead.
 
 ## Introduction
 
