@@ -11,6 +11,18 @@ keywords: playfab, multiplayer, networking, unreal, unreal engine, unreal engine
 
 # PlayFab Multiplayer Unreal Online Subsystem (OSS)
 
+[![Latest release][badge-release]][link-release]
+[![License: MIT][badge-license]][link-license]
+[![Unreal Engine 5.7][badge-unreal]][link-unreal]
+[![Microsoft GDK April 2025][badge-gdk]][link-gdk]
+[![Documentation on Microsoft Learn][badge-docs]][link-docs]
+[![Visit our Blog][badge-blog]][link-blog]
+[![Join us on Discord][badge-discord]][link-discord]
+[![PRs welcome][badge-prs]][link-prs]
+
+> [!NOTE]
+> This SDK supports the Legacy (v1) SDKs for PlayFab. If you are using the Unified SDK for PlayFab, please see https://github.com/PlayFab/PlayFabSDK_Unreal
+
 ## Introduction
 
 The PlayFab Online Subsystem (PF OSS) v2 enables you to make use of PlayFab Multiplayer features like Lobby, Matchmaking, Party and Azure Cognitive Services in your Unreal Engine game.
@@ -83,3 +95,20 @@ For games shipping to Xbox console and PC Game Pass program before September 202
 "PlayStation" is a registered trademark or trademark of Sony Interactive Entertainment Inc.<br />
 "PS4" is a registered trademark or trademark of Sony Interactive Entertainment Inc.<br />
 "PS5" is a registered trademark or trademark of Sony Interactive Entertainment Inc.
+
+[badge-release]: https://img.shields.io/github/v/release/PlayFab/PlayFabMultiplayerUnreal?label=release&color=107C10
+[link-release]: https://github.com/PlayFab/PlayFabMultiplayerUnreal/releases
+[badge-license]: https://img.shields.io/github/license/PlayFab/PlayFabMultiplayerUnreal?color=107C10
+[link-license]: LICENSE
+[badge-unreal]: https://img.shields.io/badge/Unreal%20Engine-5.7-0E1128?logo=unrealengine&logoColor=white
+[link-unreal]: https://www.unrealengine.com/
+[badge-gdk]: https://img.shields.io/badge/Microsoft%20GDK-April%202025-107C10
+[link-gdk]: https://github.com/microsoft/GDK/releases
+[badge-docs]: https://img.shields.io/badge/docs-Microsoft%20Learn-0078D4
+[link-docs]: https://learn.microsoft.com/xbox/playfab/multiplayer/networking/party-unreal-engine-oss-overview
+[badge-blog]: https://img.shields.io/badge/Visit%20our-Blog-FFA500?logo=rss&logoColor=white
+[link-blog]: https://developer.microsoft.com/en-us/games/articles/tags/playfab/
+[badge-discord]: https://img.shields.io/badge/Join%20us%20on-Discord-7289DA?logo=discord&logoColor=white
+[link-discord]: https://aka.ms/msftgamedevdiscord
+[badge-prs]: https://img.shields.io/badge/PRs-welcome-d6336c
+[link-prs]: https://github.com/PlayFab/PlayFabMultiplayerUnreal/pulls
